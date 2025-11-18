@@ -13,6 +13,9 @@ Now should be able to write code normally
 
 NEXT: try running the app.py to make sure everything worked
 1.) You should now be in (venv) from previous step
+    If not then Activate the virtual environment:
+        a.) source venv/bin/activate    # Mac/Linux
+        b.) venv\Scripts\activate       # Windows
 2.) Inside terminal do:
         Window -----> python app.py  
         Mac --------> python3 app.py
@@ -23,9 +26,6 @@ NEXT: try running the app.py to make sure everything worked
 5.) to exit venv:
     Command: deactivate 
     Thats it on both windows and mac/linux
-
-
-
 
 
 
