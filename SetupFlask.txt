@@ -1,0 +1,46 @@
+Everyone must do this only ONE time:
+1.) cd flask-backend                # Important to be in right directory
+2.) Install virtual environment:
+    a.) python3 -m venv venv        # Mac/Linux
+    b.) python -m venv venv         # Windows
+3.) Activate the virtual environment:
+    a.) source venv/bin/activate    # Mac/Linux
+    b.) venv\Scripts\activate       # Windows
+5.) Install dependencies:
+    a.) pip3 install -r requirements.txt    # Mac/Linux
+    b.) pip install -r requirements.txt     # Windows
+Now should be able to write code normally
+
+NEXT: try running the app.py to make sure everything worked
+1.) You should now be in (venv) from previous step
+2.) Inside terminal do:
+        Window -----> python app.py  
+        Mac --------> python3 app.py
+3.) Ctrl + click on http://127.....etc
+    a.) You should see on your web browser: 
+        "Flask is installed and running smoothly!"
+4.) to quit do Ctrl + C
+5.) to exit venv:
+    Command: deactivate 
+    Thats it on both windows and mac/linux
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------Avoid this for now-------------------------
+Later Side Note: Each dev creates their own .env file in /backend:
+1.) DATABASE_URL="postgresql://..."
+2.) FLASK_SECRET_KEY="..."
+3.) And .env goes in .gitignore.
+4.) Paste neon connection string into own .env safely
+----------------------------------------------------------

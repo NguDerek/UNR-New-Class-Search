@@ -1,0 +1,13 @@
+Connect to database:
+1.) Go to neon dashboard
+2.) Click Connect
+3.) Copy Connection String snippet
+4.) For windows change single quotes '' to double quotes ""
+    For Mac leave as is
+5.) Paste into terminal
+6.) Done! connected to database
+
+Once Connected test out
+\l to list databases
+\h for commands
+\q quit
