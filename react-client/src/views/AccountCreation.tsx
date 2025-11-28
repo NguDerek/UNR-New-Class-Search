@@ -58,17 +58,6 @@ export default function AccountCreation() {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
           <input
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Name"
-            style={{ width: '100%', padding: '8px' }}
-          />
-          {errors.name && <p style={{ color: 'red' }}>{errors.name}</p>}
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <input
             name="email"
             type="email"
             value={formData.email}
