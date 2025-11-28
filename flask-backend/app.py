@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
 import os
 import psycopg2
 
@@ -46,6 +47,22 @@ def get_courses():
 
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
+
+    
+@app.route('api/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    #Check DB for user existing
+    
+    #werkzeug for password hashing might be changed to bcrypt
+    hashed_password = generate_password_hash(password)
+    
+    #add email and hashed password to DB
+    
+    return jsonify({'message': 'User created successfully'}), 201
 
 if __name__ == "__main__":
     app.run(debug=True)
