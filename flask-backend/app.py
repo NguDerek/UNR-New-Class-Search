@@ -89,5 +89,18 @@ def signup():
         print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        #Check if we are actually getting the data from react to flask
+        data = request.get_json()
+        print(f"Login attempt: {data}")
+        
+        return jsonify({'login'}), 67676767
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
