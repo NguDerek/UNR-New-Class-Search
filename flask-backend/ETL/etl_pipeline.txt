@@ -1,0 +1,119 @@
+Extract Transform Load
+
+Extract:
+df = pd.read_excel(file_name, header=1, nrows=12, index_col=None)
+
+1.) read the excel file
+2.) the column names will be the header AND its on the 2nd row so header=1
+3.) nrows is the number of excel rows you want to use instead of the full 10k+
+4.) index_col = None avoids an index being created like 0, 1, 2 for every row of data
+    Also index_col = 0 would use colleges (the first column) as the index.
+
+re.search(r'(\d{4})', file_name)
+    re.search uses regex serach function
+    r'\d{4}' extracts regular expressions first 4 consecutive digits (2025)
+
+year = int(year_match.group(1))
+    get the first matched group of 4 digits and cast it to type int
+
+df["year"] = year
+    assign the academic year to ALL rows of data (all classes in excel are for 2025)
+
+Transform:
+def float_to_time(value) AND def string_to_bool(value) 
+
+1.) Helper functions that convert columns to the datatype the database schema expects
+
+def transform_data(df)
+    This is the main tranform function that returns back the tranformed df
+
+1.) df = df.drop(columns=[])
+        This drops any irrelevant columns not used in the database schema
+2.) column_mapping = {}
+        This dictionary helps rename all excel columns in an easy to read way
+3.) df = df.rename(columns=column_mapping)
+        This just renames the columns using that dictionary
+4.) df["start_time"] = df["start_time"].apply(float_to_time)
+        This reassigns the value of the time column to match,
+        what the database expects using the helper function,
+        which returns pd.to_datetime(f"{hour}:{minute:02d}:00").time()
+        so hh.mm becomes hh:mm:ss
+5.) df["combined"] = df["combined"].apply(string_to_bool)
+        This reassigns the value of the combined column to,
+        match what the database expects using the helper funct,
+        so yes/no becomes True/False/None
+6.) return the tranformed data frame at the end of the function
+7.) df = transform_data(df)
+        This just updates the current df by calling the transform function
+
+Load:
+caches 
+    avoids having to query for same id over and over,
+    instead just store table id's in a dictionary
+
+terms = df[["session_code", "start_date", "end_date"]].drop_duplicates()
+    get the term columns from df and remove any duplicates
+    double [[]] to return dataframe instead of [] for series
+    dataframe holds multiple columns and does drop.duplicates row-wise
+
+for _, row in terms.iterrows():
+    loop through every row in the terms column of the df
+
+cursor.execute("""query""")
+    exectutes a single SQL command 
+    triple """ quotes is python syntax for multi line string
+
+VALUES (%s, %s, %s)
+    placeholders to avoid SQL injection
+    Example of SQL injection
+    VAlUES (row.value)
+        row.value = 12345'); DROP TABLE term; --
+        becomes:
+            VALUES ('12345'); DROP TABLE term;--')
+            --') at the end would be gone since -- is comment in SQL
+            so then it becomes:
+                VALUES ('12345'); DROP TABLE term;
+
+ON CONFLICT (session_code) DO NOTHING
+    If a row with this session_code already exists, skip insertion.
+    This prevents duplicates from bloating database
+
+RETURNING id;
+    returning id attempts to return the id of the row inserted.
+        If row inserted successfully -> new id made -> the database returns the new id.
+        If row already exists -> no new id made -> no id to return (return nothing).
+
+""", (row.session_code, row.start_date, row.end_date))
+    these values replace the placeholders in VALUES(%s, %s, %s)
+
+result = cursor.fetchone()
+    cursor.execute sends command to database
+    cursor.fetch retrieves data from the database
+        fetchone(), fetchall(), fetchmany(n)
+    store that fetched result into the variable result
+
+Note: psycopg2 always returns rows as tuple-like data, even when it’s a single value.
+    This is just for consistency of returning 1, 5, or 50 columns of data
+    So, code can ALWAYS be: restult = tuple
+    you save the ENTIRE row as a single tuple.
+    Then you can do: term_id = result[0]
+    result[0] is the first value of the tuple, the row ID
+
+result if statement
+    termid is set to a valid result that is retrieved, else null
+
+result if none statement
+    ensure correct id is found even if term already existed in table
+    cursor.fetchone()[0] gets the id selected 
+    Remember: fetchone()[0] even if single value fetched b/c stored as tuple (id, )
+
+term_cache[row.session_code, row.year] = term_id
+    just uses row.session_code and row.year as the key and termid as the value in cache
+    this is later used for getting the term_id quickly for inserting in section as FK
+
+conn.commit()
+    Although the ccursor.executes already completed, 
+    still need to commit the changes to the database,
+    similar to BEGIN; SQL statement; COMMIT;
+
+Still need to finish documentation...

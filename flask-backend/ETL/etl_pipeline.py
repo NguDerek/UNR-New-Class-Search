@@ -1,44 +1,27 @@
 import pandas as pd
 import psycopg2
 import os
+import re
 from dotenv import load_dotenv
 
-########## extract the data from our excel sheet ##########
-df = pd.read_excel("Fall_2025_excel.xlsx", header=1, nrows=12, index_col=None)  # adjust nrows for testing
+# ------------------ Extract ------------------
+def extract_excel(file_name):
+    df = pd.read_excel(file_name, header=1, nrows=100, index_col=None)
 
-########## begin transforming the data ##########
+    year_match = re.search(r'(\d{4})', file_name)
 
-# 1.) drop irrelevant columns
-df = df.drop(columns=["Class Nbr", "Room Capacity", "Current Enrollment", 
-                      "Waitlist Capacity", "Waitlist Total", "Acad Group"])
+    if not year_match:
+        raise ValueError("No 4 digit year found in excel filename\n")
+    
+    year = int(year_match.group(1))
 
-# 2.) rename columns
-column_mapping = {
-    "College": "college",
-    "Acad Org": "dept_code",
-    "Subject": "subject",
-    "Catalog": "catalog",
-    "Section": "section_number",
-    "Title": "title",
-    "Component": "component",
-    "Session": "session_code",
-    "Instruction Mode": "instruction_mode",
-    "Class Days": "class_days",
-    "Class Start Time": "start_time",
-    "Class End Time": "end_time",
-    "Start Date": "start_date",
-    "End Date": "end_date",
-    "Room": "room_code",
-    "Instructor First Name": "first_name",
-    "Instructor Last Name": "last_name",
-    "Enrollment Capacity": "enrollment_capacity",
-    "Combined?": "combined",
-    "Class Stat": "class_status",
-    "Prgrss Unt": "units"
-}
-df.rename(columns=column_mapping, inplace=True)
+    df["year"] = year
 
-# 3.) convert time float hh.mm to hh:mm:ss
+    return df
+
+df = extract_excel("Fall 2025 Master Schedule.xlsx")
+
+# ------------------ Transform ------------------
 def float_to_time(value):
     if pd.isnull(value):
         return None
@@ -46,10 +29,6 @@ def float_to_time(value):
     minute = int(round((value - hour) * 100))
     return pd.to_datetime(f"{hour}:{minute:02d}:00").time()
 
-df["start_time"] = df["start_time"].apply(float_to_time)
-df["end_time"] = df["end_time"].apply(float_to_time)
-
-# 4.) convert combined to bool
 def string_to_bool(value):
     if pd.isnull(value):
         return None
@@ -60,13 +39,53 @@ def string_to_bool(value):
         return False
     return None
 
-df["combined"] = df["combined"].apply(string_to_bool)
+def transform_data(df):
+    # ------------------ drop irrelevant columns ------------------
+    df = df.drop(columns=["Class Nbr", "Room Capacity", "Current Enrollment", 
+                          "Waitlist Capacity", "Waitlist Total", "Acad Group"])
 
-########## load the data into the database ##########
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-conn = psycopg2.connect(DATABASE_URL)
-cursor = conn.cursor()
+    # ------------------ rename columns ------------------
+    column_mapping = {
+        "College": "college",
+        "Acad Org": "department_code",
+        "Subject": "subject",
+        "Catalog": "catalog_num",
+        "Section": "section_num",
+        "Title": "title",
+        "Component": "component",
+        "Session": "session_code",
+        "Instruction Mode": "instruction_mode",
+        "Class Days": "class_days",
+        "Class Start Time": "start_time",
+        "Class End Time": "end_time",
+        "Start Date": "start_date",
+        "End Date": "end_date",
+        "Room": "room_code",
+        "Instructor First Name": "first_name",
+        "Instructor Last Name": "last_name",
+        "Enrollment Capacity": "enrollment_capacity",
+        "Combined?": "combined",
+        "Class Stat": "class_status",
+        "Prgrss Unt": "units",
+    }
+    df = df.rename(columns=column_mapping)
+
+    # ------------------ convert time ------------------
+    df["start_time"] = df["start_time"].apply(float_to_time)
+    df["end_time"] = df["end_time"].apply(float_to_time)
+
+    # ------------------ convert combined ------------------
+    df["combined"] = df["combined"].apply(string_to_bool)
+
+    return df
+
+df = transform_data(df)
+
+# ------------------ Load ------------------
+load_dotenv()                               # read the .env file
+DATABASE_URL = os.getenv("DATABASE_URL")    # update connection string
+conn = psycopg2.connect(DATABASE_URL)       # conn is live db connection
+cursor = conn.cursor()                      # cursor allows for executing SQL
 
 def load_to_db(df):
     # ------------------ caches ------------------
@@ -74,64 +93,90 @@ def load_to_db(df):
     dept_cache = {}
     course_cache = {}
     instructor_cache = {}
+    section_cache = {}
 
     # ------------------ terms ------------------
-    terms = df[["session_code", "start_date", "end_date"]].drop_duplicates()
+    terms = df[["session_code", "year", "start_date", "end_date"]].drop_duplicates()
+
     for _, row in terms.iterrows():
         cursor.execute("""
-            INSERT INTO term (session_code, start_date, end_date)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (session_code) DO NOTHING
+            INSERT INTO term (session_code, year, start_date, end_date)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (session_code, year) DO NOTHING
             RETURNING id;
-        """, (row.session_code, row.start_date, row.end_date))
+        """, (row.session_code, row.year, row.start_date, row.end_date))
+
         result = cursor.fetchone()
-        term_id = result[0] if result else None
+
+        if result:
+            term_id = result[0]
+        else:
+            term_id = None
+
         if term_id is None:
-            cursor.execute("SELECT id FROM term WHERE session_code = %s", (row.session_code,))
+            cursor.execute("""
+                SELECT id FROM term 
+                WHERE session_code = %s AND year = %s
+            """, (row.session_code, row.year))
             term_id = cursor.fetchone()[0]
-        term_cache[row.session_code] = term_id
-    conn.commit()
+        term_cache[row.session_code, row.year] = term_id
 
     # ------------------ departments ------------------
-    departments = df[["college", "dept_code"]].drop_duplicates()
+    departments = df[["college", "department_code"]].drop_duplicates()
+
     for _, row in departments.iterrows():
         cursor.execute("""
             INSERT INTO department (college, department_code)
-            VALUES (%s, %s)
+            VALUES(%s, %s) 
             ON CONFLICT (department_code) DO NOTHING
             RETURNING id;
-        """, (row.college, row.dept_code))
+        """, (row.college, row.department_code))
+        
         result = cursor.fetchone()
-        dept_id = result[0] if result else None
-        if dept_id is None:
-            cursor.execute("SELECT id FROM department WHERE department_code = %s", (row.dept_code,))
-            dept_id = cursor.fetchone()[0]
-        dept_cache[row.dept_code] = dept_id
-    conn.commit()
+
+        if result:
+            department_id = result[0]
+        else:
+            department_id = None
+        
+        if department_id is None:
+            cursor.execute("""
+                SELECT id FROM department
+                WHERE department_code = %s
+            """, (row.department_code, ))   # quick note single value still tuple (val, )
+            department_id = cursor.fetchone()[0]
+        dept_cache[row.department_code] = department_id
 
     # ------------------ courses ------------------
-    courses = df[["dept_code", "subject", "catalog", "title", "units", "description"]].drop_duplicates()
+    courses = df[["department_code", "subject", "catalog_num", "title", "units"]].drop_duplicates()
+
     for _, row in courses.iterrows():
-        dept_id = dept_cache[row.dept_code]
+        department_id = dept_cache[row.department_code]
         cursor.execute("""
-            INSERT INTO course (department_id, subject, catalog_num, title, units, description)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (department_id, subject, catalog_num) DO NOTHING
+            INSERT INTO course (department_id, subject, catalog_num, title, units)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (subject, catalog_num) DO NOTHING
             RETURNING id;
-        """, (dept_id, row.subject, row.catalog, row.title, row.units, row.description))
+        """, (department_id, row.subject, row.catalog_num, row.title, row.units))
+
         result = cursor.fetchone()
-        course_id = result[0] if result else None
+
+        if result:
+            course_id = result[0]
+        else:
+            course_id = None
+        
         if course_id is None:
             cursor.execute("""
                 SELECT id FROM course
-                WHERE department_id=%s AND subject=%s AND catalog_num=%s
-            """, (dept_id, row.subject, row.catalog))
+                WHERE subject = %s AND catalog_num = %s;
+            """, (row.subject, row.catalog_num))
             course_id = cursor.fetchone()[0]
-        course_cache[(row.subject, row.catalog)] = course_id
-    conn.commit()
+        course_cache[row.subject, row.catalog_num] = course_id
 
     # ------------------ instructors ------------------
     instructors = df[["first_name", "last_name"]].drop_duplicates()
+
     for _, row in instructors.iterrows():
         cursor.execute("""
             INSERT INTO instructor (first_name, last_name)
@@ -139,46 +184,72 @@ def load_to_db(df):
             ON CONFLICT (first_name, last_name) DO NOTHING
             RETURNING id;
         """, (row.first_name, row.last_name))
-        result = cursor.fetchone()
-        inst_id = result[0] if result else None
-        if inst_id is None:
-            cursor.execute("SELECT id FROM instructor WHERE first_name=%s AND last_name=%s", (row.first_name, row.last_name))
-            inst_id = cursor.fetchone()[0]
-        instructor_cache[(row.first_name, row.last_name)] = inst_id
-    conn.commit()
 
-    # ------------------ sections & section_instructor ------------------
-    for _, row in df.iterrows():
-        course_id = course_cache[(row.subject, row.catalog)]
-        term_id = term_cache[row.session_code]
+        result = cursor.fetchone()
+
+        if result:
+            instructor_id = result[0]
+        else:
+            instructor_id = None
+
+        if instructor_id is None:
+            cursor.execute("""
+                SELECT id FROM instructor
+                WHERE first_name = %s AND last_name = %s;
+            """, (row.first_name, row.last_name))
+            instructor_id = cursor.fetchone()[0]
+        instructor_cache[row.first_name, row.last_name] = instructor_id
+        
+    # ------------------ sections ------------------
+    sections = df[["subject", "catalog_num", "session_code", "year",
+                   "section_num", "component", "instruction_mode",
+                   "class_days", "start_time", "end_time", "combined",
+                   "class_status", "enrollment_capacity", "room_code"]]
+    
+    for _, row in sections.iterrows():
+        course_id = course_cache[row.subject, row.catalog_num]
+        term_id = term_cache[row.session_code, row.year]
+
         cursor.execute("""
-            INSERT INTO section (course_id, term_id, section_num, component, instruction_mode,
-                                 class_days, start_time, end_time, combined, class_status,
-                                 enrollment_capacity, room_code)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            INSERT INTO section (course_id, term_id, section_num, component,
+                       instruction_mode, class_days, start_time, end_time,
+                       combined, class_status, enrollment_capacity, room_code)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (course_id, term_id, section_num) DO NOTHING
             RETURNING id;
-        """, (course_id, term_id, row.section_number, row.component, row.instruction_mode,
-              row.class_days, row.start_time, row.end_time, row.combined, row.class_status,
-              row.enrollment_capacity, row.room_code))
+        """, (course_id, term_id, row.section_num, row.component, row.instruction_mode,
+              row.class_days, row.start_time, row.end_time, row.combined, 
+              row.class_status, row.enrollment_capacity, row.room_code))
+        
         result = cursor.fetchone()
-        section_id = result[0] if result else None
+
+        if result:
+            section_id = result[0]
+        else:
+            section_id = None
+
         if section_id is None:
             cursor.execute("""
-                SELECT id FROM section
-                WHERE course_id=%s AND term_id=%s AND section_num=%s
-            """, (course_id, term_id, row.section_number))
+                SELECT id FROM section 
+                WHERE course_id = %s AND term_id = %s AND section_num = %s;
+            """, (course_id, term_id, row.section_num))
             section_id = cursor.fetchone()[0]
+        section_cache[course_id, term_id, row.section_num] = section_id
 
-        instructor_id = instructor_cache[(row.first_name, row.last_name)]
+    # ------------------ section_instructor ------------------
+    for _, row in df.iterrows():
+        term_id = term_cache[row.session_code, row.year]
+        course_id = course_cache[row.subject, row.catalog_num]
+        section_id = section_cache[course_id, term_id, row.section_num]
+        instructor_id = instructor_cache[row.first_name, row.last_name]
+
         cursor.execute("""
             INSERT INTO section_instructor (section_id, instructor_id)
             VALUES (%s, %s)
-            ON CONFLICT DO NOTHING
+            ON CONFLICT (section_id, instructor_id) DO NOTHING;
         """, (section_id, instructor_id))
     conn.commit()
 
-# -------------------------
-# Run ETL
+# ------------------ run the etl process ------------------
 load_to_db(df)
-print("ETL completed successfully!")
+print("working \n")
