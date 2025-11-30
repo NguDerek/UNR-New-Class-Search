@@ -5,11 +5,13 @@ import { z } from 'zod'
 //will be used for form validation later
 //Interface can be used here but Zod seems better for form validation?
 const signUpSchema = z.object({
-  email: z.email('Invalid email address'),
+  email: z.email('Invalid email address')
+  .nonempty("Email missing"),
   password: z.string()
   .min(8, 'Password must be at least 8 characters')
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
   .regex(/[0-9]/, 'Password must contain at least one number')
+  .nonempty("Password missing")
 })
 
 export default function AccountCreation() {

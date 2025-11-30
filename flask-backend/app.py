@@ -49,20 +49,45 @@ def get_courses():
         return {"status": "error", "message": str(e)}, 500
 
     
-@app.route('api/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
 def signup():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    #Check DB for user existing
-    
-    #werkzeug for password hashing might be changed to bcrypt
-    hashed_password = generate_password_hash(password)
-    
-    #add email and hashed password to DB
-    
-    return jsonify({'message': 'User created successfully'}), 201
+    try:
+        #Check if we are actually getting the data from react to flask
+        data = request.get_json()
+        print(f"Received data: {data}")
+        
+        email = data.get('email')
+        password = data.get('password')
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        #Check DB for user existing
+        cur.execute('SELECT * FROM users WHERE email = %s', (email,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        #add email and hashed password to DB
+        hashed_password = generate_password_hash(password)
+        cur.execute(
+            'INSERT INTO users (email, password) VALUES (%s, %s)',
+            (email, hashed_password)
+        )
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({'message': 'User created successfully'}), 201
+        
+    except psycopg2.Error as db_error:
+        print(f"Database error: {db_error}")
+        return jsonify({'error': f'Database error: {str(db_error)}'}), 500
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
