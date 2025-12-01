@@ -1,5 +1,6 @@
 import { Home, Search, Calendar, GraduationCap, Settings, User } from "lucide-react";
-import { cn } from "./ui/utils";
+import { cn } from "../lib/utils";
+import UNR_Logo from "../assets/UNR_Logo.svg"
 
 interface NavItem {
   name: string;
@@ -26,19 +27,15 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
       {/* Logo and Profile */}
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
+          <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center shadow-md shrink-0">
             {/* REPLACE WITH ACTUAL UNR LOGO HERE */}
-            {/* <img 
-                src={unrLogo} 
+            <img 
+                src={UNR_Logo} 
                 alt="UNR Logo" 
                 className="w-full h-full object-contain"
-            /> */}
-            <span className="text-[#003366] text-xl" style={{
-              WebkitTextStroke: '2px white',
-              paintOrder: 'stroke fill'
-            }}>N</span>
+            />
           </div>
-          <button className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors flex-shrink-0">
+          <button className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors shrink-0">
             <User className="w-4 h-4 text-slate-600" />
           </button>
           <div className="flex-1 min-w-0">

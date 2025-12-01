@@ -1,6 +1,6 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "./ui/Card";
+import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { User, Bell, Palette, SlidersHorizontal, LogOut } from "lucide-react";
-import { Button } from "./ui/Button";
+import { Button } from "./ui/button";
 
 interface SettingsProps {
   onLogout?: () => void;
@@ -46,7 +46,7 @@ export function Settings({ onLogout }: SettingsProps) {
             <Card key={card.title} className="border-slate-200 shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center shrink-0">
                     <Icon className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -65,7 +65,7 @@ export function Settings({ onLogout }: SettingsProps) {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shrink-0">
                     <LogOut className="w-5 h-5 text-white" />
                   </div>
                   <div>

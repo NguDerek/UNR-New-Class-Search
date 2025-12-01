@@ -40,7 +40,7 @@ export function Planner({ plannedCourses, onRemoveFromPlanner }: PlannerProps) {
 
       {/* Summary Card */}
       {plannedCourses.length > 0 && (
-        <div className="mb-8 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6">
+        <div className="mb-8 bg-linear-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <p className="text-slate-600 text-sm mb-1">Total Courses</p>

@@ -1,6 +1,6 @@
-import { Badge } from "./ui/Badge";
-import { Button } from "./ui/Button";
-import { Card } from "./ui/Card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card } from "./ui/card";
 import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check } from "lucide-react";
 
 interface CourseCardProps {
@@ -33,7 +33,7 @@ export function CourseCard({
   capacity,
   location,
   department,
-  level,
+  // level,
   courseCareer,
   modeOfInstruction,
   isInPlanner = false,
@@ -53,7 +53,7 @@ export function CourseCard({
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">{code}</span>
+            <span className="bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">{code}</span>
             <Badge variant="outline" className="border-slate-300 text-slate-600">{department}</Badge>
             <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">{courseCareer}</Badge>
           </div>
@@ -88,19 +88,19 @@ export function CourseCard({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Clock className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+          <Clock className="w-4 h-4 text-indigo-500 shrink-0" />
           <span>{schedule}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <MapPin className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+          <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
           <span>{location}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Video className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+          <Video className="w-4 h-4 text-indigo-500 shrink-0" />
           <span>{modeOfInstruction}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Users className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+          <Users className="w-4 h-4 text-indigo-500 shrink-0" />
           <span>
             {availabilityStatus === "open"
               ? "Seats Available"
