@@ -53,5 +53,14 @@ def get_courses():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
+from models.department import Department
+@app.route("/departments")
+def get_departments():
+    try:
+        departments = Department.get_all()
+        return {"status": "success", "departments": [d.format() for d in departments]}
+    except Exception as e:
+        return {"status": "error", "mesasage": str(e)}, 500     
+
 if __name__ == "__main__":
     app.run(debug=True)
