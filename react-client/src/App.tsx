@@ -6,6 +6,8 @@ import { Home } from "./components/Home";
 import { Settings } from "./components/Settings";
 import { Programs } from "./components/Programs";
 import { Planner } from "./components/Planner";
+import { Login } from "./components/Login";
+import { SignUp } from "./components/SignUp"
 
 interface Course {
   id: string;
@@ -284,6 +286,10 @@ const MOCK_COURSES: Course[] = [
 ];
 
 export default function App() {
+// Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authView, setAuthView] = useState<"login" | "signup">("login");
+
   const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings">("home");
   const [term, setTerm] = useState("Spring 2025");
   const [searchQuery, setSearchQuery] = useState("");
@@ -432,6 +438,40 @@ export default function App() {
   const plannedCourses = MOCK_COURSES.filter((course) =>
     plannedCourseIds.has(course.id)
   );
+
+  // Handle authentication
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    setCurrentView("home");
+  };
+
+  const handleSignUp = () => {
+    setIsAuthenticated(true);
+    setCurrentView("home");
+  };
+
+  // const handleLogout = () => {
+  //   setIsAuthenticated(false);
+  //   setAuthView("login");
+  // };
+
+  // Show login/signup pages if not authenticated
+  if (!isAuthenticated) {
+    if (authView === "signup") {
+      return (
+        <SignUp 
+          onSignUp={handleSignUp}
+          onNavigateToLogin={() => setAuthView("login")}
+        />
+      );
+    }
+    return (
+      <Login 
+        onLogin={handleLogin}
+        onNavigateToSignUp={() => setAuthView("signup")}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-50">

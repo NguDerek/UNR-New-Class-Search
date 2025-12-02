@@ -1,6 +1,6 @@
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Card } from "./ui/card";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
 import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check } from "lucide-react";
 
 interface CourseCardProps {

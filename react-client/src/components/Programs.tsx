@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
-import { Input } from "./ui/input";
-import { Card, CardHeader, CardTitle } from "./ui/card";
+import { Input } from "./ui/Input";
+import { Card, CardHeader, CardTitle } from "./ui/Card";
 
 export function Programs() {
   // TO BE REPLACED WITH UNR'S COLLEGES

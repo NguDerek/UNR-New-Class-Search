@@ -1,21 +1,21 @@
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import { Input } from "./ui/Input";
+import { Label } from "./ui/Label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Button } from "./ui/button";
+} from "./ui/Select";
+import { Button } from "./ui/Button";
 // import { Checkbox } from "./ui/checkbox";
-import { Switch } from "./ui/switch";
+import { Switch } from "./ui/Switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
+} from "./ui/Tooltip";
 import { Search, Calendar, BookOpen, Hash, GraduationCap, Monitor, Filter, RotateCcw, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 

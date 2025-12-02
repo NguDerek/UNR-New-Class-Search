@@ -1,5 +1,5 @@
 import { Search, SlidersHorizontal, BookmarkPlus } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "./ui/Button";
 
 interface HomeProps {
   onGetStarted: () => void;
