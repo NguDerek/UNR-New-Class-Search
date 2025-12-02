@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import psycopg2
+from psycopg2.extras import RealDictCursor
 
 load_dotenv()  # load variables from .env
 
@@ -96,7 +97,28 @@ def login():
         data = request.get_json()
         print(f"Login attempt: {data}")
         
-        return jsonify({'login'}), 67676767
+        email = data.get('email')
+        password = data.get('password')
+        
+        conn = get_connection()
+        #cursor_factory to fix "Error: tuple indices must be integers or slices, not st"
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Gets user from DB
+        cur.execute('SELECT * FROM users WHERE email = %s', (email,))
+        user = cur.fetchone()
+        
+        cur.close()
+        conn.close()
+        
+        # Check if user exists and password matches
+        if not user or not check_password_hash(user['password'], password):
+            return jsonify({'error': 'Invalid email or password'}), 401
+        
+        return jsonify({
+            'message': 'Login successful',
+            'user': {'id': user['id'], 'email': user['email']}
+        }), 200
         
     except Exception as e:
         print(f"Error: {e}")
