@@ -62,5 +62,33 @@ def get_departments():
     except Exception as e:
         return {"status": "error", "mesasage": str(e)}, 500     
 
+from models.course import Course
+@app.route("/courses-test")
+def get_courses_test():
+    try:
+        courses = Course.get_all()
+        return {
+            "status": "success", 
+            "courses": [c.format() for c in courses],
+            "count": len(courses)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route("/courses-test/<int:course_id>")
+def get_course_detail(course_id):
+    #Get detailed information about a specific course
+    try:
+        course = Course.get_by_id(course_id)
+        if not course:
+            return {"status": "error", "message": "Course not found"}, 404
+        
+        return {
+            "status": "success",
+            "course": course.format(include_department=True)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+    
 if __name__ == "__main__":
     app.run(debug=True)

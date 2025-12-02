@@ -3,17 +3,25 @@ from dbconnect.connection import DatabaseConnection
 class Department:
     #Represents an academic department (ENGR, BUS, CABNR)
 
-    def __init__(self, id, college, department_code):
+    def __init__(self, id=None, college=None, department_code=None):
+        #Primary ID
         self.id = id
+
+        #Department properties
         self.college = college
         self.department_code = department_code
 
+    #Getter Methods
+    def get_id(self):
+        return self.id
+    
     def get_college(self):
         return self.college
     
     def get_department_code(self):
         return self.department_code
     
+    #Format method to convert properties into json format
     def format(self):
         return {
             'id': self.id,
@@ -21,6 +29,7 @@ class Department:
             'department_code': self.department_code
         }
     
+    #Static methods to test database operations
     @staticmethod
     def get_all():
         #Gets all departments
