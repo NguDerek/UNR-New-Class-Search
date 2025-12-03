@@ -10,10 +10,10 @@ import psycopg2
 
 load_dotenv()  # load variables from .env
 
+login_manager = LoginManager()
 app = Flask(__name__)
-crsf = CSRFProtect(app)
-
-LoginManager.init_app(app)
+#crsf = CSRFProtect(app)
+login_manager.init_app(app)
 CORS(app)   # connect to react
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -62,6 +62,8 @@ def signup():
         data = request.get_json()
         print(f"Received data: {data}")
         
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
         email = data.get('email')
         password = data.get('password')
         
@@ -78,8 +80,8 @@ def signup():
         #add email and hashed password to DB
         hashed_password = generate_password_hash(password)
         cur.execute(
-            'INSERT INTO users (email, password) VALUES (%s, %s)',
-            (email, hashed_password)
+            'INSERT INTO users (first_name, last_name, email, password) VALUES (%s, %s, %s, %s) RETURNING id',
+            (first_name, last_name, email, hashed_password)
         )
         
         conn.commit()

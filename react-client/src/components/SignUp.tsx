@@ -43,8 +43,30 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
       return;
     }
 
-    // Mock account creation - in a real app, this would call an API
-    onSignUp();
+    fetch('http://localhost:5000/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        password: password
+      }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.error || 'Signup failed');
+          });
+        }
+        return response.json();
+      })
+      .then(() => {
+        onSignUp();
+      })
+      .catch((error: Error) => {
+        setError(error.message || 'Signup failed');
+      });
   };
 
   return (
