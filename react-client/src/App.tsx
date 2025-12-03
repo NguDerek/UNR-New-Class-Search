@@ -450,10 +450,10 @@ export default function App() {
     setCurrentView("home");
   };
 
-  // const handleLogout = () => {
-  //   setIsAuthenticated(false);
-  //   setAuthView("login");
-  // };
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthView("login");
+  };
 
   // Show login/signup pages if not authenticated
   if (!isAuthenticated) {
@@ -475,7 +475,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} />
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} />
       
       <div className="flex-1">
         {currentView === "home" ? (

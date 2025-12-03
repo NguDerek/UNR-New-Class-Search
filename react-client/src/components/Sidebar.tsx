@@ -1,4 +1,4 @@
-import { Home, Search, Calendar, GraduationCap, Settings, User } from "lucide-react";
+import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut } from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
 
@@ -11,9 +11,10 @@ interface NavItem {
 interface SidebarProps {
   currentView: "home" | "search" | "planner" | "programs" | "settings";
   onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings") => void;
+  onLogout: () => void;
 }
 
-export function Sidebar({ currentView, onNavigate }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, onLogout }: SidebarProps) {
   const navItems: NavItem[] = [
     { name: "Home", icon: Home, view: "home" },
     { name: "Search", icon: Search, view: "search" },
@@ -71,6 +72,16 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
           })}
         </ul>
       </nav>
+      {/* Logout Button */}
+      <div className="p-4 border-t border-slate-200">
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-slate-600 hover:bg-red-50 hover:text-red-600"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </button>
+      </div>
     </aside>
   );
 }
