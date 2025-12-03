@@ -472,16 +472,6 @@ export default function App() {
       />
     );
   }
-import { useState } from 'react'
-import AccountCreation from './views/AccountCreation'
-import Login from './views/Login'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-
-
-function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <div className="flex min-h-screen bg-slate-50">
