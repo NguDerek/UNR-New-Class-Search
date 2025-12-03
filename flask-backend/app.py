@@ -2,13 +2,18 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from psycopg2.extras import RealDictCursor
+from flask_wtf import CSRFProtect
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import os
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 load_dotenv()  # load variables from .env
 
 app = Flask(__name__)
+crsf = CSRFProtect(app)
+
+LoginManager.init_app(app)
 CORS(app)   # connect to react
 DATABASE_URL = os.getenv("DATABASE_URL")
 
