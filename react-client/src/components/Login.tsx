@@ -59,7 +59,7 @@ export function Login({ onLogin, onNavigateToSignUp }: LoginProps) {
         }
         return response.json();
       })
-      .then((data) => {
+      .then(() => {
         onLogin();
       })
       .catch((error: Error) => {
