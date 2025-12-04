@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
@@ -17,6 +17,17 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [csrfToken, setCsrfToken] = useState("");
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/csrf-token', {
+      credentials: 'include',
+    })
+      .then(response => response.json())
+      .then(data => setCsrfToken(data.csrf_token))
+      .catch(error => console.error('Failed to fetch CSRF token:', error));
+  }, []);
+  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +56,11 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
 
     fetch('http://localhost:5000/api/signup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
       body: JSON.stringify({
         first_name: firstName,
         last_name: lastName,

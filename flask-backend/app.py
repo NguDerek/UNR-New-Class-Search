@@ -4,17 +4,27 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from psycopg2.extras import RealDictCursor
 from flask_wtf import CSRFProtect
+from flask_wtf.csrf import generate_csrf
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import os
 import psycopg2
 
+from datetime import timedelta
+
+
 load_dotenv()  # load variables from .env
 
-login_manager = LoginManager()
 app = Flask(__name__)
-#crsf = CSRFProtect(app)
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SESSION_PROTECTION'] = 'strong'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
+
+login_manager = LoginManager()
 login_manager.init_app(app)
-CORS(app)   # connect to react
+csrf = CSRFProtect(app)
+CORS(app, supports_credentials=True)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
@@ -53,6 +63,36 @@ def get_courses():
 
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
+    
+@app.route('/api/csrf-token', methods=['GET'])
+def get_csrf_token():
+    token = generate_csrf()
+    return jsonify({'csrf_token': token})
+
+
+class User(UserMixin):
+    def __init__(self, id, email, first_name, last_name):
+        self.id = id
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('SELECT id, email, first_name, last_name FROM users WHERE id = %s', (user_id,))
+        user_data = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if user_data:
+            return User(user_data['id'], user_data['email'], 
+                       user_data['first_name'], user_data['last_name'])
+    except Exception as e:
+        print(f"Error loading user: {e}")
+    return None
 
     
 @app.route('/api/signup', methods=['POST'])
@@ -113,23 +153,48 @@ def login():
         
         # Gets user from DB
         cur.execute('SELECT * FROM users WHERE email = %s', (email,))
-        user = cur.fetchone()
+        user_data = cur.fetchone()
         
         cur.close()
         conn.close()
         
         # Check if user exists and password matches
-        if not user or not check_password_hash(user['password'], password):
+        if not user_data or not check_password_hash(user_data['password'], password):
             return jsonify({'error': 'Invalid email or password'}), 401
+        
+        # Create user object and login
+        user = User(user_data['id'], user_data['email'], 
+                   user_data['first_name'], user_data['last_name'])
+        login_user(user, remember=True)
         
         return jsonify({
             'message': 'Login successful',
-            'user': {'id': user['id'], 'email': user['email']}
+            'user': {
+                'id': user_data['id'], 
+                'email': user_data['email'],
+                'first_name': user_data['first_name'],
+                'last_name': user_data['last_name']
+            }
         }), 200
         
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logged out successfully'}), 200
+
+@app.route('/api/auth/status', methods=['GET'])
+def auth_status():
+    if current_user.is_authenticated:
+        return jsonify({
+            'authenticated': True,
+            'user': {'id': current_user.id, 'email': current_user.email}
+        }), 200
+    return jsonify({'authenticated': False}), 200
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
