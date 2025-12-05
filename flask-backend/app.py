@@ -23,7 +23,7 @@ app.config['SESSION_COOKIE_SECURE'] = False #Off During Development
 login_manager = LoginManager()
 login_manager.init_app(app)
 csrf = CSRFProtect(app)
-CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+CORS(app, supports_credentials=True) #, origins=["http://localhost:5173"]
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():

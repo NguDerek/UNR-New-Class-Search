@@ -310,26 +310,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/auth/status', {
-          credentials: 'include',
-        });
-        const data = await response.json();
-        
+  const checkAuthStatus = () => {
+    fetch("http://localhost:5000/auth/status", {
+      credentials: "include",
+    })
+      .then((response) => response.json())
+      .then((data) => {
         if (data.authenticated && data.user) {
           setIsAuthenticated(true);
           setUser(data.user);
         }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-      } finally {
+      })
+      .catch((error) => {
+        console.error("Error checking auth status:", error);
+      })
+      .finally(() => {
         setIsLoadingAuth(false);
-      }
-    };
+      });
+  };
 
-    checkAuthStatus();
-  }, []);
+  checkAuthStatus();
+}, []);
 
   const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings">("home");
   const [term, setTerm] = useState("Spring 2025");
