@@ -1,6 +1,6 @@
-import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "./ui/Card";
 import { User, Bell, Palette, SlidersHorizontal, LogOut } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "./ui/Button";
 
 interface SettingsProps {
   onLogout?: () => void;
