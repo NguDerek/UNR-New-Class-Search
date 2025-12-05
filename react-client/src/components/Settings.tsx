@@ -1,12 +1,53 @@
 import { Card, CardDescription, CardHeader, CardTitle } from "./ui/Card";
 import { User, Bell, Palette, SlidersHorizontal, LogOut } from "lucide-react";
 import { Button } from "./ui/Button";
+import { useState, useEffect } from "react";
 
 interface SettingsProps {
   onLogout?: () => void;
 }
 
 export function Settings({ onLogout }: SettingsProps) {
+  const [csrfToken, setCsrfToken] = useState("");
+
+  //Fetch CSRF token
+  useEffect(() => {
+    fetch('http://localhost:5000/api/csrf-token', {
+      credentials: 'include',
+    })
+      .then(response => response.json())
+      .then(data => setCsrfToken(data.csrf_token))
+      .catch(error => console.error('Failed to fetch CSRF token:', error));
+  }, []);
+
+  const handleLogout = () => {
+    fetch('http://localhost:5000/api/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-CSRFToken': csrfToken
+      },
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Logout failed');
+        }
+        return response.json();
+      })
+      .then(() => {
+        console.log('Logged out successfully');
+        if (onLogout) {
+          onLogout();
+        }
+      })
+      .catch((error: Error) => {
+        console.error('Logout error:', error);
+        if (onLogout) {
+          onLogout();
+        }
+      });
+  };
+
   const settingsCards = [
     {
       title: "Account",
@@ -74,7 +115,7 @@ export function Settings({ onLogout }: SettingsProps) {
                   </div>
                 </div>
                 <Button 
-                  onClick={onLogout}
+                  onClick={handleLogout}
                   variant="destructive"
                   className="bg-red-600 hover:bg-red-700"
                 >

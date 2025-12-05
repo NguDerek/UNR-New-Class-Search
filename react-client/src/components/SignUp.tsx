@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
@@ -17,6 +17,17 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [csrfToken, setCsrfToken] = useState("");
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/csrf-token', {
+      credentials: 'include',
+    })
+      .then(response => response.json())
+      .then(data => setCsrfToken(data.csrf_token))
+      .catch(error => console.error('Failed to fetch CSRF token:', error));
+  }, []);
+  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +54,34 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
       return;
     }
 
-    // Mock account creation - in a real app, this would call an API
-    onSignUp();
+    fetch('http://localhost:5000/api/signup', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify({
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        password: password
+      }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => {
+            throw new Error(err.error || 'Signup failed');
+          });
+        }
+        return response.json();
+      })
+      .then(() => {
+        onSignUp();
+      })
+      .catch((error: Error) => {
+        setError(error.message || 'Signup failed');
+      });
   };
 
   return (

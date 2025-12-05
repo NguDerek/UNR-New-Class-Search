@@ -1,6 +1,11 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash, check_password_hash
+from psycopg2.extras import RealDictCursor
+from flask_wtf import CSRFProtect
+from flask_wtf.csrf import generate_csrf
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import os
 import psycopg2
 from config import Config
@@ -9,7 +14,16 @@ from dbconnect.connection import DatabaseConnection
 load_dotenv()  # load variables from .env
 
 app = Flask(__name__)
-CORS(app)   # connect to react
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SESSION_PROTECTION'] = 'strong'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+csrf = CSRFProtect(app)
+CORS(app, supports_credentials=True)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
@@ -52,6 +66,150 @@ def get_courses():
 
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
+    
+@app.route('/api/csrf-token', methods=['GET'])
+def get_csrf_token():
+    token = generate_csrf()
+    return jsonify({'csrf_token': token})
+
+
+class User(UserMixin):
+    def __init__(self, id, email, first_name, last_name):
+        self.id = id
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('SELECT id, email, first_name, last_name FROM users WHERE id = %s', (user_id,))
+        user_data = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if user_data:
+            return User(user_data['id'], user_data['email'], 
+                       user_data['first_name'], user_data['last_name'])
+    except Exception as e:
+        print(f"Error loading user: {e}")
+    return None
+
+    
+@app.route('/api/signup', methods=['POST'])
+def signup():
+    try:
+        #Check if we are actually getting the data from react to flask
+        data = request.get_json()
+        print(f"Received data: {data}")
+        
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        email = data.get('email')
+        password = data.get('password')
+        
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        #Check DB for user existing
+        cur.execute('SELECT * FROM users WHERE email = %s', (email,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        #add email and hashed password to DB
+        hashed_password = generate_password_hash(password)
+        cur.execute(
+            'INSERT INTO users (first_name, last_name, email, password) VALUES (%s, %s, %s, %s) RETURNING id',
+            (first_name, last_name, email, hashed_password)
+        )
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({'message': 'User created successfully'}), 201
+        
+    except psycopg2.Error as db_error:
+        print(f"Database error: {db_error}")
+        return jsonify({'error': f'Database error: {str(db_error)}'}), 500
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        #Check if we are actually getting the data from react to flask
+        data = request.get_json()
+        print(f"Login attempt: {data}")
+        
+        email = data.get('email')
+        password = data.get('password')
+        
+        conn = get_connection()
+        #cursor_factory to fix "Error: tuple indices must be integers or slices, not st"
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Gets user from DB
+        cur.execute('SELECT * FROM users WHERE email = %s', (email,))
+        user_data = cur.fetchone()
+        
+        cur.close()
+        conn.close()
+        
+        # Check if user exists and password matches
+        if not user_data or not check_password_hash(user_data['password'], password):
+            return jsonify({'error': 'Invalid email or password'}), 401
+        
+        # Create user object and login
+        user = User(user_data['id'], user_data['email'], 
+                   user_data['first_name'], user_data['last_name'])
+        login_user(user, remember=True)
+        
+        print("Authenticated: " + str(current_user.is_authenticated))
+        print("ID: " + str(current_user.id))
+        print("Email: " + current_user.email)
+        print("First Name: " + current_user.first_name)
+        print("Last Name: " +current_user.last_name)
+        
+        return jsonify({
+            'message': 'Login successful',
+            'user': {
+                'id': user_data['id'], 
+                'email': user_data['email'],
+                'first_name': user_data['first_name'],
+                'last_name': user_data['last_name']
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logout', methods=['POST'])
+@login_required
+def logout():
+    print("AAAA")
+    logout_user()
+    print("Authenticated: " + str(current_user.is_authenticated))
+    print("ID: " + str(current_user.id))
+    print("Email: " + current_user.email)
+    print("First Name: " + current_user.first_name)
+    print("Last Name: " + current_user.last_name)
+    return jsonify({'message': 'Logged out successfully'}), 200
+
+@app.route('/api/auth/status', methods=['GET'])
+def auth_status():
+    if current_user.is_authenticated:
+        return jsonify({
+            'authenticated': True,
+            'user': {'id': current_user.id, 'email': current_user.email}
+        }), 200
+    return jsonify({'authenticated': False}), 200
 
 from models.department import Department
 @app.route("/departments")
@@ -125,4 +283,4 @@ def get_section_details(section_id):
         return {"status": "error", "message": str(e)}, 500
          
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
