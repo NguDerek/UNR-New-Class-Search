@@ -187,7 +187,13 @@ def login():
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout():
+    print("AAAA")
     logout_user()
+    print("Authenticated: " + str(current_user.is_authenticated))
+    print("ID: " + str(current_user.id))
+    print("Email: " + current_user.email)
+    print("First Name: " + current_user.first_name)
+    print("Last Name: " + current_user.last_name)
     return jsonify({'message': 'Logged out successfully'}), 200
 
 @app.route('/api/auth/status', methods=['GET'])
