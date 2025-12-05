@@ -9,9 +9,6 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 import os
 import psycopg2
 
-from datetime import timedelta
-
-
 load_dotenv()  # load variables from .env
 
 app = Flask(__name__)
@@ -166,6 +163,12 @@ def login():
         user = User(user_data['id'], user_data['email'], 
                    user_data['first_name'], user_data['last_name'])
         login_user(user, remember=True)
+        
+        print("Authenticated: " + str(current_user.is_authenticated))
+        print("ID: " + str(current_user.id))
+        print("Email: " + current_user.email)
+        print("First Name: " + current_user.first_name)
+        print("Last Name: " +current_user.last_name)
         
         return jsonify({
             'message': 'Login successful',
