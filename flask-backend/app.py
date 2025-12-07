@@ -281,6 +281,38 @@ def get_section_details(section_id):
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
-         
+
+from services.search_service import SearchService
+@app.route("/courses/search")
+def search_courses():
+    """Search for sections matching criteria - returns summary data"""
+    try:
+        search = SearchService()
+        
+        # Add all possible filters from query parameters
+        search.add_filter('subject', request.args.get('subject'))
+        search.add_filter('catalog_num', request.args.get('catalog_num'))
+        search.add_filter('title', request.args.get('title'))
+        search.add_filter('instructor', request.args.get('instructor'))
+        search.add_filter('days', request.args.get('days'))
+        search.add_filter('term', request.args.get('term'))
+        search.add_filter('min_units', request.args.get('min_units'))
+        search.add_filter('max_units', request.args.get('max_units'))
+        search.add_filter('instruction_mode', request.args.get('instruction_mode'))
+        search.add_filter('component', request.args.get('component'))
+        search.add_filter('status', request.args.get('status'))
+        
+        # Execute search
+        search.execute_search()
+        
+        return {
+            "status": "success",
+            "sections": search.get_results_as_dict(),
+            "count": search.get_result_count(),
+            "filters_used": search.filters
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+     
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
