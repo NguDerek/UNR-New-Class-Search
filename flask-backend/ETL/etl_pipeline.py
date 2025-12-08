@@ -88,11 +88,7 @@ conn = psycopg2.connect(DATABASE_URL)       # conn is live db connection
 cursor = conn.cursor()                      # cursor allows for executing SQL
 
 def load_to_db(df):
-    def safe_str(value):
-        if pd.isnull(value):
-            return None
-        return str(value).strip()
-
+    # ------------------ caches ------------------
     term_cache = {}
     dept_cache = {}
     course_cache = {}
@@ -101,131 +97,159 @@ def load_to_db(df):
 
     # ------------------ terms ------------------
     terms = df[["session_code", "year", "start_date", "end_date"]].drop_duplicates()
+
     for _, row in terms.iterrows():
-        session_code = safe_str(row.session_code)
-        year = row.year
-        cursor.execute("SELECT id FROM term WHERE session_code = %s", (session_code,))
-        res = cursor.fetchone()
-        if res:
-            term_id = res[0]
+        cursor.execute("""
+            INSERT INTO term (session_code, year, start_date, end_date)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (session_code, year) DO NOTHING
+            RETURNING id;
+        """, (row.session_code, row.year, row.start_date, row.end_date))
+
+        result = cursor.fetchone()
+
+        if result:
+            term_id = result[0]
         else:
+            term_id = None
+
+        if term_id is None:
             cursor.execute("""
-                INSERT INTO term (session_code, start_date, end_date)
-                VALUES (%s, %s, %s) RETURNING id;
-            """, (session_code, row.start_date, row.end_date))
+                SELECT id FROM term 
+                WHERE session_code = %s AND year = %s
+            """, (row.session_code, row.year))
             term_id = cursor.fetchone()[0]
-        term_cache[(session_code, year)] = term_id
+        term_cache[row.session_code, row.year] = term_id
 
     # ------------------ departments ------------------
     departments = df[["college", "department_code"]].drop_duplicates()
+
     for _, row in departments.iterrows():
-        dept_code = safe_str(row.department_code)
-        college = safe_str(row.college)
-        cursor.execute("SELECT id FROM department WHERE department_code = %s", (dept_code,))
-        res = cursor.fetchone()
-        if res:
-            department_id = res[0]
+        cursor.execute("""
+            INSERT INTO department (college, department_code)
+            VALUES(%s, %s) 
+            ON CONFLICT (department_code) DO NOTHING
+            RETURNING id;
+        """, (row.college, row.department_code))
+        
+        result = cursor.fetchone()
+
+        if result:
+            department_id = result[0]
         else:
+            department_id = None
+        
+        if department_id is None:
             cursor.execute("""
-                INSERT INTO department (college, department_code)
-                VALUES (%s, %s) RETURNING id;
-            """, (college, dept_code))
+                SELECT id FROM department
+                WHERE department_code = %s
+            """, (row.department_code, ))   # quick note single value still tuple (val, )
             department_id = cursor.fetchone()[0]
-        dept_cache[dept_code] = department_id
+        dept_cache[row.department_code] = department_id
 
     # ------------------ courses ------------------
     courses = df[["department_code", "subject", "catalog_num", "title", "units"]].drop_duplicates()
+
     for _, row in courses.iterrows():
-        department_id = dept_cache[safe_str(row.department_code)]
-        subject = safe_str(row.subject)
-        catalog_num = row.catalog_num
-        title = safe_str(row.title)
-        units = row.units
-        cursor.execute("SELECT id FROM course WHERE subject=%s AND catalog_num=%s", (subject, catalog_num))
-        res = cursor.fetchone()
-        if res:
-            course_id = res[0]
+        department_id = dept_cache[row.department_code]
+        cursor.execute("""
+            INSERT INTO course (department_id, subject, catalog_num, title, units)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (subject, catalog_num) DO NOTHING
+            RETURNING id;
+        """, (department_id, row.subject, row.catalog_num, row.title, row.units))
+
+        result = cursor.fetchone()
+
+        if result:
+            course_id = result[0]
         else:
+            course_id = None
+        
+        if course_id is None:
             cursor.execute("""
-                INSERT INTO course (department_id, subject, catalog_num, title, units)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id;
-            """, (department_id, subject, catalog_num, title, units))
+                SELECT id FROM course
+                WHERE subject = %s AND catalog_num = %s;
+            """, (row.subject, row.catalog_num))
             course_id = cursor.fetchone()[0]
-        course_cache[(subject, catalog_num)] = course_id
+        course_cache[row.subject, row.catalog_num] = course_id
 
     # ------------------ instructors ------------------
     instructors = df[["first_name", "last_name"]].drop_duplicates()
-    for _, row in instructors.iterrows():
-        first_name = safe_str(row.first_name)
-        last_name = safe_str(row.last_name)
-        cursor.execute("SELECT id FROM instructor WHERE first_name=%s AND last_name=%s", (first_name, last_name))
-        res = cursor.fetchone()
-        if res:
-            instructor_id = res[0]
-        else:
-            cursor.execute("""
-                INSERT INTO instructor (first_name, last_name)
-                VALUES (%s, %s) RETURNING id;
-            """, (first_name, last_name))
-            instructor_id = cursor.fetchone()[0]
-        instructor_cache[(first_name, last_name)] = instructor_id
 
+    for _, row in instructors.iterrows():
+        cursor.execute("""
+            INSERT INTO instructor (first_name, last_name)
+            VALUES (%s, %s)
+            ON CONFLICT (first_name, last_name) DO NOTHING
+            RETURNING id;
+        """, (row.first_name, row.last_name))
+
+        result = cursor.fetchone()
+
+        if result:
+            instructor_id = result[0]
+        else:
+            instructor_id = None
+
+        if instructor_id is None:
+            cursor.execute("""
+                SELECT id FROM instructor
+                WHERE first_name = %s AND last_name = %s;
+            """, (row.first_name, row.last_name))
+            instructor_id = cursor.fetchone()[0]
+        instructor_cache[row.first_name, row.last_name] = instructor_id
+        
     # ------------------ sections ------------------
     sections = df[["subject", "catalog_num", "session_code", "year",
                    "section_num", "component", "instruction_mode",
                    "class_days", "start_time", "end_time", "combined",
                    "class_status", "enrollment_capacity", "room_code"]]
+    
     for _, row in sections.iterrows():
-        course_id = course_cache.get((safe_str(row.subject), row.catalog_num))
-        term_id = term_cache.get((safe_str(row.session_code), row.year))
-        if course_id is None or term_id is None:
-            continue
+        course_id = course_cache[row.subject, row.catalog_num]
+        term_id = term_cache[row.session_code, row.year]
+
         cursor.execute("""
-            SELECT id FROM section WHERE course_id=%s AND term_id=%s AND section_num=%s
-        """, (course_id, term_id, row.section_num))
-        res = cursor.fetchone()
-        if res:
-            section_id = res[0]
+            INSERT INTO section (course_id, term_id, section_num, component,
+                       instruction_mode, class_days, start_time, end_time,
+                       combined, class_status, enrollment_capacity, room_code)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (course_id, term_id, section_num) DO NOTHING
+            RETURNING id;
+        """, (course_id, term_id, row.section_num, row.component, row.instruction_mode,
+              row.class_days, row.start_time, row.end_time, row.combined, 
+              row.class_status, row.enrollment_capacity, row.room_code))
+        
+        result = cursor.fetchone()
+
+        if result:
+            section_id = result[0]
         else:
+            section_id = None
+
+        if section_id is None:
             cursor.execute("""
-                INSERT INTO section (course_id, term_id, section_num, component,
-                                     instruction_mode, class_days, start_time, end_time,
-                                     combined, class_status, enrollment_capacity, room_code)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;
-            """, (
-                course_id,
-                term_id,
-                row.section_num,
-                safe_str(row.component),
-                safe_str(row.instruction_mode),
-                safe_str(row.class_days),
-                row.start_time,
-                row.end_time,
-                row.combined,
-                safe_str(row.class_status),
-                row.enrollment_capacity,
-                safe_str(row.room_code)
-            ))
+                SELECT id FROM section 
+                WHERE course_id = %s AND term_id = %s AND section_num = %s;
+            """, (course_id, term_id, row.section_num))
             section_id = cursor.fetchone()[0]
-        section_cache[(course_id, term_id, row.section_num)] = section_id
+        section_cache[course_id, term_id, row.section_num] = section_id
 
     # ------------------ section_instructor ------------------
     for _, row in df.iterrows():
-        course_id = course_cache.get((safe_str(row.subject), row.catalog_num))
-        term_id = term_cache.get((safe_str(row.session_code), row.year))
-        section_id = section_cache.get((course_id, term_id, row.section_num))
-        instructor_id = instructor_cache.get((safe_str(row.first_name), safe_str(row.last_name)))
-        if None in (course_id, term_id, section_id, instructor_id):
-            continue
-        cursor.execute("SELECT 1 FROM section_instructor WHERE section_id=%s AND instructor_id=%s",
-                       (section_id, instructor_id))
-        if cursor.fetchone():
-            continue
+        term_id = term_cache[row.session_code, row.year]
+        course_id = course_cache[row.subject, row.catalog_num]
+        section_id = section_cache[course_id, term_id, row.section_num]
+        instructor_id = instructor_cache[row.first_name, row.last_name]
+
         cursor.execute("""
             INSERT INTO section_instructor (section_id, instructor_id)
-            VALUES (%s, %s);
+            VALUES (%s, %s)
+            ON CONFLICT (section_id, instructor_id) DO NOTHING;
         """, (section_id, instructor_id))
     conn.commit()
+
 # ------------------ run the etl process ------------------
 load_to_db(df)
 print("working \n")
