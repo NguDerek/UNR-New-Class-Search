@@ -33,7 +33,7 @@ export function Programs() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 lg:py-12">
+    <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
       {/* Disclaimer */}
       <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
         <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
