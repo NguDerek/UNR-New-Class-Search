@@ -157,9 +157,10 @@ export function SearchFilters({
               </div>
               <Select value={term} onValueChange={setTerm}>
                 <SelectTrigger id="term" className="border-slate-300">
-                  <SelectValue placeholder="Select Term" />
+                  <SelectValue placeholder="All Terms" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Terms</SelectItem>
                   <SelectItem value="Spring 2025">Spring 2025</SelectItem>
                   <SelectItem value="Summer 2025">Summer 2025</SelectItem>
                   <SelectItem value="Fall 2025">Fall 2025</SelectItem>
@@ -285,7 +286,7 @@ export function SearchFilters({
                   <SelectItem value="all">All Modes</SelectItem>
                   <SelectItem value="In Person">In Person</SelectItem>
                   <SelectItem value="Hybrid">Hybrid</SelectItem>
-                  <SelectItem value="Asynchronous">Asynchronous</SelectItem>
+                  <SelectItem value="Asynchronous Online">Asynchronous Online</SelectItem>
                   <SelectItem value="Synchronous Online">Synchronous Online</SelectItem>
                 </SelectContent>
               </Select>

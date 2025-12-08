@@ -297,6 +297,7 @@ def search_courses():
         search.add_filter('instructor', request.args.get('instructor'))
         search.add_filter('days', request.args.get('days'))
         search.add_filter('term', request.args.get('term'))
+        search.add_filter('units', request.args.get('credits'))
         search.add_filter('min_units', request.args.get('min_units'))
         search.add_filter('max_units', request.args.get('max_units'))
         search.add_filter('instruction_mode', request.args.get('instruction_mode'))

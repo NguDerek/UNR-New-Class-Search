@@ -294,6 +294,22 @@ const MOCK_COURSES: Course[] = [
   },
 ];
 
+// Helper function to format time from 24-hour to 12-hour with AM/PM
+function formatTime(timeString: string | null): string {
+  if (!timeString) return '';
+  
+  // timeString is like "12:00:00" or "14:30:00"
+  const [hours, minutes] = timeString.split(':');
+  const hour = parseInt(hours, 10);
+  const minute = minutes;
+  
+  // Convert to 12-hour format
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12; // Convert 0 to 12 for midnight
+  
+  return `${hour12}:${minute} ${period}`;
+}
+
 export default function App() {
 // Authentication state
   console.log("App component rendering"); // ADD THIS
@@ -339,7 +355,7 @@ export default function App() {
 }, []);
 
   const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings">("home");
-  const [term, setTerm] = useState("Spring 2025");
+  const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [department, setDepartment] = useState("all");
   const [courseNumber, setCourseNumber] = useState("");
@@ -500,11 +516,10 @@ export default function App() {
       // === TERM DROPDOWN ===
       if (term && term !== 'all') {
         // Map frontend term names to backend session codes
-        // You'll need to adjust this based on your actual term data
         const termMap: Record<string, string> = {
-          'Spring 2025': '1',  // Example - adjust to match your DB
+          'Spring 2025': '2025',
           'Summer 2025': '202505',
-          'Fall 2025': '202508',
+          'Fall 2025': '1',
           'Winter 2026': '202601'
         };
         searchParams.term = termMap[term] || term;
@@ -529,7 +544,13 @@ export default function App() {
       
       // === MODE OF INSTRUCTION DROPDOWN ===
       if (modeOfInstruction && modeOfInstruction !== 'all') {
-        searchParams.instruction_mode = modeOfInstruction;
+        const modeMap: Record<string, string> = {
+          'In Person': 'P',
+          'Hybrid': 'HY',
+          'Asynchronous Online': 'WA',
+          'Synchronous Online': 'WL'
+        };
+        searchParams.instruction_mode = modeMap[modeOfInstruction] || modeOfInstruction;
       }
       
       // === LEVEL DROPDOWN ===
@@ -598,7 +619,7 @@ export default function App() {
   };
 */
   const handleReset = () => {
-    setTerm("Spring 2025");
+    setTerm("all");
     setSearchQuery("");
     setDepartment("all");
     setCourseNumber("");
@@ -610,7 +631,7 @@ export default function App() {
     setSelectedDays([]);
     setHasSearched(false);
     setAppliedFilters({
-      term: "Spring 2025",
+      term: "all",
       searchQuery: "",
       department: "all",
       courseNumber: "",
@@ -785,7 +806,7 @@ export default function App() {
                         code={section.course_code}
                         title={section.course_title}
                         instructor={section.instructor}
-                        schedule={`${section.days || 'TBA'} ${section.start_time || ''} - ${section.end_time || ''}`}
+                        schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
                         credits={section.units}
                         enrolled={0}
                         capacity={100}

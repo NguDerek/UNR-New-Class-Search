@@ -50,7 +50,6 @@ class SearchService:
         if 'college' in self.filters:
             query += " AND d.college = %s"
             params.append(self.filters['college'])
-            print('test that this works')
 
         if 'catalog_num' in self.filters:
             query += " AND c.catalog_num = %s"
@@ -84,6 +83,10 @@ class SearchService:
             query += " AND t.session_code = %s"
             params.append(self.filters['term'])
         
+        if 'units' in self.filters:
+            query += " AND c.units = %s"
+            params.append(self.filters['units'])
+
         if 'min_units' in self.filters:
             query += " AND c.units >= %s"
             params.append(self.filters['min_units'])
@@ -107,7 +110,6 @@ class SearchService:
         # Order results
         query += " ORDER BY c.subject, c.catalog_num, s.section_num;"
         
-        print(query)
         return query, params
     
     def execute_search(self):
