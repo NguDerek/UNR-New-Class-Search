@@ -455,37 +455,22 @@ export default function App() {
       const searchParams: SearchParams = {};
       
       // === SEARCH BAR ===
-      // The searchQuery field handles: course code, title, or instructor
-      if (searchQuery) {
-        // Check if it looks like a course code (e.g., "CS 101", "CS101", "MATH 181")
+      if (searchQuery && searchQuery.trim() !== '') {
+        // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")
         const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
         const match = searchQuery.match(courseCodePattern);
         
         if (match) {
-          // It's a course code - split into subject and number
+          // Exact course code - use subject and catalog_num
           searchParams.subject = match[1].toUpperCase();
           searchParams.catalog_num = match[2];
-        } else if (/^\d+$/.test(searchQuery)) {
-          // It's just a number - search by catalog_num only
-          searchParams.catalog_num = searchQuery;
-        } else if (/^[A-Z]+$/i.test(searchQuery)) {
-          // It's just letters - could be subject OR instructor last name
-          // Try subject first, or you could search both
-          searchParams.subject = searchQuery.toUpperCase();
         } else {
-          // It's probably a title or instructor name (has spaces or mixed chars)
-          if (searchQuery.split(' ').length === 1) {
-            // Single word - likely instructor last name
-            searchParams.instructor = searchQuery;
-          } else {
-            // Multiple words - could be title or full instructor name
-            // You can search title OR instructor - backend should handle this
-            searchParams.title = searchQuery;
-            searchParams.instructor = searchQuery;
-          }
-        }
-      }
-      
+          // Everything else - use general search_query
+          // This will search title, instructor name, and course code
+          searchParams.search_query = searchQuery;
+  }
+}
+        
       // === DEPARTMENT DROPDOWN ===
       if (department && department !== 'all') {
         searchParams.department = department;
@@ -527,8 +512,7 @@ export default function App() {
       
       // === COURSE CAREER DROPDOWN ===
       if (courseCareer && courseCareer !== 'all') {
-        // This might need to be added to your SearchService
-        // For now, we'll skip it or you can add it to backend
+        searchParams.course_career = courseCareer
       }
       
       // === CREDITS DROPDOWN ===
@@ -557,27 +541,22 @@ export default function App() {
       if (level && level !== 'all') {
         // Map level to catalog_num ranges
         if (level === '100') {
-          searchParams.catalog_num = '100';
-          searchParams.catalog_num_operator = 'greater_equal';
-          // You'd need a second filter for < 200, which requires backend support
+          searchParams.level = '1';
         } else if (level === '200') {
-          searchParams.catalog_num = '200';
-          searchParams.catalog_num_operator = 'greater_equal';
+          searchParams.level = '2';
         } else if (level === '300') {
-          searchParams.catalog_num = '300';
-          searchParams.catalog_num_operator = 'greater_equal';
+          searchParams.level = '3';;
         } else if (level === '400') {
-          searchParams.catalog_num = '400';
-          searchParams.catalog_num_operator = 'greater_equal';
+          searchParams.level = '4';
         } else if (level === '500+') {
-          searchParams.catalog_num = '500';
-          searchParams.catalog_num_operator = 'greater_equal';
+          searchParams.level = '5';
         }
       }
       
       // === SHOW OPEN ONLY TOGGLE ===
       if (showOpenOnly) {
-        searchParams.status = 'Open';
+        //searchParams.status = 'Open';
+        //To be implemented later
       }
       
       console.log('Search params:', searchParams); // Debug - see what's being sent

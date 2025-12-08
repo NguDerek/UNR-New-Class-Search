@@ -46,15 +46,24 @@ class SearchService:
         if 'subject' in self.filters:
             query += " AND c.subject = %s"
             params.append(self.filters['subject'])
-        
-        if 'college' in self.filters:
-            query += " AND d.college = %s"
-            params.append(self.filters['college'])
 
         if 'catalog_num' in self.filters:
             query += " AND c.catalog_num = %s"
             params.append(self.filters['catalog_num'])
+
+        if 'college' in self.filters:
+            query += " AND d.college = %s"
+            params.append(self.filters['college'])
         
+        if 'search_query' in self.filters:
+            search_term = f"%{self.filters['search_query']}%"
+            query += """ AND (
+                c.title ILIKE %s 
+                OR i.first_name ILIKE %s 
+                OR i.last_name ILIKE %s
+                OR CONCAT(c.subject, ' ', c.catalog_num) ILIKE %s
+            )"""
+            params.extend([search_term, search_term, search_term, search_term])
         if 'title' in self.filters:
             query += " AND c.title ILIKE %s"
             params.append(f"%{self.filters['title']}%")
@@ -83,9 +92,26 @@ class SearchService:
             query += " AND t.session_code = %s"
             params.append(self.filters['term'])
         
+        # Units with operator support
         if 'units' in self.filters:
-            query += " AND c.units = %s"
-            params.append(self.filters['units'])
+            units_operator = self.filters.get('units_operator', 'exact')
+            units_value = self.filters['units']
+            
+            if units_operator == 'exact':
+                query += " AND c.units = %s"
+                params.append(units_value)
+            elif units_operator == 'greater':
+                query += " AND c.units > %s"
+                params.append(units_value)
+            elif units_operator == 'less':
+                query += " AND c.units < %s"
+                params.append(units_value)
+            elif units_operator == 'greater_equal':
+                query += " AND c.units >= %s"
+                params.append(units_value)
+            elif units_operator == 'less_equal':
+                query += " AND c.units <= %s"
+                params.append(units_value)
 
         if 'min_units' in self.filters:
             query += " AND c.units >= %s"
@@ -107,6 +133,42 @@ class SearchService:
             query += " AND s.class_status = %s"
             params.append(self.filters['status'])
         
+        if 'course_career' in self.filters:
+            grad_level = self.filters['course_career']
+            if grad_level == 'Undergraduate':
+                query += " AND c.catalog_num < %s"
+                params.append(500)
+            elif grad_level == 'Graduate':
+                query += " AND c.catalog_num > %s"
+                params.append(599)
+            elif grad_level == 'Medical School':
+                query += " AND c.catalog_num > %s"
+                params.append(1000)
+        
+        if 'level' in self.filters:
+            lvl = int(self.filters['level'])
+            print(lvl)
+            if lvl == 1:
+                query += " AND c.catalog_num >= %s AND c.catalog_num <= %s"
+                params.append(100)
+                params.append(199)
+                print('Hi')
+            elif lvl == 2:
+                query += " AND c.catalog_num >= %s AND c.catalog_num <= %s"
+                params.append(200)
+                params.append(299)
+            elif lvl == 3:
+                query += " AND c.catalog_num >= %s AND c.catalog_num <= %s"
+                params.append(300)
+                params.append(399)
+            elif lvl == 4:
+                query += " AND c.catalog_num >= %s AND c.catalog_num <= %s"
+                params.append(400)
+                params.append(499)
+            elif lvl == 5:
+                query += " AND c.catalog_num >= %s"
+                params.append(600)
+
         # Order results
         query += " ORDER BY c.subject, c.catalog_num, s.section_num;"
         

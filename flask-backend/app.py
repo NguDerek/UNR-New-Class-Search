@@ -297,13 +297,15 @@ def search_courses():
         search.add_filter('instructor', request.args.get('instructor'))
         search.add_filter('days', request.args.get('days'))
         search.add_filter('term', request.args.get('term'))
-        search.add_filter('units', request.args.get('credits'))
+        search.add_filter('units', request.args.get('units'))
         search.add_filter('min_units', request.args.get('min_units'))
         search.add_filter('max_units', request.args.get('max_units'))
         search.add_filter('instruction_mode', request.args.get('instruction_mode'))
         search.add_filter('component', request.args.get('component'))
         search.add_filter('status', request.args.get('status'))
-        
+        search.add_filter('search_query', request.args.get('search_query'))
+        search.add_filter('course_career', request.args.get('course_career'))
+        search.add_filter('level', request.args.get('level'))
         # Execute search
         search.execute_search()
         

@@ -14,6 +14,9 @@ export interface SearchParams {
   component?: string;
   status?: string;
   department?: string;
+  search_query?: string;
+  course_career?: string;
+  level?: string;
 }
 
 export interface Section {

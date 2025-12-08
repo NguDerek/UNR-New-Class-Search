@@ -119,7 +119,7 @@ export function SearchFilters({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  <p>Search by course code, title, or instructor name</p>
+                  <p>Search by course code (eg. MATH 126), subject (eg. MATH, CS), catalog number (eg. 101, 135), title (eg. Precalculus I), or instructor first OR last name (eg. David, Smith)</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -127,7 +127,7 @@ export function SearchFilters({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 id="search"
-                placeholder="Course code, title, or instructor..."
+                placeholder="Course code, subject, catalog number, title, or instructor first OR last name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
