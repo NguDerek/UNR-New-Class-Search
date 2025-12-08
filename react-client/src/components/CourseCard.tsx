@@ -14,6 +14,8 @@ interface CourseCardProps {
   capacity: number;
   location: string;
   department: string;
+  component: string;
+  section: number;
   level: string;
   courseCareer: string;
   modeOfInstruction: string;
@@ -33,6 +35,8 @@ export function CourseCard({
   capacity,
   location,
   department,
+  component,
+  section,
   // level,
   courseCareer,
   modeOfInstruction,
@@ -56,14 +60,14 @@ export function CourseCard({
             <span className="bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">{code}</span>
             <Badge variant="outline" className="border-slate-300 text-slate-600">{department}</Badge>
             <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">{courseCareer}</Badge>
+            <Badge variant="outline" className="border-slate-300 text-slate-600"> {component}</Badge>
           </div>
           <h3 className="mb-2 text-slate-900">{title}</h3>
           <p className="text-slate-600">{instructor}</p>
         </div>
         <div className="text-right flex flex-col items-end gap-2">
           <div className="flex items-center gap-1.5 text-slate-500 text-sm bg-slate-50 px-3 py-1 rounded-full">
-            <GraduationCap className="w-3.5 h-3.5" />
-            {credits} Credits
+            <GraduationCap className="w-3.5 h-3.5" />{credits} Credits
           </div>
           <Badge
             variant={
@@ -82,6 +86,9 @@ export function CourseCard({
             }
           >
             {enrolled}/{capacity} Enrolled
+          </Badge>
+          <Badge variant="outline" className="border-slate-300 text-slate-600">
+            Section {section}
           </Badge>
         </div>
       </div>

@@ -14,6 +14,8 @@ interface Course {
   capacity: number;
   location: string;
   department: string;
+  component: string;
+  section: number;
   level: string;
   days: string[];
   courseCareer: string;
@@ -87,6 +89,8 @@ export function Planner({ plannedCourses, onRemoveFromPlanner }: PlannerProps) {
                 capacity={course.capacity}
                 location={course.location}
                 department={course.department}
+                component={course.component}
+                section={course.section}
                 level={course.level}
                 courseCareer={course.courseCareer}
                 modeOfInstruction={course.modeOfInstruction}
