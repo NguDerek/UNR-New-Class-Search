@@ -15,14 +15,16 @@ import {
 } from "./ui/Tooltip";
 import { Search, Calendar, BookOpen, Hash, GraduationCap, Monitor, Filter, RotateCcw, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { useEffect } from "react";
+import { courseAPI } from "../services/api";
 
 interface SearchFiltersProps {
   term: string;
   setTerm: (term: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  subject: string;
-  setSubject: (subject: string) => void;
+  department: string;
+  setDepartment: (subject: string) => void;
   courseNumber: string;
   setCourseNumber: (courseNumber: string) => void;
   courseCareer: string;
@@ -48,8 +50,8 @@ export function SearchFilters({
   setTerm,
   searchQuery,
   setSearchQuery,
-  subject,
-  setSubject,
+  department,
+  setDepartment,
   courseNumber,
   setCourseNumber,
   courseCareer,
@@ -68,7 +70,19 @@ export function SearchFilters({
   onReset,
 }: SearchFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // Inside the component:
+  const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
 
+  useEffect(() => {
+    // Fetch departments on mount
+    courseAPI.getDepartments()
+      .then(response => {
+        if (response.status === 'success') {
+          setDepartments(response.departments);
+        }
+      })
+      .catch(error => console.error('Failed to load departments:', error));
+  }, []);
   const toggleDay = (day: string) => {
     setSelectedDays(
       selectedDays.includes(day)
@@ -102,7 +116,7 @@ export function SearchFilters({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  <p>Search by course code, title, or instructor name</p>
+                  <p>Search by course code (eg. MATH 126), subject (eg. MATH, CS), catalog number (eg. 101, 135), title (eg. Precalculus I), or instructor first OR last name (eg. David, Smith)</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -110,7 +124,7 @@ export function SearchFilters({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 id="search"
-                placeholder="Course code, title, or instructor..."
+                placeholder="Course code, subject, catalog number, title, or instructor first OR last name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
@@ -140,9 +154,10 @@ export function SearchFilters({
               </div>
               <Select value={term} onValueChange={setTerm}>
                 <SelectTrigger id="term" className="border-slate-300">
-                  <SelectValue placeholder="Select Term" />
+                  <SelectValue placeholder="All Terms" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Terms</SelectItem>
                   <SelectItem value="Spring 2025">Spring 2025</SelectItem>
                   <SelectItem value="Summer 2025">Summer 2025</SelectItem>
                   <SelectItem value="Fall 2025">Fall 2025</SelectItem>
@@ -151,12 +166,12 @@ export function SearchFilters({
               </Select>
             </div>
 
-            {/* Subject */}
+            {/* Department */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Label htmlFor="subject" className="text-slate-700 flex items-center gap-2">
+                <Label htmlFor="department" className="text-slate-700 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-[#003366]" />
-                  Subject
+                  Department
                 </Label>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -165,24 +180,21 @@ export function SearchFilters({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>Filter courses by academic department or subject area</p>
+                    <p>Filter courses by academic department/specific college</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <Select value={subject} onValueChange={setSubject}>
-                <SelectTrigger id="subject" className="border-slate-300">
-                  <SelectValue placeholder="All Subjects" />
+              <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger id="department" className="border-slate-300">
+                  <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  <SelectItem value="Computer Science">Computer Science</SelectItem>
-                  <SelectItem value="Mathematics">Mathematics</SelectItem>
-                  <SelectItem value="Physics">Physics</SelectItem>
-                  <SelectItem value="Chemistry">Chemistry</SelectItem>
-                  <SelectItem value="Biology">Biology</SelectItem>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="History">History</SelectItem>
-                  <SelectItem value="Psychology">Psychology</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.college}>
+                      {dept.college}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -271,7 +283,7 @@ export function SearchFilters({
                   <SelectItem value="all">All Modes</SelectItem>
                   <SelectItem value="In Person">In Person</SelectItem>
                   <SelectItem value="Hybrid">Hybrid</SelectItem>
-                  <SelectItem value="Asynchronous">Asynchronous</SelectItem>
+                  <SelectItem value="Asynchronous Online">Asynchronous Online</SelectItem>
                   <SelectItem value="Synchronous Online">Synchronous Online</SelectItem>
                 </SelectContent>
               </Select>
@@ -407,3 +419,22 @@ export function SearchFilters({
     </TooltipProvider>
   );
 }
+
+/*
+<Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger id="subject" className="border-slate-300">
+                  <SelectValue placeholder="All Subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  <SelectItem value="Computer Science">Computer Science</SelectItem>
+                  <SelectItem value="Mathematics">Mathematics</SelectItem>
+                  <SelectItem value="Physics">Physics</SelectItem>
+                  <SelectItem value="Chemistry">Chemistry</SelectItem>
+                  <SelectItem value="Biology">Biology</SelectItem>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="History">History</SelectItem>
+                  <SelectItem value="Psychology">Psychology</SelectItem>
+                </SelectContent>
+              </Select>
+*/
