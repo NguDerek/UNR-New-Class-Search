@@ -8,6 +8,8 @@ import { Programs } from "./components/Programs";
 import { Planner } from "./components/Planner";
 import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp"
+import { courseAPI } from './services/api';
+import type { Section as APISection, SearchParams } from './services/api'
 
 interface User {
   id: number;
@@ -294,12 +296,16 @@ const MOCK_COURSES: Course[] = [
 
 export default function App() {
 // Authentication state
+  console.log("App component rendering"); // ADD THIS
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState<"login" | "signup">("login");
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [csrfToken, setCsrfToken] = useState("");
 
+  const [searchResults, setSearchResults] = useState<APISection[]>([]);//useState<Section[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   useEffect(() => {
     fetch('http://localhost:5000/csrf-token', {
       credentials: 'include',
@@ -361,7 +367,7 @@ export default function App() {
 
   // Planner state
   const [plannedCourseIds, setPlannedCourseIds] = useState<Set<string>>(new Set());
-
+/*
   const filteredCourses = useMemo(() => {
     if (!hasSearched) {
       return [];
@@ -422,7 +428,159 @@ export default function App() {
       );
     });
   }, [hasSearched, appliedFilters]);
+*/
 
+  const handleSearch = async () => {
+    setIsSearching(true);
+    setSearchError(null);
+    setHasSearched(true);
+    
+    try {
+      const searchParams: SearchParams = {};
+      
+      // === SEARCH BAR ===
+      // The searchQuery field handles: course code, title, or instructor
+      if (searchQuery) {
+        // Check if it looks like a course code (e.g., "CS 101", "CS101", "MATH 181")
+        const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
+        const match = searchQuery.match(courseCodePattern);
+        
+        if (match) {
+          // It's a course code - split into subject and number
+          searchParams.subject = match[1].toUpperCase();
+          searchParams.catalog_num = match[2];
+        } else if (/^\d+$/.test(searchQuery)) {
+          // It's just a number - search by catalog_num only
+          searchParams.catalog_num = searchQuery;
+        } else if (/^[A-Z]+$/i.test(searchQuery)) {
+          // It's just letters - could be subject OR instructor last name
+          // Try subject first, or you could search both
+          searchParams.subject = searchQuery.toUpperCase();
+        } else {
+          // It's probably a title or instructor name (has spaces or mixed chars)
+          if (searchQuery.split(' ').length === 1) {
+            // Single word - likely instructor last name
+            searchParams.instructor = searchQuery;
+          } else {
+            // Multiple words - could be title or full instructor name
+            // You can search title OR instructor - backend should handle this
+            searchParams.title = searchQuery;
+            searchParams.instructor = searchQuery;
+          }
+        }
+      }
+      
+      // === SUBJECT DROPDOWN ===
+      if (subject && subject !== 'all') {
+        searchParams.subject = subject;
+      }
+      
+      // === COURSE NUMBER INPUT ===
+      if (courseNumber) {
+        searchParams.catalog_num = courseNumber;
+        searchParams.catalog_num_operator = 'exact';
+      }
+      
+      // === DAYS BUTTONS ===
+      if (selectedDays.length > 0) {
+        // Convert ["Mon", "Tue", "Wed"] to "MTW"
+        const daysMap: Record<string, string> = {
+          'Mon': 'M',
+          'Tue': 'T',
+          'Wed': 'W',
+          'Thu': 'R',  // Thursday is 'R' to avoid confusion with Tuesday
+          'Fri': 'F',
+          'Sat': 'S',
+          'Sun': 'U'
+        };
+        const daysString = selectedDays.map(d => daysMap[d] || '').join('');
+        searchParams.days = daysString;
+      }
+      
+      // === TERM DROPDOWN ===
+      if (term && term !== 'all') {
+        // Map frontend term names to backend session codes
+        // You'll need to adjust this based on your actual term data
+        const termMap: Record<string, string> = {
+          'Spring 2025': '1',  // Example - adjust to match your DB
+          'Summer 2025': '202505',
+          'Fall 2025': '202508',
+          'Winter 2026': '202601'
+        };
+        searchParams.term = termMap[term] || term;
+      }
+      
+      // === COURSE CAREER DROPDOWN ===
+      if (courseCareer && courseCareer !== 'all') {
+        // This might need to be added to your SearchService
+        // For now, we'll skip it or you can add it to backend
+      }
+      
+      // === CREDITS DROPDOWN ===
+      if (credits && credits !== 'all') {
+        if (credits === '5+') {
+          searchParams.units = '5';
+          searchParams.units_operator = 'greater_equal';
+        } else {
+          searchParams.units = credits;
+          searchParams.units_operator = 'exact';
+        }
+      }
+      
+      // === MODE OF INSTRUCTION DROPDOWN ===
+      if (modeOfInstruction && modeOfInstruction !== 'all') {
+        searchParams.instruction_mode = modeOfInstruction;
+      }
+      
+      // === LEVEL DROPDOWN ===
+      if (level && level !== 'all') {
+        // Map level to catalog_num ranges
+        if (level === '100') {
+          searchParams.catalog_num = '100';
+          searchParams.catalog_num_operator = 'greater_equal';
+          // You'd need a second filter for < 200, which requires backend support
+        } else if (level === '200') {
+          searchParams.catalog_num = '200';
+          searchParams.catalog_num_operator = 'greater_equal';
+        } else if (level === '300') {
+          searchParams.catalog_num = '300';
+          searchParams.catalog_num_operator = 'greater_equal';
+        } else if (level === '400') {
+          searchParams.catalog_num = '400';
+          searchParams.catalog_num_operator = 'greater_equal';
+        } else if (level === '500+') {
+          searchParams.catalog_num = '500';
+          searchParams.catalog_num_operator = 'greater_equal';
+        }
+      }
+      
+      // === SHOW OPEN ONLY TOGGLE ===
+      if (showOpenOnly) {
+        searchParams.status = 'Open';
+      }
+      
+      console.log('Search params:', searchParams); // Debug - see what's being sent
+      
+      // Make API call
+      const response = await courseAPI.searchCourses(searchParams);
+      
+      if (response.status === 'success') {
+        setSearchResults(response.sections);
+      } else {
+        setSearchError('Search failed');
+        setSearchResults([]);
+      }
+      
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError('Failed to search courses. Please try again.');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+/*
   const handleSearch = () => {
     setAppliedFilters({
       term,
@@ -438,7 +596,7 @@ export default function App() {
     });
     setHasSearched(true);
   };
-
+*/
   const handleReset = () => {
     setTerm("Spring 2025");
     setSearchQuery("");
@@ -606,17 +764,37 @@ export default function App() {
               <>
                 <div className="mb-6 flex items-center justify-between bg-white px-6 py-4 rounded-xl shadow-sm border border-slate-200">
                   <p className="text-slate-700">
-                    <span className="text-[#003366]">{filteredCourses.length}</span> of {MOCK_COURSES.length} courses
+                    <span className="text-[#003366]">{searchResults.length}</span> sections found
                   </p>
                 </div>
 
-                {filteredCourses.length > 0 ? (
+                {isSearching ? (
+                  <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-slate-600">Searching...</p>
+                  </div>
+                ) : searchError ? (
+                  <div className="text-center py-16 bg-white rounded-xl border border-red-200 shadow-sm bg-red-50">
+                    <p className="text-red-600">{searchError}</p>
+                  </div>
+                ) : searchResults.length > 0 ? (
                   <div className="grid gap-5">
-                    {filteredCourses.map((course) => (
+                    {searchResults.map((section) => (
                       <CourseCard 
-                        key={course.id} 
-                        {...course}
-                        isInPlanner={plannedCourseIds.has(course.id)}
+                        key={section.section_id}
+                        id={section.section_id.toString()}
+                        code={section.course_code}
+                        title={section.course_title}
+                        instructor={section.instructor}
+                        schedule={`${section.days || 'TBA'} ${section.start_time || ''} - ${section.end_time || ''}`}
+                        credits={section.units}
+                        enrolled={0}
+                        capacity={100}
+                        location={section.room || 'TBA'}
+                        department={section.course_code.split(' ')[0]}
+                        level="100-Level"
+                        courseCareer="Undergraduate"
+                        modeOfInstruction="In Person"
+                        isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                         onAddToPlanner={handleAddToPlanner}
                         showPlannerButton={true}
                       />

@@ -18,6 +18,8 @@ import {
 } from "./ui/Tooltip";
 import { Search, Calendar, BookOpen, Hash, GraduationCap, Monitor, Filter, RotateCcw, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { useEffect } from "react";
+import { courseAPI } from "../services/api";
 
 interface SearchFiltersProps {
   term: string;
@@ -71,7 +73,19 @@ export function SearchFilters({
   onReset,
 }: SearchFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // Inside the component:
+  const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
 
+  useEffect(() => {
+    // Fetch departments on mount
+    courseAPI.getDepartments()
+      .then(response => {
+        if (response.status === 'success') {
+          setDepartments(response.departments);
+        }
+      })
+      .catch(error => console.error('Failed to load departments:', error));
+  }, []);
   const toggleDay = (day: string) => {
     setSelectedDays(
       selectedDays.includes(day)
@@ -178,14 +192,11 @@ export function SearchFilters({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
-                  <SelectItem value="Computer Science">Computer Science</SelectItem>
-                  <SelectItem value="Mathematics">Mathematics</SelectItem>
-                  <SelectItem value="Physics">Physics</SelectItem>
-                  <SelectItem value="Chemistry">Chemistry</SelectItem>
-                  <SelectItem value="Biology">Biology</SelectItem>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="History">History</SelectItem>
-                  <SelectItem value="Psychology">Psychology</SelectItem>
+                  {departments.map(dept => (
+                    <SelectItem key={dept.id} value={dept.department_code}>
+                      {dept.college}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -410,3 +421,22 @@ export function SearchFilters({
     </TooltipProvider>
   );
 }
+
+/*
+<Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger id="subject" className="border-slate-300">
+                  <SelectValue placeholder="All Subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  <SelectItem value="Computer Science">Computer Science</SelectItem>
+                  <SelectItem value="Mathematics">Mathematics</SelectItem>
+                  <SelectItem value="Physics">Physics</SelectItem>
+                  <SelectItem value="Chemistry">Chemistry</SelectItem>
+                  <SelectItem value="Biology">Biology</SelectItem>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="History">History</SelectItem>
+                  <SelectItem value="Psychology">Psychology</SelectItem>
+                </SelectContent>
+              </Select>
+*/
