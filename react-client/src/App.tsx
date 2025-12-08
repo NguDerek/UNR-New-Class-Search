@@ -795,6 +795,8 @@ export default function App() {
                         capacity={100}
                         location={section.room || 'TBA'}
                         department={section.course_code.split(' ')[0]}
+                        component={section.component}
+                        section={section.section_num}
                         level="100-Level"
                         courseCareer="Undergraduate"
                         modeOfInstruction="In Person"
