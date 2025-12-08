@@ -61,8 +61,18 @@ class SearchService:
             params.append(pattern)
         
         if 'days' in self.filters:
-            query += " AND s.class_days ILIKE %s"
-            params.append(f"%{self.filters['days']}%")
+            days_filter = self.filters['days']
+            # Build a condition that checks if ANY of the selected days appears in class_days
+            # For example, if user selects "MW", we want to match "MWF", "MW", "M", "W", etc.
+            
+            # Create OR conditions for each day
+            day_conditions = []
+            for day in days_filter:  # days_filter is like "MW" or "MWF"
+                day_conditions.append("s.class_days ILIKE %s")
+                params.append(f"%{day}%")
+    
+            if day_conditions:
+                query += " AND (" + " OR ".join(day_conditions) + ")"
         
         if 'term' in self.filters:
             query += " AND t.session_code = %s"
