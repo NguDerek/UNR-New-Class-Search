@@ -1,4 +1,4 @@
-// Integrated from Shadcn UI
+//Externally sourced from Shadcn UI
 import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio"
 
 const AspectRatio = AspectRatioPrimitive.Root

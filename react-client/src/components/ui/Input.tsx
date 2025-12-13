@@ -1,4 +1,4 @@
-//Integrated from Shadcn UI
+//Externally sourced from Shadcn UI
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
