@@ -306,6 +306,7 @@ def search_courses():
         search.add_filter('search_query', request.args.get('search_query'))
         search.add_filter('course_career', request.args.get('course_career'))
         search.add_filter('level', request.args.get('level'))
+        search.add_filter('room', request.args.get('room'))
         # Execute search
         search.execute_search()
         
