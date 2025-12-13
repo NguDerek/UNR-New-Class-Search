@@ -169,6 +169,11 @@ class SearchService:
                 query += " AND c.catalog_num >= %s"
                 params.append(600)
 
+        if 'room' in self.filters:
+            room_search = self.filters['room']
+            query += "AND s.room_code ILIKE %s"
+            params.append(f"%{room_search}%")
+
         # Order results
         query += " ORDER BY c.subject, c.catalog_num, s.section_num;"
         

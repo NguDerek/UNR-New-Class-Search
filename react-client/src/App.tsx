@@ -10,6 +10,7 @@ import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp"
 import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
+import { Menu } from "lucide-react";
 
 interface User {
   id: number;
@@ -350,6 +351,9 @@ export default function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [csrfToken, setCsrfToken] = useState("");
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = () => { setIsSidebarOpen(!isSidebarOpen); };
+
   const [searchResults, setSearchResults] = useState<APISection[]>([]);//useState<Section[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -389,7 +393,7 @@ export default function App() {
   const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [department, setDepartment] = useState("all");
-  const [courseNumber, setCourseNumber] = useState("");
+  const [roomSearch, setRoomSearch] = useState("");
   const [courseCareer, setCourseCareer] = useState("all");
   const [showOpenOnly, setShowOpenOnly] = useState(false);
   const [modeOfInstruction, setModeOfInstruction] = useState("all");
@@ -403,7 +407,7 @@ export default function App() {
     term: "Spring 2025",
     searchQuery: "",
     department: "all",
-    courseNumber: "",
+    roomSearch: "",
     courseCareer: "all",
     showOpenOnly: false,
     modeOfInstruction: "all",
@@ -508,9 +512,8 @@ export default function App() {
       }
       
       // === COURSE NUMBER INPUT ===
-      if (courseNumber) {
-        searchParams.catalog_num = courseNumber;
-        searchParams.catalog_num_operator = 'exact';
+      if (roomSearch && roomSearch.trim() !== '') {
+        searchParams.room = roomSearch;
       }
       
       // === DAYS BUTTONS ===
@@ -632,7 +635,7 @@ export default function App() {
     setTerm("all");
     setSearchQuery("");
     setDepartment("all");
-    setCourseNumber("");
+    setRoomSearch("");
     setCourseCareer("all");
     setShowOpenOnly(false);
     setModeOfInstruction("all");
@@ -644,7 +647,7 @@ export default function App() {
       term: "all",
       searchQuery: "",
       department: "all",
-      courseNumber: "",
+      roomSearch: "",
       courseCareer: "all",
       showOpenOnly: false,
       modeOfInstruction: "all",
@@ -742,9 +745,20 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} user={user} />
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} />
       
       <div className="flex-1">
+
+        {!isSidebarOpen && (
+          <button
+            onClick={toggleSidebar}
+            className="fixed top-4 left-4 z-50 p-3 bg-[#003366] text-white rounded-lg shadow-lg hover:bg-[#004080] transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        )}
+
+
         {currentView === "home" ? (
           <Home onGetStarted={() => setCurrentView("search")} />
         ) : currentView === "settings" ? (
@@ -772,8 +786,8 @@ export default function App() {
               setSearchQuery={setSearchQuery}
               department={department}
               setDepartment={setDepartment}
-              courseNumber={courseNumber}
-              setCourseNumber={setCourseNumber}
+              roomSearch={roomSearch}
+              setRoomSearch={setRoomSearch}
               courseCareer={courseCareer}
               setCourseCareer={setCourseCareer}
               showOpenOnly={showOpenOnly}

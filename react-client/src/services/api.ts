@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:5000';
 export interface SearchParams {
   subject?: string;
   catalog_num?: string;
-  catalog_num_operator?: 'exact' | 'greater' | 'less' | 'greater_equal' | 'less_equal';
+  room?: string;
   title?: string;
   instructor?: string;
   days?: string;
