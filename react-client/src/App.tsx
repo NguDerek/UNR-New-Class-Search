@@ -10,6 +10,7 @@ import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp"
 import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
+import { Menu } from "lucide-react";
 
 interface User {
   id: number;
@@ -349,6 +350,9 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [csrfToken, setCsrfToken] = useState("");
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = () => { setIsSidebarOpen(!isSidebarOpen); };
 
   const [searchResults, setSearchResults] = useState<APISection[]>([]);//useState<Section[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -742,9 +746,20 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} user={user} />
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} />
       
       <div className="flex-1">
+
+        {!isSidebarOpen && (
+          <button
+            onClick={toggleSidebar}
+            className="fixed top-4 left-4 z-50 p-3 bg-[#003366] text-white rounded-lg shadow-lg hover:bg-[#004080] transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        )}
+
+
         {currentView === "home" ? (
           <Home onGetStarted={() => setCurrentView("search")} />
         ) : currentView === "settings" ? (
