@@ -2,24 +2,31 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-from psycopg2.extras import RealDictCursor
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import os
 import psycopg2
-from config import Config
 from dbconnect.connection import DatabaseConnection
+
+from datetime import datetime, UTC
+from flask_sqlalchemy import SQLAlchemy
 
 load_dotenv()  # load variables from .env
 
 app = Flask(__name__)
+db = SQLAlchemy()
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for debug
+
 app.config['SESSION_PROTECTION'] = 'strong'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False #Off During Development
 
+db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 csrf = CSRFProtect(app)
@@ -72,31 +79,23 @@ def get_csrf_token():
     token = generate_csrf()
     return jsonify({'csrf_token': token})
 
-
-class User(UserMixin):
-    def __init__(self, id, email, first_name, last_name):
-        self.id = id
-        self.email = email
-        self.first_name = first_name
-        self.last_name = last_name
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(255), nullable=False)
+    last_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now(UTC), nullable=False)
+    
+    def __repr__(self):
+        return f'<User {self.email}>'
 
 @login_manager.user_loader
 def load_user(user_id):
-    try:
-        conn = get_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute('SELECT id, email, first_name, last_name FROM users WHERE id = %s', (user_id,))
-        user_data = cur.fetchone()
-        cur.close()
-        conn.close()
-        
-        if user_data:
-            return User(user_data['id'], user_data['email'], 
-                       user_data['first_name'], user_data['last_name'])
-    except Exception as e:
-        print(f"Error loading user: {e}")
-    return None
-
+    return db.session.get(User, int(user_id))
+    #return User.query.get(int(user_id)) #deprecated
     
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -109,34 +108,31 @@ def signup():
         last_name = data.get('last_name')
         email = data.get('email')
         password = data.get('password')
-        
-        conn = get_connection()
-        cur = conn.cursor()
-        
+    
         #Check DB for user existing
-        cur.execute('SELECT * FROM users WHERE email = %s', (email,))
-        if cur.fetchone():
-            cur.close()
-            conn.close()
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            print("exists")
             return jsonify({'error': 'Email already exists'}), 400
+        else:
+            print("doesnt exist")
         
         #add email and hashed password to DB
         hashed_password = generate_password_hash(password)
-        cur.execute(
-            'INSERT INTO users (first_name, last_name, email, password) VALUES (%s, %s, %s, %s) RETURNING id',
-            (first_name, last_name, email, hashed_password)
+        new_user = User(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=hashed_password
         )
         
-        conn.commit()
-        cur.close()
-        conn.close()
+        db.session.add(new_user)
+        db.session.commit() #DO NOT FORGET () DUMBO
         
         return jsonify({'message': 'User created successfully'}), 201
         
-    except psycopg2.Error as db_error:
-        print(f"Database error: {db_error}")
-        return jsonify({'error': f'Database error: {str(db_error)}'}), 500
     except Exception as e:
+        db.session.rollback()
         print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
 
@@ -150,24 +146,13 @@ def login():
         email = data.get('email')
         password = data.get('password')
         
-        conn = get_connection()
-        #cursor_factory to fix "Error: tuple indices must be integers or slices, not st"
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
         # Gets user from DB
-        cur.execute('SELECT * FROM users WHERE email = %s', (email,))
-        user_data = cur.fetchone()
-        
-        cur.close()
-        conn.close()
+        user = User.query.filter_by(email=email).first()
         
         # Check if user exists and password matches
-        if not user_data or not check_password_hash(user_data['password'], password):
+        if not user or not check_password_hash(user.password, password):
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        # Create user object and login
-        user = User(user_data['id'], user_data['email'], 
-                   user_data['first_name'], user_data['last_name'])
         login_user(user, remember=True)
         
         print("Authenticated: " + str(current_user.is_authenticated))
@@ -179,10 +164,10 @@ def login():
         return jsonify({
             'message': 'Login successful',
             'user': {
-                'id': user_data['id'], 
-                'email': user_data['email'],
-                'first_name': user_data['first_name'],
-                'last_name': user_data['last_name']
+                'id': user.id, 
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name
             }
         }), 200
         
