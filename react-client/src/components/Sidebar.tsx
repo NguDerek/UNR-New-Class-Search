@@ -12,6 +12,8 @@ interface SidebarProps {
   currentView: "home" | "search" | "planner" | "programs" | "settings";
   onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings") => void;
   onLogout: () => void;
+  onToggle: () => void;
+  isOpen: boolean;
   user: {
     id: number;
     email: string;
@@ -20,7 +22,7 @@ interface SidebarProps {
   } | null;
 }
 
-export function Sidebar({ currentView, onNavigate, onLogout, user }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, user }: SidebarProps) {
   const navItems: NavItem[] = [
     { name: "Home", icon: Home, view: "home" },
     { name: "Search", icon: Search, view: "search" },
@@ -28,6 +30,8 @@ export function Sidebar({ currentView, onNavigate, onLogout, user }: SidebarProp
     { name: "Programs", icon: GraduationCap, view: "programs" },
     { name: "Settings", icon: Settings, view: "settings" },
   ];
+
+  if (!isOpen) return null;
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col">
@@ -52,6 +56,12 @@ export function Sidebar({ currentView, onNavigate, onLogout, user }: SidebarProp
             </p>
             <p className="text-xs text-slate-500 truncate">Student</p>
           </div>
+          <button
+            onClick={onToggle}
+            className="w-9 h-9 hover:bg-slate-100 rounded-lg flex items-center justify-center transition-colors shrink-0"
+          >
+            <span className="text-slate-600 text-xl">✕</span>
+          </button>
         </div>
       </div>
 
@@ -80,6 +90,7 @@ export function Sidebar({ currentView, onNavigate, onLogout, user }: SidebarProp
           })}
         </ul>
       </nav>
+      
       {/* Logout Button */}
       <div className="p-4 border-t border-slate-200">
         <button
