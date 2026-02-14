@@ -1,7 +1,11 @@
 from dbconnect.connection import DatabaseConnection
-from models.section import Section
+from models.section import Section, section_instructor
 from models.course import Course
 from models.instructor import Instructor
+from models.department import Department
+from models.term import Term
+from sqlalchemy import and_, or_, func
+from database import db
 
 class SearchService:
     """Handles complex search operations with multiple criteria"""

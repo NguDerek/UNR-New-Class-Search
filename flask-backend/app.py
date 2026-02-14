@@ -9,13 +9,13 @@ import os
 import psycopg2
 from dbconnect.connection import DatabaseConnection
 
-from datetime import datetime, UTC
-from flask_sqlalchemy import SQLAlchemy
+from database import db
+
+from models.user import User
 
 load_dotenv()  # load variables from .env
 
 app = Flask(__name__)
-db = SQLAlchemy()
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
@@ -79,19 +79,6 @@ def get_csrf_token():
     token = generate_csrf()
     return jsonify({'csrf_token': token})
 
-class User(UserMixin, db.Model):
-    __tablename__ = 'users'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(255), nullable=False)
-    last_name = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now(UTC), nullable=False)
-    
-    def __repr__(self):
-        return f'<User {self.email}>'
-
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -110,7 +97,8 @@ def signup():
         password = data.get('password')
     
         #Check DB for user existing
-        existing_user = User.query.filter_by(email=email).first()
+        #existing_user = User.query.filter_by(email=email).first()
+        existing_user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
         if existing_user:
             print("exists")
             return jsonify({'error': 'Email already exists'}), 400
@@ -147,7 +135,8 @@ def login():
         password = data.get('password')
         
         # Gets user from DB
-        user = User.query.filter_by(email=email).first()
+        #user = User.query.filter_by(email=email).first()
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
         
         # Check if user exists and password matches
         if not user or not check_password_hash(user.password, password):
@@ -302,6 +291,11 @@ def search_courses():
             "filters_used": search.filters
         }
     except Exception as e:
+        import traceback
+        print("=" * 50)
+        print("ERROR in search_courses:")
+        print(traceback.format_exc())
+        print("=" * 50)
         return {"status": "error", "message": str(e)}, 500
      
 if __name__ == "__main__":
