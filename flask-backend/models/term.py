@@ -2,7 +2,7 @@ from dbconnect.connection import DatabaseConnection
 from datetime import date
 from database import db
 
-class Term:
+class Term(db.Model):
     __tablename__ = 'term'
     
     id = db.Column(db.Integer, primary_key=True)
