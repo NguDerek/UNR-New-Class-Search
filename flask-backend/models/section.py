@@ -71,20 +71,6 @@ class Section(db.Model):
         
         if self._instructors is None:
             from models.instructor import Instructor
-            """
-            query = """
-            """
-                SELECT i.id, i.first_name, i.last_name
-                FROM instructor i
-                JOIN section_instructor si ON i.id = si.instructor_id
-                WHERE si.section_id = %s
-                ORDER BY i.last_name, i.first_name;
-            """
-            """
-            results = DatabaseConnection.execute_query(query, [self.id])
-            s = [Instructor(r[0], r[1], r[2]) for r in results]
-            self._instructors = s
-            """
             self._instructors = db.session.execute(
                 db.select(Instructor)
                 .join(section_instructor, Instructor.id == section_instructor.c.instructor_id)
@@ -125,32 +111,11 @@ class Section(db.Model):
     #Static methods to test database operations
     @staticmethod
     def get_by_id(section_id):
-        query = """
-            SELECT id, course_id, term_id, section_num, component,
-                   instruction_mode, class_days, start_time, end_time,
-                   combined, class_status, enrollment_capacity, room_code
-            FROM section
-            WHERE id = %s;
-        """
-        """result = DatabaseConnection.execute_single(query, [section_id])
-        if result:
-            return Section(*result)
-        return None"""
         return db.session.get(Section, section_id)
     
     @staticmethod
     def get_by_course_id(course_id):
-        """Get all sections for a course"""
-        query = """
-            SELECT id, course_id, term_id, section_num, component,
-                   instruction_mode, class_days, start_time, end_time,
-                   combined, class_status, enrollment_capacity, room_code
-            FROM section
-            WHERE course_id = %s
-            ORDER BY section_num;
-        """
-        """results = DatabaseConnection.execute_query(query, [course_id])
-        return [Section(*row) for row in results]"""
+        #Get all sections for a course
         return db.session.execute(db.select(Section).filter_by(course_id=course_id).order_by(Section.section_num)).scalars().all()
     
     #Magic methods

@@ -86,58 +86,12 @@ class Course(db.Model):
     #Static methods to test database operations
     @staticmethod
     def get_all():
-        """
-        query = "SELECT id, department_id, subject, catalog_num, title, description, units FROM course ORDER BY subject, catalog_num;"
-        results = DatabaseConnection.execute_query(query)
-        return [
-            Course(
-                id=r[0],
-                department_id=r[1],
-                subject=r[2],
-                catalog_num=r[3],
-                title=r[4],
-                description=r[5],
-                units=r[6]
-            )
-            for r in results
-        ]
-        """
         return db.session.execute(db.select(Course).order_by(Course.subject, Course.catalog_num)).scalars.all()
     
     def get_by_id(course_id):
-        """
-        query = "SELECT id, department_id, subject, catalog_num, title, description, units FROM course WHERE id = %s;"
-        result = DatabaseConnection.execute_single(query, [course_id])
-        if result:
-            return Course(
-                    id=result[0],
-                    department_id=result[1],
-                    subject=result[2],
-                    catalog_num=result[3],
-                    title=result[4],
-                    description=result[5],
-                    units=result[6]
-                )
-        return None
-        """
         db.session.get(Course, course_id)
     
     def get_by_subject(subject):
-        """
-        query = "SELECT id, department_id, subject, catalog_num, title, description, units FROM course WHERE subject = %s;"
-        result = DatabaseConnection.execute_single(query, [subject])
-        if result:
-            return Course(
-                    id=result[0],
-                    department_id=result[1],
-                    subject=result[2],
-                    catalog_num=result[3],
-                    title=result[4],
-                    description=result[5],
-                    units=result[6]
-                )
-        return None
-        """
         return db.session.get(db.select(Course).filter_by(subject=subject)).scalar_one_or_none()
     
     #Magic methods

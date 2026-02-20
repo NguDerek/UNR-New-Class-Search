@@ -48,40 +48,17 @@ class Term(db.Model):
     @staticmethod
     def get_all():
         #Gets all instructors
-        """
-        query = "SELECT id, session_code, start_date, end_date FROM term ORDER BY start_date DESC;"
-        results = DatabaseConnection.execute_query(query)
-        return [Term(r[0], r[1], r[2], r[3]) for r in results]
-        """
         return db.session.execute(db.select(Term).order_by(Term.start_date)).scalars().all()
     
     @staticmethod
     def get_by_id(term_id):
         #Gets an instructor from id
-        """
-        query = "SELECT id, session_code, start_date, end_date FROM term WHERE id = %s;"
-        result = DatabaseConnection.execute_single(query, [term_id])
-        if result:
-            return Term(result[0], result[1], result[2], result[3])
-        return None
-        """
         return db.session.get(Term, term_id)
     
     @staticmethod
     def get_current_term():
         #Get current active term
         today = date.today()
-        """
-        query = """
-            #SELECT id, session_code, start_date, end_date 
-            #FROM term 
-            #WHERE %s BETWEEN start_date AND end_date;
-        """
-        result = DatabaseConnection.execute_single(query, [today])
-        if result:
-            return Term(result[0], result[1], result[2], result[3])
-        return None
-        """
         return db.session.execute(db.select(Term).where(Term.start_date <= today).where(Term.end_date >= today)).scalar_one_or_none()
     
     #Magic methods
