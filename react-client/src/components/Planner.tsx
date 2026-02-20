@@ -77,7 +77,6 @@ export function Planner({ plannedCourses, onRemoveFromPlanner }: PlannerProps) {
       {plannedCourses.length > 0 ? (
         <div className="grid gap-5">
           {plannedCourses.map((course) => (
-            <div key={course.id} className="relative">
               <CourseCard
                 id={course.id}
                 code={course.code}
@@ -94,14 +93,9 @@ export function Planner({ plannedCourses, onRemoveFromPlanner }: PlannerProps) {
                 level={course.level}
                 courseCareer={course.courseCareer}
                 modeOfInstruction={course.modeOfInstruction}
+                showRemoveButton={true}
+                onRemoveFromPlanner={onRemoveFromPlanner}
               />
-              <button
-                onClick={() => onRemoveFromPlanner(course.id)}
-                className="absolute top-4 right-4 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg text-sm transition-colors"
-              >
-                Remove
-              </button>
-            </div>
           ))}
         </div>
       ) : (
