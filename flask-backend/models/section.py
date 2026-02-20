@@ -1,6 +1,26 @@
 from dbconnect.connection import DatabaseConnection
+from database import db
 
-class Section:
+section_instructor = db.Table('section_instructor', db.Column('section_id', db.Integer, db.ForeignKey('public.section.id'), primary_key=True), 
+db.Column('instructor_id', db.Integer, db.ForeignKey('public.instructor.id'), primary_key=True))
+
+class Section(db.Model):
+    __tablename__ = 'section'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('public.course.id'), nullable=False)
+    term_id = db.Column(db.Integer, db.ForeignKey('public.term.id'), nullable=False)
+    section_num = db.Column(db.Integer, nullable=False)
+    component = db.Column(db.String(20), nullable=False)
+    instruction_mode = db.Column(db.String(10), nullable=False)
+    class_days = db.Column(db.String(10))
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
+    combined = db.Column(db.Boolean, default=False, nullable=False)
+    class_status = db.Column(db.String(10), nullable=False)
+    room_code = db.Column(db.String(20))
+    
+    
     #Represents a section of a course with its specific information
 
     def __init__(self, id=None, course_id=None, term_id=None, section_num=None, component=None,
@@ -48,18 +68,14 @@ class Section:
         return self._term
     
     def get_instructors(self):
+        
         if self._instructors is None:
             from models.instructor import Instructor
-            query = """
-                SELECT i.id, i.first_name, i.last_name
-                FROM instructor i
-                JOIN section_instructor si ON i.id = si.instructor_id
-                WHERE si.section_id = %s
-                ORDER BY i.last_name, i.first_name;
-            """
-            results = DatabaseConnection.execute_query(query, [self.id])
-            s = [Instructor(r[0], r[1], r[2]) for r in results]
-            self._instructors = s
+            self._instructors = db.session.execute(
+                db.select(Instructor)
+                .join(section_instructor, Instructor.id == section_instructor.c.instructor_id)
+                .where(section_instructor.c.section_id == self.id)
+                .order_by(Instructor.last_name, Instructor.first_name)).scalars().all()
         return self._instructors
     
     #Format method to convert properties into json format
@@ -95,31 +111,12 @@ class Section:
     #Static methods to test database operations
     @staticmethod
     def get_by_id(section_id):
-        query = """
-            SELECT id, course_id, term_id, section_num, component,
-                   instruction_mode, class_days, start_time, end_time,
-                   combined, class_status, enrollment_capacity, room_code
-            FROM section
-            WHERE id = %s;
-        """
-        result = DatabaseConnection.execute_single(query, [section_id])
-        if result:
-            return Section(*result)
-        return None
+        return db.session.get(Section, section_id)
     
     @staticmethod
     def get_by_course_id(course_id):
-        """Get all sections for a course"""
-        query = """
-            SELECT id, course_id, term_id, section_num, component,
-                   instruction_mode, class_days, start_time, end_time,
-                   combined, class_status, enrollment_capacity, room_code
-            FROM section
-            WHERE course_id = %s
-            ORDER BY section_num;
-        """
-        results = DatabaseConnection.execute_query(query, [course_id])
-        return [Section(*row) for row in results]
+        #Get all sections for a course
+        return db.session.execute(db.select(Section).filter_by(course_id=course_id).order_by(Section.section_num)).scalars().all()
     
     #Magic methods
     def __str__(self):

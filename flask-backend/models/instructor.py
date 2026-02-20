@@ -1,6 +1,13 @@
 from dbconnect.connection import DatabaseConnection
+from database import db
 
-class Instructor:
+class Instructor(db.Model):
+    __tablename__= 'instructor'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    
     #Represents an instructor (first and last name)
 
     def __init__(self, id=None, first_name=None, last_name=None):
@@ -37,31 +44,18 @@ class Instructor:
     @staticmethod
     def get_all():
         #Gets all instructors
-        query = "SELECT id, first_name, last_name FROM instructor ORDER BY last_name, first_name;"
-        results = DatabaseConnection.execute_query(query)
-        return [Instructor(r[0], r[1], r[2]) for r in results]
+        return db.session.execute(db.select(Instructor).order_by(Instructor.last_name, Instructor.first_name)).scalars.all()
     
     @staticmethod
     def get_by_id(instructor_id):
         #Gets an instructor from id
-        query = "SELECT id, first_name, last_name FROM instructor WHERE id = %s;"
-        result = DatabaseConnection.execute_single(query, [instructor_id])
-        if result:
-            return Instructor(result[0], result[1], result[2])
-        return None
+        return db.session.get(Instructor, instructor_id)
     
     @staticmethod
     def search_by_name(name_pattern):
         #Search instructors by name
-        query = """
-            SELECT id, first_name, last_name 
-            FROM instructor 
-            WHERE first_name ILIKE %s OR last_name ILIKE %s
-            ORDER BY last_name, first_name;
-        """
         pattern = f"%{name_pattern}%"
-        results = DatabaseConnection.execute_query(query, [pattern, pattern])
-        return [Instructor(r[0], r[1], r[2]) for r in results]
+        return db.session.execute(db.select(Instructor).where((Instructor.first_name.ilike(pattern)) | (Instructor.last_name.ilike(pattern))).order_by(Instructor.last_name, Instructor.first_name)).scalars().all()
     
     #Magic methods
     def __str__(self):
