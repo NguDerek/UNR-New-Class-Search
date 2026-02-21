@@ -1,7 +1,7 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2 } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft } from "lucide-react";
 
 interface CourseCardProps {
   id: string;
@@ -24,6 +24,7 @@ interface CourseCardProps {
   showPlannerButton?: boolean;
   onRemoveFromPlanner?: (courseId: string) => void;
   showRemoveButton?: boolean
+  showSwapButton?: boolean
 }
 
 export function CourseCard({
@@ -46,7 +47,9 @@ export function CourseCard({
   onAddToPlanner,
   showPlannerButton = false,
   onRemoveFromPlanner,
-  showRemoveButton = false
+  showRemoveButton = false,
+  showSwapButton = false
+  
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -155,6 +158,17 @@ export function CourseCard({
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Remove from Planner
+          </Button>
+        </div>
+      )}
+      {showSwapButton && (
+        <div className="mt-4">
+          <Button
+            // onClick={() => onRemoveFromPlanner(id)}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+          >
+            <ArrowRightLeft className="w-4 h-4 mr-2" />
+            Swap Course
           </Button>
         </div>
       )}

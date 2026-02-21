@@ -95,6 +95,7 @@ export function Planner({ plannedCourses, onRemoveFromPlanner }: PlannerProps) {
                 modeOfInstruction={course.modeOfInstruction}
                 showRemoveButton={true}
                 onRemoveFromPlanner={onRemoveFromPlanner}
+                showSwapButton={true}
               />
           ))}
         </div>

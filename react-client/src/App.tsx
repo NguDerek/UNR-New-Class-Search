@@ -344,7 +344,7 @@ function formatInstructionMode(mode: string): string {
 
 export default function App() {
 // Authentication state
-  console.log("App component rendering"); // ADD THIS
+  console.log("App component rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authView, setAuthView] = useState<"login" | "signup">("login");
   const [user, setUser] = useState<User | null>(null);
