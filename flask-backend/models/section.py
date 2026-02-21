@@ -18,6 +18,7 @@ class Section(db.Model):
     end_time = db.Column(db.Time)
     combined = db.Column(db.Boolean, default=False, nullable=False)
     class_status = db.Column(db.String(10), nullable=False)
+    enrollment_capacity = db.Column(db.Integer)
     room_code = db.Column(db.String(20))
     
     

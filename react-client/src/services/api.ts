@@ -35,6 +35,7 @@ export interface Section {
   instruction_mode: string;
   catalog_num: number;
   //department: string;
+  enrollment_cap: number;
 }
 
 export interface SectionDetails {

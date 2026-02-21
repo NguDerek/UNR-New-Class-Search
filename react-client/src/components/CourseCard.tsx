@@ -85,7 +85,7 @@ export function CourseCard({
                 : "bg-red-100 text-red-700 border-red-200"
             }
           >
-            {enrolled}/{capacity} Enrolled
+            {capacity} Total Seats
           </Badge>
           <Badge variant="outline" className="border-slate-300 text-slate-600">
             Section {section}

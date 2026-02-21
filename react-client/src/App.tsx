@@ -833,7 +833,7 @@ export default function App() {
                         schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
                         credits={section.units}
                         enrolled={0}
-                        capacity={100}
+                        capacity={section.enrollment_cap}
                         location={section.room || 'TBA'}
                         department={section.course_code.split(' ')[0]}//{section.department}
                         component={section.component}

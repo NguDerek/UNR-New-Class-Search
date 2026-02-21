@@ -181,8 +181,9 @@ class SearchService:
                 "room": s.room_code,
                 "component": s.component,
                 "instruction_mode": s.instruction_mode,
-                "catalog_num": s.get_course().catalog_num
+                "catalog_num": s.get_course().catalog_num,
                 #"department": s.get_course().get_department().college
+                "enrollment_cap": s.enrollment_capacity
             }
             for s in self.results
         ]
