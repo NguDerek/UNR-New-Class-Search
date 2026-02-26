@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import os
 import psycopg2
 from dbconnect.connection import DatabaseConnection
+
+import traceback
 
 from database import db
 
@@ -297,6 +299,65 @@ def search_courses():
         print(traceback.format_exc())
         print("=" * 50)
         return {"status": "error", "message": str(e)}, 500
+
+@app.route('/planner/section', methods=['POST'])
+@login_required
+def add_to_planner():
+    try:
+        data = request.get_json()
+        section_id = data.get('section_id')
+        
+        section = db.session.get(Section, section_id)
+        if not section:
+            return jsonify({'error': 'Section not found'}), 404
+        
+        if section in current_user.planned_sections:
+            return jsonify({'error': 'Section already in planner'}), 400
+        
+        current_user.planned_sections.append(section)
+        db.session.commit()
+        
+        return jsonify({'message': 'Section added to planner'}), 200
+    
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/planner/section/<int:section_id>', methods=['DELETE'])
+@login_required
+def remove_from_planner(section_id):
+    try:
+        section = db.session.get(Section, section_id)
+        if not section:
+            return jsonify({'error': 'Section not found'}), 404
+        
+        if section not in current_user.planned_sections:
+            return jsonify({'error': 'Section not in planner'}), 400
+        
+        current_user.planned_sections.remove(section)
+        db.session.commit()
+        
+        return jsonify({'message': 'Section removed from planner'}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/planner', methods=['GET'])
+@login_required
+def get_planner():
+    try:
+        sections = current_user.planned_sections
+        return jsonify({
+            'status': 'success',
+            'sections': [s.format(include_course=True) for s in sections],
+            'count': len(sections)
+        }), 200
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
      
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

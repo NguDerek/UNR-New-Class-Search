@@ -1,4 +1,3 @@
-from dbconnect.connection import DatabaseConnection
 from database import db
 
 
@@ -6,7 +5,7 @@ class Course(db.Model):
     __tablename__ = 'course'
     
     id = db.Column(db.Integer, primary_key=True)
-    department_id = db.Column(db.Integer, db.ForeignKey('public.department.id'))
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
     subject = db.Column(db.String(50), nullable=False)
     catalog_num = db.Column(db.Integer, nullable=False)
     title = db.Column(db.String(100), nullable=False)

@@ -11,6 +11,7 @@ import { SignUp } from "./components/SignUp"
 import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
+import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
 
 interface User {
   id: number;
@@ -299,49 +300,6 @@ const MOCK_COURSES: Course[] = [
   // },
 ];
 
-// Helper function to format time from 24-hour to 12-hour with AM/PM
-function formatTime(timeString: string | null): string {
-  if (!timeString) return '';
-  
-  // timeString is like "12:00:00" or "14:30:00"
-  const [hours, minutes] = timeString.split(':');
-  const hour = parseInt(hours, 10);
-  const minute = minutes;
-  
-  // Convert to 12-hour format
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12; // Convert 0 to 12 for midnight
-  
-  return `${hour12}:${minute} ${period}`;
-}
-
-// Helper function to determine course level from catalog number
-function getCourseLevel(catalogNum: number): string {
-  if (catalogNum >= 500) return '600+ Level';
-  if (catalogNum >= 400) return '400 Level';
-  if (catalogNum >= 300) return '300 Level';
-  if (catalogNum >= 200) return '200 Level';
-  if (catalogNum >= 100) return '100 Level';
-  return 'Other';
-}
-
-// Helper function to determine course career from catalog number
-function getCourseCareer(catalogNum: number): string {
-  if (catalogNum >= 600) return 'Graduate';  // If your school uses 600+ for med
-  return 'Undergraduate';
-}
-
-// Helper function to format instruction mode
-function formatInstructionMode(mode: string): string {
-  const modeMap: Record<string, string> = {
-    'P': 'In Person',
-    'HY': 'Hybrid',
-    'WL': 'Synchronous Online',
-    'WA': 'Asynchronous Online',
-  };
-  return modeMap[mode] || mode;
-}
-
 export default function App() {
 // Authentication state
   console.log("App component rendering"); // ADD THIS
@@ -367,27 +325,43 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-  const checkAuthStatus = () => {
-    fetch("http://localhost:5000/auth/status", {
-      credentials: "include",
+    const checkAuthStatus = () => {
+      fetch("http://localhost:5000/auth/status", {
+        credentials: "include",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.authenticated && data.user) {
+            setIsAuthenticated(true);
+            setUser(data.user);
+          }
+        })
+        .catch((error) => {
+          console.error("Error checking auth status:", error);
+        })
+        .finally(() => {
+          setIsLoadingAuth(false);
+        });
+    };
+
+    checkAuthStatus();
+  }, []);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetch('http://localhost:5000/planner', {
+      credentials: 'include'
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.authenticated && data.user) {
-          setIsAuthenticated(true);
-          setUser(data.user);
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          const ids = new Set(data.sections.map((s: any) => s.section_id.toString()));
+          setPlannedCourseIds(ids as Set<string>);
         }
       })
-      .catch((error) => {
-        console.error("Error checking auth status:", error);
-      })
-      .finally(() => {
-        setIsLoadingAuth(false);
-      });
-  };
+      .catch(err => console.error('Failed to load planner:', err));
+  }, [isAuthenticated]);
 
-  checkAuthStatus();
-}, []);
 
   const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings">("home");
   const [term, setTerm] = useState("all");
@@ -657,16 +631,66 @@ export default function App() {
     });
   };
 
-  const handleAddToPlanner = (courseId: string) => {
-    setPlannedCourseIds((prev) => new Set(prev).add(courseId));
+  const handleAddToPlanner = async (courseId: string) => {
+    //setPlannedCourseIds((prev) => new Set(prev).add(courseId));
+    try {
+      const response = await fetch('http://localhost:5000/planner/section', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ section_id: parseInt(courseId) })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to add to planner:', data.error);
+        return;
+      }
+
+      setPlannedCourseIds((prev) => new Set(prev).add(courseId));
+      console.log('Section added to planner');
+
+    } catch (error) {
+      console.error('Error adding to planner:', error);
+    }
   };
 
-  const handleRemoveFromPlanner = (courseId: string) => {
+  const handleRemoveFromPlanner = async (courseId: string) => {
+    /*
     setPlannedCourseIds((prev) => {
       const newSet = new Set(prev);
       newSet.delete(courseId);
       return newSet;
     });
+    */
+    try {
+      const response = await fetch(`http://localhost:5000/planner/section/${courseId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to remove from planner:', data.error);
+        return;
+      }
+
+      setPlannedCourseIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(courseId);
+        return newSet;
+      });
+      console.log('Section removed from planner');
+
+    } catch (error) {
+      console.error('Error removing from planner:', error);
+    }
   };
 
   const plannedCourses = MOCK_COURSES.filter((course) =>
@@ -767,7 +791,7 @@ export default function App() {
           <Programs />
         ) : currentView === "planner" ? (
           <Planner 
-            plannedCourses={plannedCourses} 
+            //plannedCourses={plannedCourses} 
             onRemoveFromPlanner={handleRemoveFromPlanner}
           />
         ) : (
