@@ -3,7 +3,7 @@ import { CourseCard } from "./CourseCard";
 import { Calendar, Info } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 
-interface PlannedSection {
+interface Course {
   section_id: number;
   course_id: number;
   term_id: number;
@@ -17,6 +17,12 @@ interface PlannedSection {
   capacity: number;
   status: string;
   combined: boolean;
+  instructors: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    full_name: string;
+  }[];
   course: {
     subject: string;
     catalog_num: number;
@@ -31,7 +37,7 @@ interface PlannerProps {
 }
 
 export function Planner({ onRemoveFromPlanner }: PlannerProps) {
-  const [plannedSections, setPlannedSections] = useState<PlannedSection[]>([]);
+  const [plannedCourses, setPlannedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +48,7 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success') {
-          setPlannedSections(data.sections);
+          setPlannedCourses(data.sections);
         } else {
           setError('Failed to load planner');
         }
@@ -55,11 +61,11 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
   }, []);
 
   const handleRemove = (courseId: string) => {
-    setPlannedSections(prev => prev.filter(s => s.section_id.toString() !== courseId));
+    setPlannedCourses(prev => prev.filter(s => s.section_id.toString() !== courseId));
     onRemoveFromPlanner(courseId);
   };
 
-  const totalCredits = plannedSections.reduce((sum, s) => sum + s.course.units, 0);
+  const totalCredits = plannedCourses.reduce((sum, s) => sum + s.course.units, 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
@@ -97,12 +103,12 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
       ) : (
         <>
           {/* Summary Card */}
-          {plannedSections.length > 0 && (
+          {plannedCourses.length > 0 && (
             <div className="mb-8 bg-linear-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <p className="text-slate-600 text-sm mb-1">Total Courses</p>
-                  <p className="text-[#003366]">{plannedSections.length}</p>
+                  <p className="text-[#003366]">{plannedCourses.length}</p>
                 </div>
                 <div>
                   <p className="text-slate-600 text-sm mb-1">Total Credits</p>
@@ -118,31 +124,35 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
             </div>
           )}
 
-          {/* Planned Sections */}
-          {plannedSections.length > 0 ? (
+          {/* Planned Courses */}
+          {plannedCourses.length > 0 ? (
             <div className="grid gap-5">
-                  {plannedSections.map((section) => (
-                    <CourseCard
-                      key={section.section_id}
-                      id={section.section_id.toString()}
-                      code={`${section.course.subject} ${section.course.catalog_num}`}
-                      title={section.course.title}
-                      instructor="TBA"
-                      schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
-                      credits={section.course.units}
-                      enrolled={0}
-                      capacity={section.capacity}
-                      location={section.room || 'TBA'}
-                      department={section.course.subject}
-                      component={section.component}
-                      section={section.section_num}
-                      level={getCourseLevel(section.course.catalog_num)}
-                      courseCareer={getCourseCareer(section.course.catalog_num)}
-                      modeOfInstruction={formatInstructionMode(section.instruction_mode)}
-                      showRemoveButton={true}
-                      onRemoveFromPlanner={handleRemove}
-                    />
-                  ))}
+              {plannedCourses.map((section) => (
+                <CourseCard
+                  key={section.section_id}
+                  id={section.section_id.toString()}
+                  code={`${section.course.subject} ${section.course.catalog_num}`}
+                  title={section.course.title}
+                  instructor={
+                    section.instructors.length > 0
+                      ? section.instructors[0].full_name
+                      : "TBA"
+                  }
+                  schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
+                  credits={section.course.units}
+                  enrolled={0}
+                  capacity={section.capacity}
+                  location={section.room || 'TBA'}
+                  department={section.course.subject}
+                  component={section.component}
+                  section={section.section_num}
+                  level={getCourseLevel(section.course.catalog_num)}
+                  courseCareer={getCourseCareer(section.course.catalog_num)}
+                  modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                  showRemoveButton={true}
+                  onRemoveFromPlanner={handleRemove}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">

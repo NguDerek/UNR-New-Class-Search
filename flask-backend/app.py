@@ -352,7 +352,7 @@ def get_planner():
         sections = current_user.planned_sections
         return jsonify({
             'status': 'success',
-            'sections': [s.format(include_course=True) for s in sections],
+            'sections': [s.format(include_course=True, include_instructors=True) for s in sections],
             'count': len(sections)
         }), 200
     except Exception as e:
