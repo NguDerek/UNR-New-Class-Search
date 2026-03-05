@@ -19,8 +19,6 @@ def extract_excel(file_name):
 
     return df
 
-df = extract_excel("Fall 2025 Master Schedule - Copy.xlsx")
-
 # ------------------ Transform ------------------
 def float_to_time(value):
     if pd.isnull(value):
@@ -76,8 +74,6 @@ def transform_data(df):
     df["combined"] = df["combined"].apply(string_to_bool)
 
     return df
-
-df = transform_data(df)
 
 # ------------------ Load ------------------
 load_dotenv()                               # read the .env file
@@ -214,5 +210,8 @@ def load_to_db(df):
 
     conn.commit()
 
-load_to_db(df)
-print("working...")
+if __name__ == "__main__":
+    df = extract_excel("Fall 2025 Master Schedule - Copy.xlsx")
+    df = transform_data(df)
+    load_to_db(df)
+    print("working...")
