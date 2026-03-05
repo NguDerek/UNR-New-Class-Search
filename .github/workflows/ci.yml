@@ -27,6 +27,7 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
+        working-directory: react-client
         run: npm install
 
       - name: Run tests
