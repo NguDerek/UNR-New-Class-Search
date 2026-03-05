@@ -38,10 +38,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
-@app.route("/")
-def home():
-    print("Hello, Flask!")
-
 @app.route("/NCS_db")
 def NCS_db():
     try:
