@@ -315,7 +315,7 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   useEffect(() => {
-    fetch('http://localhost:5000/csrf-token', {
+    fetch('/api/csrf-token', {
       credentials: 'include',
     })
       .then(response => response.json())
@@ -325,7 +325,7 @@ export default function App() {
 
   useEffect(() => {
     const checkAuthStatus = () => {
-      fetch("http://localhost:5000/auth/status", {
+      fetch("/api/auth/status", {
         credentials: "include",
       })
         .then((response) => response.json())
@@ -348,7 +348,7 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    fetch('http://localhost:5000/planner', {
+    fetch('/api/planner', {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -633,7 +633,7 @@ export default function App() {
   const handleAddToPlanner = async (courseId: string) => {
     //setPlannedCourseIds((prev) => new Set(prev).add(courseId));
     try {
-      const response = await fetch('http://localhost:5000/planner/section', {
+      const response = await fetch('/api/planner/section', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -666,7 +666,7 @@ export default function App() {
     });
     */
     try {
-      const response = await fetch(`http://localhost:5000/planner/section/${courseId}`, {
+      const response = await fetch(`/api/planner/section/${courseId}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -712,7 +712,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    fetch('http://localhost:5000/logout', {
+    fetch('/api/logout', {
       method: 'POST',
       credentials: 'include',
       headers: {

@@ -42,7 +42,7 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/planner', {
+    fetch('/api/planner', {
       credentials: 'include'
     })
       .then(res => res.json())

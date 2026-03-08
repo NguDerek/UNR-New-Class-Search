@@ -29,7 +29,7 @@ def cleanup_test_user(email):
 
 def register_and_login(client):
     # Get CSRF token
-    csrf_response = client.get('http://localhost:5000/csrf-token')
+    csrf_response = client.get('/api/csrf-token')
     csrf_token = csrf_response.get_json().get('csrf_token', '')
 
     # Register
