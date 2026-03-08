@@ -38,6 +38,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
 
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({'error': 'Authentication required', 'authenticated': False}), 401
+
 @app.route("/NCS_db")
 def NCS_db():
     try:
@@ -144,7 +148,8 @@ def login():
         if not user or not check_password_hash(user.password, password):
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        login_user(user, remember=True)
+        #Logs out on browser closer prevents csrf issues will be fixed in the future
+        login_user(user, remember=False)
         
         print("Authenticated: " + str(current_user.is_authenticated))
         print("ID: " + str(current_user.id))

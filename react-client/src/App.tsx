@@ -304,7 +304,6 @@ export default function App() {
 // Authentication state
   console.log("App component rendering"); // ADD THIS
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authView, setAuthView] = useState<"login" | "signup">("login");
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [csrfToken, setCsrfToken] = useState("");
@@ -363,7 +362,7 @@ export default function App() {
   }, [isAuthenticated]);
 
 
-  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings">("home");
+  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup">("home");
   const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [department, setDepartment] = useState("all");
@@ -708,7 +707,8 @@ export default function App() {
     //setIsAuthenticated(true);
     //setUser(userData);
     //setCurrentView("home");
-    setAuthView("login");
+    //setAuthView("login");
+    setCurrentView("login");
   };
 
   const handleLogout = () => {
@@ -729,7 +729,8 @@ export default function App() {
         console.log('Logged out successfully');
         setIsAuthenticated(false);
         setUser(null);
-        setAuthView("login");
+        //setAuthView("login");
+        setCurrentView("home");
       })
       .catch((error: Error) => {
         console.error('Logout error:', error);
@@ -737,7 +738,7 @@ export default function App() {
         //Still log out on frontend even if backend fails
         setIsAuthenticated(false);
         setUser(null);
-        setAuthView("login");
+        setCurrentView("home");
       });
   };
 
@@ -750,6 +751,7 @@ export default function App() {
   }
 
   // Show login/signup pages if not authenticated
+  /*
   if (!isAuthenticated) {
     if (authView === "signup") {
       return (
@@ -766,10 +768,11 @@ export default function App() {
       />
     );
   }
+    */
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} />
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} onNavigateToLogin={() => setCurrentView("login")} />
       
       <div className="flex-1">
 
@@ -783,17 +786,40 @@ export default function App() {
         )}
 
 
-        {currentView === "home" ? (
+        {currentView === "login" ? (
+          <Login
+            onLogin={handleLogin}
+            onNavigateToSignUp={() => setCurrentView("signup")}
+          />
+        ) : currentView === "signup" ? (
+          <SignUp
+            onSignUp={() => setCurrentView("login")}
+            onNavigateToLogin={() => setCurrentView("login")}
+          />
+        ) : currentView === "planner" && !isAuthenticated ? (
+          <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+            <p className="text-slate-600 text-lg">You must be logged in to view your planner.</p>
+            <button
+              onClick={() => setCurrentView("login")}
+              className="px-6 py-2 bg-[#003366] text-white rounded-lg hover:bg-[#002244]"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => setCurrentView("search")}
+              className="text-sm text-slate-500 underline"
+            >
+              Continue as Guest
+            </button>
+          </div>
+        ) : currentView === "home" ? (
           <Home onGetStarted={() => setCurrentView("search")} />
         ) : currentView === "settings" ? (
           <Settings />
         ) : currentView === "programs" ? (
           <Programs />
         ) : currentView === "planner" ? (
-          <Planner 
-            //plannedCourses={plannedCourses} 
-            onRemoveFromPlanner={handleRemoveFromPlanner}
-          />
+          <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
         ) : (
           <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
             {/* Page Title Section */}
@@ -835,6 +861,17 @@ export default function App() {
                   <p className="text-slate-700">
                     <span className="text-[#003366]">{searchResults.length}</span> sections found
                   </p>
+                  {!isAuthenticated && (
+                    <p className="text-sm text-slate-500">
+                      <button
+                      onClick={() => setCurrentView("login")}
+                      className="text-[#003366] underline hover:text-[#002244]"
+                      >
+                        Log in
+                        </button>{" "}
+                        to save sections to your planner
+                        </p>
+                      )}
                 </div>
 
                 {isSearching ? (
@@ -848,7 +885,7 @@ export default function App() {
                 ) : searchResults.length > 0 ? (
                   <div className="grid gap-5">
                     {searchResults.map((section) => (
-                      <CourseCard 
+                      <CourseCard
                         key={section.section_id}
                         id={section.section_id.toString()}
                         code={section.course_code}
@@ -867,7 +904,9 @@ export default function App() {
                         modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                         isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                         onAddToPlanner={handleAddToPlanner}
-                        showPlannerButton={true}
+                        showPlannerButton={isAuthenticated}       // hide for guests
+                        isGuest={!isAuthenticated}
+                        onLoginPrompt={() => setCurrentView("login")}
                       />
                     ))}
                   </div>
