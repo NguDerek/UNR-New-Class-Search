@@ -26,13 +26,14 @@ app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for deb
 
 app.config['SESSION_PROTECTION'] = 'strong'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = False #Off During Development
+app.config['SESSION_COOKIE_SECURE'] = False #False During Development #True in the VPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 csrf = CSRFProtect(app)
-CORS(app, supports_credentials=True) #, origins=["http://localhost:5173"]
+CORS(app, supports_credentials=True) #, origins=["https://ncs.unr.dev"] for the VPS
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
@@ -365,4 +366,4 @@ def get_planner():
         return jsonify({'error': str(e)}), 500
      
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
