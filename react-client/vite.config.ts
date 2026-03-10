@@ -1,18 +1,36 @@
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite"
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  /*server: {
-    https: {},
-    port: 5173
-  },*/
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    allowedHosts: [
+      'lx.nevada.dev',
+      'ncs.unr.dev',
+      '127.0.0.1'
+    ],
+    port: 8080,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
+  test: {
+    environment: "jsdom",
+  }
 })
+/*,
+  test: {
+    environment: "jsdom",
+  },*/

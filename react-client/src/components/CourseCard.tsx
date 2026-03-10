@@ -1,7 +1,7 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2 } from "lucide-react";
 
 interface CourseCardProps {
   id: string;
@@ -22,6 +22,10 @@ interface CourseCardProps {
   isInPlanner?: boolean;
   onAddToPlanner?: (courseId: string) => void;
   showPlannerButton?: boolean;
+  onRemoveFromPlanner?: (courseId: string) => void;
+  showRemoveButton?: boolean
+  isGuest?: boolean;
+  onLoginPrompt?: () => void;
 }
 
 export function CourseCard({
@@ -43,6 +47,10 @@ export function CourseCard({
   isInPlanner = false,
   onAddToPlanner,
   showPlannerButton = false,
+  onRemoveFromPlanner,
+  showRemoveButton = false,
+  isGuest = false,
+  onLoginPrompt,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -61,14 +69,14 @@ export function CourseCard({
             <Badge variant="outline" className="border-slate-300 text-slate-600">{department}</Badge>
             <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">{courseCareer}</Badge>
             <Badge variant="outline" className="border-slate-300 text-slate-600"> {component}</Badge>
+            <div className="flex items-center gap-1.5 text-slate-500 text-sm bg-slate-50 px-3 py-1 rounded-full">
+            <GraduationCap className="w-3.5 h-3.5" />{credits} Credits
+            </div>
           </div>
           <h3 className="mb-2 text-slate-900">{title}</h3>
           <p className="text-slate-600">{instructor}</p>
         </div>
         <div className="text-right flex flex-col items-end gap-2">
-          <div className="flex items-center gap-1.5 text-slate-500 text-sm bg-slate-50 px-3 py-1 rounded-full">
-            <GraduationCap className="w-3.5 h-3.5" />{credits} Credits
-          </div>
           <Badge
             variant={
               availabilityStatus === "open"
@@ -118,7 +126,20 @@ export function CourseCard({
         </div>
       </div>
 
-      {showPlannerButton && onAddToPlanner && (
+      {/* Guest: show login prompt button */}
+      {isGuest && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <Button
+            onClick={onLoginPrompt}
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+          >
+            Login to Add to Planner
+          </Button>
+        </div>
+      )}
+
+      {/* Authenticated: show add button */}
+      {!isGuest && showPlannerButton && onAddToPlanner && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={() => onAddToPlanner(id)}
@@ -140,6 +161,19 @@ export function CourseCard({
                 Add to Planner
               </>
             )}
+          </Button>
+        </div>
+      )}
+
+      {/* Remove button (planner page only) */}
+      {showRemoveButton && onRemoveFromPlanner && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <Button
+            onClick={() => onRemoveFromPlanner(id)}
+            className="w-full bg-red-100 hover:bg-red-200 text-red-700"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Remove from Planner
           </Button>
         </div>
       )}
