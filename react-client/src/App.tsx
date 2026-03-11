@@ -463,7 +463,7 @@ export default function App() {
     
     try {
       const searchParams: SearchParams = {};
-      
+
       // === SEARCH BAR ===
       if (searchQuery && searchQuery.trim() !== '') {
         // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")

@@ -46,25 +46,42 @@ class SearchService:
         
         if 'search_query' in self.filters:
             search_term = f"%{self.filters['search_query']}%"
-            query = query.filter(
-                or_(
-                    Course.title.ilike(search_term),
-                    Instructor.first_name.ilike(search_term),
-                    Instructor.last_name.ilike(search_term),
-                    func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+            split_search_term = self.filters['search_query'].split()
+            if len(split_search_term) == 2:
+                query = query.filter( 
+                    or_(
+                            Course.title.ilike(search_term),
+                            Instructor.first_name.ilike(f"%{split_search_term[0]}%"),
+                            Instructor.last_name.ilike(f"%{split_search_term[-1]}%"),
+                            func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+                        )
                 )
-            )
+            else:  
+                query = query.filter(
+                    or_(
+                        Course.title.ilike(search_term),
+                        Instructor.first_name.ilike(search_term),
+                        Instructor.last_name.ilike(search_term),
+                        func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+                    )
+                )   
         if 'title' in self.filters:
             query = query.filter(Course.title.ilike(f"%{self.filters['title']}%"))
         
         if 'instructor' in self.filters:
-            pattern = f"%{self.filters['instructor']}%"
-            query = query.filter(
-                or_(
-                    Instructor.first_name.ilike(pattern),
-                    Instructor.last_name.ilike(pattern)
+            names = self.filters['instructor'].split()
+            if len(names) >= 2:
+                query = query.filter(
+                    Instructor.first_name.ilike(f"%{names[0]}%"),
+                    Instructor.last_name.ilike(f"%{names[-1]}%")
+                    )
+            else:
+                query = query.filter(
+                    or_(
+                        Instructor.first_name.ilike(f"%{names[0]}%"),
+                        Instructor.last_name.ilike(f"%{names[0]}%")
+                    )
                 )
-            )
         
         if 'days' in self.filters:
             days_filter = self.filters['days']
