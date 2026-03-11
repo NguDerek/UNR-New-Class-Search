@@ -78,6 +78,15 @@ export function SearchFilters({
   // Inside the component:
   const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
 
+  const placeholders: Record<string, string> = {
+    all: "Course code, subject, number, title, or instructor",
+    course_code: "Example: MATH 126, CS 135",
+    subject: "Example: MATH or CS",
+    catalog_number: "Example: 101, 135",
+    title: "Example: Calculus I, Computer Science I",
+    instructor: "Example: Smith, John Smith",
+  };
+
   useEffect(() => {
     // Fetch departments on mount
     courseAPI.getDepartments()
@@ -134,7 +143,7 @@ export function SearchFilters({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>Search by course code (eg. MATH 126), subject (eg. MATH, CS), catalog number (eg. 101, 135), title (eg. Precalculus I), or instructor first OR last name (eg. David, Smith)</p>
+                    <p>Search by course code (eg. MATH 126), subject (eg. MATH, CS), catalog number (eg. 101, 135), title (eg. Precalculus I), or instructor first and/or last name (eg. David, Smith)</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -159,7 +168,7 @@ export function SearchFilters({
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     id="search"
-                    placeholder="Enter search term..."
+                    placeholder={placeholders[searchQueryType]}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
