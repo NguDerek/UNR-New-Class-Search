@@ -26,6 +26,7 @@ interface CourseCardProps {
   showRemoveButton?: boolean
   isGuest?: boolean;
   onLoginPrompt?: () => void;
+  isConflict?: boolean;
 }
 
 export function CourseCard({
@@ -51,6 +52,7 @@ export function CourseCard({
   showRemoveButton = false,
   isGuest = false,
   onLoginPrompt,
+  isConflict = false,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -61,7 +63,9 @@ export function CourseCard({
       : "open";
 
   return (
-    <Card className="p-6 hover:shadow-xl transition-all duration-200 border-slate-200 bg-white hover:border-indigo-200">
+    <Card className={`p-6 hover:shadow-xl transition-all duration-200 border rounded-xl 
+      ${isConflict ? "border-red-600 bg-red-50 hover:bg-red-100" 
+      : "border-slate-200 bg-white hover:border-indigo-200"}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
