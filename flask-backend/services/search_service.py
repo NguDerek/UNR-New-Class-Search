@@ -51,8 +51,10 @@ class SearchService:
                 query = query.filter( 
                     or_(
                             Course.title.ilike(search_term),
-                            Instructor.first_name.ilike(f"%{split_search_term[0]}%"),
-                            Instructor.last_name.ilike(f"%{split_search_term[-1]}%"),
+                            and_(
+                                Instructor.first_name.ilike(f"%{split_search_term[0]}%"),
+                                Instructor.last_name.ilike(f"%{split_search_term[-1]}%"),
+                            ),
                             func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
                         )
                 )
@@ -193,7 +195,7 @@ class SearchService:
                 "start_time": str(s.start_time) if s.start_time else None,
                 "end_time": str(s.end_time) if s.end_time else None,
                 "units": s.get_course().units,
-                "instructor": s.get_instructors()[0].get_full_name() if s.get_instructors() else "TBA",
+                "instructor": s.get_instructors_as_string() if len(s.get_instructors_as_string()) != 0 else "TBA",
                 "status": s.class_status,
                 "room": s.room_code,
                 "component": s.component,

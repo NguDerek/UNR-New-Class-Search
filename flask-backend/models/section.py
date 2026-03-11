@@ -39,6 +39,15 @@ class Section(db.Model):
     def get_instructors(self):
         return self.instructors
     
+    def get_instructors_as_string(self):
+        all_instructors_string = ''
+        length = len(self.instructors)
+        for index, instructor in enumerate(self.instructors):
+            all_instructors_string += instructor.get_full_name()
+            if(index + 1 != length):
+                all_instructors_string += ", "
+        return all_instructors_string
+
     #Format method to convert properties into json format
     def format(self, include_course=False, include_term=False, include_instructors=False):
         data = {
