@@ -23,6 +23,8 @@ interface SearchFiltersProps {
   setTerm: (term: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  searchQueryType: string;
+  setSearchQueryType: (subject: string) => void;
   department: string;
   setDepartment: (subject: string) => void;
   roomSearch: string;
@@ -50,6 +52,8 @@ export function SearchFilters({
   setTerm,
   searchQuery,
   setSearchQuery,
+  searchQueryType,
+  setSearchQueryType,
   department,
   setDepartment,
   roomSearch,
@@ -134,15 +138,33 @@ export function SearchFilters({
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  id="search"
-                  placeholder="Course code, subject, catalog number, title, or instructor first OR last name"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
-                />
+              <div className="flex gap-2">
+                {/* Search Type Dropdown */}
+                <Select value={searchQueryType} onValueChange={setSearchQueryType}>
+                  <SelectTrigger id="searchQueryType" className="w-[180px] border-slate-300">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="course_code">Course Code</SelectItem>
+                    <SelectItem value="subject">Subject</SelectItem>
+                    <SelectItem value="catalog_number">Catalog Number</SelectItem>
+                    <SelectItem value="title">Course Title</SelectItem>
+                    <SelectItem value="instructor">Instructor</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="search"
+                    placeholder="Enter search term..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
+                  />
+                </div>
               </div>
             </div>
 

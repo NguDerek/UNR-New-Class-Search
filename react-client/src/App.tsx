@@ -365,6 +365,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup">("home");
   const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchQueryType, setSearchQueryType] = useState("all");
   const [department, setDepartment] = useState("all");
   const [roomSearch, setRoomSearch] = useState("");
   const [courseCareer, setCourseCareer] = useState("all");
@@ -379,6 +380,7 @@ export default function App() {
   const [appliedFilters, setAppliedFilters] = useState({
     term: "Spring 2025",
     searchQuery: "",
+    searchQueryType: "all",
     department: "all",
     roomSearch: "",
     courseCareer: "all",
@@ -467,17 +469,33 @@ export default function App() {
         // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")
         const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
         const match = searchQuery.match(courseCodePattern);
-        
-        if (match) {
+
+        if (match && (searchQueryType == "course_code" || searchQueryType == "all")) {
           // Exact course code - use subject and catalog_num
           searchParams.subject = match[1].toUpperCase();
           searchParams.catalog_num = match[2];
-        } else {
+        }
+        else if (searchQueryType == "course_code") {
+          searchParams.subject = "error"
+        } 
+        else if (searchQueryType == "subject") {
+          searchParams.subject = searchQuery;
+        }
+        else if (searchQueryType == "catalog_number") {
+          searchParams.catalog_num = searchQuery;
+        }
+        else if (searchQueryType == "title") {
+          searchParams.title = searchQuery;
+        }
+        else if (searchQueryType == "instructor") {
+          searchParams.instructor = searchQuery;
+        }
+        else {
           // Everything else - use general search_query
           // This will search title, instructor name, and course code
           searchParams.search_query = searchQuery;
-  }
-}
+        }
+      }
         
       // === DEPARTMENT DROPDOWN ===
       if (department && department !== 'all') {
@@ -607,6 +625,7 @@ export default function App() {
   const handleReset = () => {
     setTerm("all");
     setSearchQuery("");
+    setSearchQueryType("all")
     setDepartment("all");
     setRoomSearch("");
     setCourseCareer("all");
@@ -619,6 +638,7 @@ export default function App() {
     setAppliedFilters({
       term: "all",
       searchQuery: "",
+      searchQueryType: "all",
       department: "all",
       roomSearch: "",
       courseCareer: "all",
@@ -834,6 +854,8 @@ export default function App() {
               setTerm={setTerm}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              searchQueryType={searchQueryType}
+              setSearchQueryType={setSearchQueryType}
               department={department}
               setDepartment={setDepartment}
               roomSearch={roomSearch}

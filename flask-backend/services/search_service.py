@@ -36,7 +36,7 @@ class SearchService:
         
         # Add filters dynamically based on what was provided
         if 'subject' in self.filters:
-            query = query.filter(Course.subject == self.filters['subject'])
+            query = query.filter(Course.subject == self.filters['subject'].upper())
 
         if 'catalog_num' in self.filters:
             query = query.filter(Course.catalog_num == self.filters['catalog_num'])

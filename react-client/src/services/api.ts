@@ -15,6 +15,7 @@ export interface SearchParams {
   status?: string;
   department?: string;
   search_query?: string;
+  //search_query_type?: string;
   course_career?: string;
   level?: string;
 }
