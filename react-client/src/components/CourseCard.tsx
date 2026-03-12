@@ -1,7 +1,7 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2 } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft } from "lucide-react";
 import type { Role } from "../lib/permissions";
 
 interface CourseCardProps {
@@ -27,6 +27,10 @@ interface CourseCardProps {
   onRemoveFromPlanner?: (courseId: string) => void;
   showRemoveButton?: boolean
   onLoginPrompt?: () => void;
+  showSwapButton?: boolean;
+  onSwapPrompt?: (courseId: string) => void;
+  showSearchSwapButton?: boolean;
+  onSwapWithCourse?: (courseId: string) => void;
   isConflict?: boolean;
 }
 
@@ -53,6 +57,10 @@ export function CourseCard({
   onRemoveFromPlanner,
   showRemoveButton = false,
   onLoginPrompt,
+  showSwapButton = false,
+  onSwapPrompt,
+  showSearchSwapButton = false,
+  onSwapWithCourse,
   isConflict = false,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
@@ -201,6 +209,50 @@ export function CourseCard({
               }}
             />
           </label>
+        </div>
+      )}
+
+      {/* Planner Swap Button */}
+      {showSwapButton && onSwapPrompt &&(
+        <div className="mt-4">
+          <Button
+            onClick={() => onSwapPrompt(id)}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+          >
+            <ArrowRightLeft className="w-4 h-4 mr-2" />
+            Swap Course
+          </Button>
+        </div>
+      )}
+      {showSearchSwapButton && onSwapWithCourse &&(
+        <div className="mt-4">
+          {/* <Button
+            // onClick={() => onSwapWithCourse(id)}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Switch
+          </Button> */}
+          <Button
+            disabled={isInPlanner}
+            className={
+              isInPlanner
+                ? "w-full bg-slate-100 text-slate-600 cursor-not-allowed hover:bg-slate-100"
+                : "w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+            }
+          >
+            {isInPlanner ? (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Already added to Planner
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Switch
+              </>
+            )}
+          </Button>
         </div>
       )}
     </Card>

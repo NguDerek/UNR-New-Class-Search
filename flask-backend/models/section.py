@@ -97,4 +97,3 @@ class Section(db.Model):
     def __repr__(self):
         #String representation for developers
         return f"Section(id={self.id}, course_id={self.course_id}, section={self.section_num})"
-    

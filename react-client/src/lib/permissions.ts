@@ -5,5 +5,6 @@ export const viewPermissions: Record<string, Role[]> = {
   search: ["Guest", "Student", "Instructor", "Admin"],
   planner: ["Guest", "Student"],
   programs: ["Guest", "Student", "Advisor"],
-  settings: ["Student", "Instructor", "Advisor", "Admin"]
+  settings: ["Student", "Instructor", "Advisor", "Admin"],
+  admin: ["Admin"],
 };

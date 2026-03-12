@@ -1,4 +1,4 @@
-import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut } from "lucide-react";
+import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut, LayoutDashboard} from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
 import { viewPermissions } from "../lib/permissions";
@@ -7,13 +7,13 @@ import type { Role } from "../lib/permissions";
 interface NavItem {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
+  view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin";
   roles?: string[];
 }
 
 interface SidebarProps {
-  currentView: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
-  onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup") => void;
+  currentView: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin";
+  onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin") => void;
   onLogout: () => void;
   onToggle: () => void;
   isOpen: boolean;
@@ -36,6 +36,7 @@ export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, u
     { name: "Planner", icon: Calendar, view: "planner", roles: ["Student"] },
     { name: "Programs", icon: GraduationCap, view: "programs" },
     { name: "Settings", icon: Settings, view: "settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
+    { name: "Dashboard", icon: LayoutDashboard, view: "admin"},
   ];
 
   const navItems = allNavItems.filter(item => viewPermissions[item.view].includes(role));
