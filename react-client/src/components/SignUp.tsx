@@ -25,6 +25,7 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     fetch('/api/csrf-token', {
