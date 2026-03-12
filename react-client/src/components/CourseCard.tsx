@@ -26,9 +26,11 @@ interface CourseCardProps {
   showRemoveButton?: boolean;
   isGuest?: boolean;
   onLoginPrompt?: () => void;
-  showSwapButton?: boolean
-  isConflict?: boolean;
+  showSwapButton?: boolean;
   onSwapPrompt?: (courseId: string) => void;
+  showSearchSwapButton?: boolean;
+  onSwapWithCourse?: (courseId: string) => void;
+  isConflict?: boolean;
 }
 
 export function CourseCard({
@@ -54,9 +56,11 @@ export function CourseCard({
   showRemoveButton = false,
   isGuest = false,
   onLoginPrompt,
-  showSwapButton = false
-  isConflict = false,
+  showSwapButton = false,
   onSwapPrompt,
+  showSearchSwapButton = false,
+  onSwapWithCourse,
+  isConflict = false,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -185,14 +189,25 @@ export function CourseCard({
           </Button>
         </div>
       )}
-      {showSwapButton && (
+      {showSwapButton && onSwapPrompt &&(
         <div className="mt-4">
           <Button
-            // onClick={() => onRemoveFromPlanner(id)}
+            onClick={() => onSwapPrompt(id)}
             className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
           >
             <ArrowRightLeft className="w-4 h-4 mr-2" />
             Swap Course
+          </Button>
+        </div>
+      )}
+      {showSearchSwapButton && onSwapWithCourse &&(
+        <div className="mt-4">
+          <Button
+            // onClick={() => onSwapWithCourse(id)}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Switch
           </Button>
         </div>
       )}

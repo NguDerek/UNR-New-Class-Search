@@ -140,132 +140,11 @@ export default function App() {
     setHasSearched(true);
     
     try {
-      const searchParams: SearchParams = {};
-
-      // === SEARCH BAR ===
-      if (searchQuery && searchQuery.trim() !== '') {
-        // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")
-        const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
-        const match = searchQuery.match(courseCodePattern);
-
-        if (match && (searchQueryType == "course_code" || searchQueryType == "all")) {
-          // Exact course code - use subject and catalog_num
-          searchParams.subject = match[1].toUpperCase();
-          searchParams.catalog_num = match[2];
-        }
-        else if (searchQueryType == "course_code") {
-          searchParams.subject = "error"
-        } 
-        else if (searchQueryType == "subject") {
-          searchParams.subject = searchQuery;
-        }
-        else if (searchQueryType == "catalog_number") {
-          searchParams.catalog_num = searchQuery;
-        }
-        else if (searchQueryType == "title") {
-          searchParams.title = searchQuery;
-        }
-        else if (searchQueryType == "instructor") {
-          searchParams.instructor = searchQuery;
-        }
-        else {
-          // Everything else - use general search_query
-          // This will search title, instructor name, and course code
-          searchParams.search_query = searchQuery;
-        }
-      }
-        
-//       // === DEPARTMENT DROPDOWN ===
-//       if (department && department !== 'all') {
-//         searchParams.department = department;
-//       }
-      
-//       // === COURSE NUMBER INPUT ===
-//       if (roomSearch && roomSearch.trim() !== '') {
-//         searchParams.room = roomSearch;
-//       }
-      
-//       // === DAYS BUTTONS ===
-//       if (selectedDays.length > 0) {
-//         // Convert ["Mon", "Tue", "Wed"] to "MTW"
-//         const daysMap: Record<string, string> = {
-//           'Mon': 'M',
-//           'Tue': 'T',
-//           'Wed': 'W',
-//           'Thu': 'R',  // Thursday is 'R' to avoid confusion with Tuesday
-//           'Fri': 'F',
-//           'Sat': 'S',
-//           'Sun': 'U'
-//         };
-//         const daysString = selectedDays.map(d => daysMap[d] || '').join('');
-//         searchParams.days = daysString;
-//       }
-      
-//       // === TERM DROPDOWN ===
-//       if (term && term !== 'all') {
-//         // Map frontend term names to backend session codes
-//         const termMap: Record<string, string> = {
-//           'Spring 2025': '2025',
-//           'Summer 2025': '202505',
-//           'Fall 2025': '1',
-//           'Winter 2026': '202601'
-//         };
-//         searchParams.term = termMap[term] || term;
-//       }
-      
-//       // === COURSE CAREER DROPDOWN ===
-//       if (courseCareer && courseCareer !== 'all') {
-//         searchParams.course_career = courseCareer
-//       }
-      
-//       // === CREDITS DROPDOWN ===
-//       if (credits && credits !== 'all') {
-//         if (credits === '5+') {
-//           searchParams.units = '5';
-//           searchParams.units_operator = 'greater_equal';
-//         } else {
-//           searchParams.units = credits;
-//           searchParams.units_operator = 'exact';
-//         }
-//       }
-      
-//       // === MODE OF INSTRUCTION DROPDOWN ===
-//       if (modeOfInstruction && modeOfInstruction !== 'all') {
-//         const modeMap: Record<string, string> = {
-//           'In Person': 'P',
-//           'Hybrid': 'HY',
-//           'Asynchronous Online': 'WA',
-//           'Synchronous Online': 'WL'
-//         };
-//         searchParams.instruction_mode = modeMap[modeOfInstruction] || modeOfInstruction;
-//       }
-      
-//       // === LEVEL DROPDOWN ===
-//       if (level && level !== 'all') {
-//         // Map level to catalog_num ranges
-//         if (level === '100') {
-//           searchParams.level = '1';
-//         } else if (level === '200') {
-//           searchParams.level = '2';
-//         } else if (level === '300') {
-//           searchParams.level = '3';;
-//         } else if (level === '400') {
-//           searchParams.level = '4';
-//         } else if (level === '500+') {
-//           searchParams.level = '5';
-//         }
-//       }
-      
-//       // === SHOW OPEN ONLY TOGGLE ===
-//       if (showOpenOnly) {
-//         //searchParams.status = 'Open';
-//         //To be implemented later
-//       }
-      
-//       console.log('Search params:', searchParams); // Debug - see what's being sent
-      
-//       // Make API call
-//       const response = await courseAPI.searchCourses(searchParams);
+        const response = await executeCourseSearch({
+          searchQuery, searchQueryType, department, roomSearch, selectedDays,
+          term, courseCareer, credits, modeOfInstruction,
+          level, showOpenOnly,
+        });
       
       if (response.status === 'success') {
         setSearchResults(response.sections);
@@ -339,13 +218,6 @@ export default function App() {
   };
 
   const handleRemoveFromPlanner = async (courseId: string) => {
-    /*
-    setPlannedCourseIds((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(courseId);
-      return newSet;
-    });
-    */
     try {
       const response = await fetch(`/api/planner/section/${courseId}`, {
         method: 'DELETE',
