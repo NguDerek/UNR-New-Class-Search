@@ -34,7 +34,7 @@ export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, u
 
 const navItems = user
   ? allNavItems
-  : allNavItems.filter(item => item.view === "home" || item.view === "search" || item.view === "planner");
+  : allNavItems.filter(item => item.view === "home" || item.view === "search" || item.view === "planner" || item.view === "programs");
 
 
   if (!isOpen) return null;

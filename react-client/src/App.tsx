@@ -467,7 +467,6 @@ export default function App() {
           />
         ) : currentView === "signup" ? (
           <SignUp
-            onSignUp={() => setCurrentView("login")}
             onNavigateToLogin={() => setCurrentView("login")}
           />
         ) : currentView === "planner" && !isAuthenticated ? (
