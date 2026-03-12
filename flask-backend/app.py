@@ -139,7 +139,7 @@ def signup():
         token = timedSerializer.dumps(email, salt='email-verify')
         verify_url = f"http://localhost:5000/verify-email/{token}"
         msg = Message('Verify your NCS email', recipients=[email])
-        msg.body = f"Hi {first_name}, \n\nClick the link in order to verify your account:\n{verify_url}\n\nLink expires in 1 hour."
+        msg.body = f"Hi {first_name}, \n\nClick the link in order to verify your account:\n{verify_url}\n" #\nLink expires in 1 hour.
         mail.send(msg)
         
         return jsonify({'message': 'User created successfully'}), 201
@@ -152,8 +152,8 @@ def signup():
 @app.route('/verify-email/<token>')
 def verify_email(token):
     try:
-        # Token expires after 3600 seconds (1 hour)
-        email = timedSerializer.loads(token, salt='email-verify', max_age=3600)
+        # Token expires after 3600 seconds (1 hour) , max_age=3600 removed for now until reverification is added
+        email = timedSerializer.loads(token, salt='email-verify')
     except Exception:
         return jsonify({'error': 'Verification link is invalid or has expired'}), 400
 

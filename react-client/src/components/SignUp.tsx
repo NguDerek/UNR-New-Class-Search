@@ -94,7 +94,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
           We sent a verification link to <strong>{email}</strong>
         </p>
         <p className="text-sm text-slate-400">
-          Click the link in the email to activate your account. It expires in 1 hour.
+          Click the link in the email to activate your account.
         </p>
 
         <button
