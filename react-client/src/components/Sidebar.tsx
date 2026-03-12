@@ -1,11 +1,14 @@
 import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut } from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
+import { viewPermissions } from "../lib/permissions";
+import type { Role } from "../lib/permissions";
 
 interface NavItem {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  view?: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
+  view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
+  roles?: string[];
 }
 
 interface SidebarProps {
@@ -19,22 +22,23 @@ interface SidebarProps {
     email: string;
     first_name: string;
     last_name: string;
+    role: string;
   } | null;
   onNavigateToLogin: () => void;
 }
 
 export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, user, onNavigateToLogin }: SidebarProps) {
+  const role: Role = (user?.role as Role) ?? "Guest";
+
   const allNavItems: NavItem[] = [
     { name: "Home", icon: Home, view: "home" },
     { name: "Search", icon: Search, view: "search" },
-    { name: "Planner", icon: Calendar, view: "planner" },
+    { name: "Planner", icon: Calendar, view: "planner", roles: ["Student"] },
     { name: "Programs", icon: GraduationCap, view: "programs" },
-    { name: "Settings", icon: Settings, view: "settings" },
+    { name: "Settings", icon: Settings, view: "settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
   ];
 
-const navItems = user
-  ? allNavItems
-  : allNavItems.filter(item => item.view === "home" || item.view === "search" || item.view === "planner");
+  const navItems = allNavItems.filter(item => viewPermissions[item.view].includes(role));
 
 
   if (!isOpen) return null;
@@ -63,7 +67,7 @@ const navItems = user
               {user ? `${user.first_name} ${user.last_name}` : 'Guest'}
             </p>
             <p className="text-xs text-slate-500 truncate">
-              {user ? 'Student' : ''}
+              {user ? user.role : ''}
             </p>
           </div>
           <button

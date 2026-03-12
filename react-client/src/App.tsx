@@ -12,6 +12,8 @@ import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
+import { viewPermissions } from "./lib/permissions";
+import type { Role } from "./lib/permissions";
 
 interface User {
   id: number;
@@ -55,6 +57,7 @@ export default function App() {
   const [searchResults, setSearchResults] = useState<APISection[]>([]);//useState<Section[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+
   useEffect(() => {
     fetch('/api/csrf-token', {
       credentials: 'include',
@@ -115,6 +118,18 @@ export default function App() {
   const [level, setLevel] = useState("all");
   const [credits, setCredits] = useState("all");
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  
+  const role: Role = (user?.role as Role) ?? "Guest";
+
+  const publicViews: typeof currentView[] = ["login", "signup"];
+
+  if (!publicViews.includes(currentView) && !viewPermissions[currentView].includes(role)) {
+    return (
+      <div className="flex-1 p-6 text-center text-red-600">
+        You are not authorized to view this page.
+      </div>
+    );
+  }
   
   // Applied filters - only updated when user clicks "Search Courses"
   const [hasSearched, setHasSearched] = useState(false);
