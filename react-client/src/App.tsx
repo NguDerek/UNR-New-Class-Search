@@ -11,6 +11,7 @@ import { SignUp } from "./components/SignUp"
 import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
+import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
 
 interface User {
   id: number;
@@ -39,314 +40,10 @@ interface Course {
   modeOfInstruction: string;
 }
 
-const MOCK_COURSES: Course[] = [
-  {
-    id: "1",
-    code: "CS 101",
-    courseNumber: "101",
-    title: "Introduction to Computer Science",
-    instructor: "Dr. Sarah Johnson",
-    schedule: "MWF 9:00 AM - 10:00 AM",
-    credits: 3,
-    enrolled: 28,
-    capacity: 30,
-    location: "Science Building 201",
-    department: "Computer Science",
-    component: "LEC",
-    section: 1001,
-    level: "100-Level",
-    days: ["Mon", "Wed", "Fri"],
-    courseCareer: "Undergraduate",
-    modeOfInstruction: "In Person",
-  },
-  // {
-  //   id: "2",
-  //   code: "CS 201",
-  //   courseNumber: "201",
-  //   title: "Data Structures and Algorithms",
-  //   instructor: "Prof. Michael Chen",
-  //   schedule: "TTh 1:00 PM - 2:30 PM",
-  //   credits: 4,
-  //   enrolled: 35,
-  //   capacity: 35,
-  //   location: "Engineering Hall 105",
-  //   department: "Computer Science",
-  //   level: "200-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "Hybrid",
-  // },
-  // {
-  //   id: "3",
-  //   code: "MATH 210",
-  //   courseNumber: "210",
-  //   title: "Calculus II",
-  //   instructor: "Dr. Emily Rodriguez",
-  //   schedule: "MWF 11:00 AM - 12:00 PM",
-  //   credits: 4,
-  //   enrolled: 22,
-  //   capacity: 30,
-  //   location: "Mathematics Building 301",
-  //   department: "Mathematics",
-  //   level: "200-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "4",
-  //   code: "PHYS 150",
-  //   courseNumber: "150",
-  //   title: "General Physics I",
-  //   instructor: "Dr. James Wilson",
-  //   schedule: "MWF 2:00 PM - 3:00 PM",
-  //   credits: 3,
-  //   enrolled: 18,
-  //   capacity: 25,
-  //   location: "Physics Lab 102",
-  //   department: "Physics",
-  //   level: "100-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "5",
-  //   code: "CS 305",
-  //   courseNumber: "305",
-  //   title: "Database Management Systems",
-  //   instructor: "Prof. Rachel Kim",
-  //   schedule: "TTh 10:00 AM - 11:30 AM",
-  //   credits: 3,
-  //   enrolled: 26,
-  //   capacity: 28,
-  //   location: "Computer Lab 220",
-  //   department: "Computer Science",
-  //   level: "300-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "Hybrid",
-  // },
-  // {
-  //   id: "6",
-  //   code: "CHEM 101",
-  //   courseNumber: "101",
-  //   title: "Introduction to Chemistry",
-  //   instructor: "Dr. David Martinez",
-  //   schedule: "MWF 8:00 AM - 9:00 AM",
-  //   credits: 4,
-  //   enrolled: 30,
-  //   capacity: 32,
-  //   location: "Chemistry Building 150",
-  //   department: "Chemistry",
-  //   level: "100-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "7",
-  //   code: "BIO 220",
-  //   courseNumber: "220",
-  //   title: "Cellular Biology",
-  //   instructor: "Dr. Lisa Anderson",
-  //   schedule: "TTh 2:00 PM - 3:30 PM",
-  //   credits: 4,
-  //   enrolled: 24,
-  //   capacity: 30,
-  //   location: "Biology Lab 215",
-  //   department: "Biology",
-  //   level: "200-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "8",
-  //   code: "ENG 200",
-  //   courseNumber: "200",
-  //   title: "American Literature",
-  //   instructor: "Prof. Robert Taylor",
-  //   schedule: "MW 3:00 PM - 4:30 PM",
-  //   credits: 3,
-  //   enrolled: 20,
-  //   capacity: 25,
-  //   location: "Liberal Arts 310",
-  //   department: "English",
-  //   level: "200-Level",
-  //   days: ["Mon", "Wed"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "9",
-  //   code: "HIST 101",
-  //   courseNumber: "101",
-  //   title: "World History I",
-  //   instructor: "Dr. Patricia Brown",
-  //   schedule: "TTh 9:00 AM - 10:30 AM",
-  //   credits: 3,
-  //   enrolled: 27,
-  //   capacity: 30,
-  //   location: "Humanities Building 205",
-  //   department: "History",
-  //   level: "100-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "10",
-  //   code: "PSY 101",
-  //   courseNumber: "101",
-  //   title: "Introduction to Psychology",
-  //   instructor: "Dr. Jennifer Lee",
-  //   schedule: "MWF 1:00 PM - 2:00 PM",
-  //   credits: 3,
-  //   enrolled: 32,
-  //   capacity: 35,
-  //   location: "Social Sciences 180",
-  //   department: "Psychology",
-  //   level: "100-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "11",
-  //   code: "CS 401",
-  //   courseNumber: "401",
-  //   title: "Machine Learning",
-  //   instructor: "Prof. Alex Zhang",
-  //   schedule: "MW 4:00 PM - 5:30 PM",
-  //   credits: 3,
-  //   enrolled: 19,
-  //   capacity: 20,
-  //   location: "AI Research Center 301",
-  //   department: "Computer Science",
-  //   level: "400-Level",
-  //   days: ["Mon", "Wed"],
-  //   courseCareer: "Graduate",
-  //   modeOfInstruction: "Synchronous Online",
-  // },
-  // {
-  //   id: "12",
-  //   code: "MATH 310",
-  //   courseNumber: "310",
-  //   title: "Linear Algebra",
-  //   instructor: "Dr. Kevin Park",
-  //   schedule: "TTh 11:00 AM - 12:30 PM",
-  //   credits: 3,
-  //   enrolled: 15,
-  //   capacity: 25,
-  //   location: "Mathematics Building 205",
-  //   department: "Mathematics",
-  //   level: "300-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "13",
-  //   code: "BIO 500",
-  //   courseNumber: "500",
-  //   title: "Advanced Molecular Biology",
-  //   instructor: "Dr. Amanda Stevens",
-  //   schedule: "Asynchronous",
-  //   credits: 4,
-  //   enrolled: 12,
-  //   capacity: 20,
-  //   location: "Online",
-  //   department: "Biology",
-  //   level: "400-Level",
-  //   days: [],
-  //   courseCareer: "Graduate",
-  //   modeOfInstruction: "Asynchronous",
-  // },
-  // {
-  //   id: "14",
-  //   code: "MED 601",
-  //   courseNumber: "601",
-  //   title: "Human Anatomy",
-  //   instructor: "Dr. Robert Chen",
-  //   schedule: "MWF 8:00 AM - 11:00 AM",
-  //   credits: 6,
-  //   enrolled: 48,
-  //   capacity: 50,
-  //   location: "Medical School Building A",
-  //   department: "Biology",
-  //   level: "400-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Medical School",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "15",
-  //   code: "CS 502",
-  //   courseNumber: "502",
-  //   title: "Artificial Intelligence",
-  //   instructor: "Dr. Linda Wu",
-  //   schedule: "TTh 6:00 PM - 8:30 PM",
-  //   credits: 3,
-  //   enrolled: 18,
-  //   capacity: 25,
-  //   location: "Engineering Hall 302",
-  //   department: "Computer Science",
-  //   level: "400-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Graduate",
-  //   modeOfInstruction: "Hybrid",
-  // },
-];
-
-// Helper function to format time from 24-hour to 12-hour with AM/PM
-function formatTime(timeString: string | null): string {
-  if (!timeString) return '';
-  
-  // timeString is like "12:00:00" or "14:30:00"
-  const [hours, minutes] = timeString.split(':');
-  const hour = parseInt(hours, 10);
-  const minute = minutes;
-  
-  // Convert to 12-hour format
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const hour12 = hour % 12 || 12; // Convert 0 to 12 for midnight
-  
-  return `${hour12}:${minute} ${period}`;
-}
-
-// Helper function to determine course level from catalog number
-function getCourseLevel(catalogNum: number): string {
-  if (catalogNum >= 500) return '600+ Level';
-  if (catalogNum >= 400) return '400 Level';
-  if (catalogNum >= 300) return '300 Level';
-  if (catalogNum >= 200) return '200 Level';
-  if (catalogNum >= 100) return '100 Level';
-  return 'Other';
-}
-
-// Helper function to determine course career from catalog number
-function getCourseCareer(catalogNum: number): string {
-  if (catalogNum >= 600) return 'Graduate';  // If your school uses 600+ for med
-  return 'Undergraduate';
-}
-
-// Helper function to format instruction mode
-function formatInstructionMode(mode: string): string {
-  const modeMap: Record<string, string> = {
-    'P': 'In Person',
-    'HY': 'Hybrid',
-    'WL': 'Synchronous Online',
-    'WA': 'Asynchronous Online',
-  };
-  return modeMap[mode] || mode;
-}
-
 export default function App() {
 // Authentication state
   console.log("App component rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authView, setAuthView] = useState<"login" | "signup">("login");
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [csrfToken, setCsrfToken] = useState("");
@@ -358,7 +55,7 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   useEffect(() => {
-    fetch('http://localhost:5000/csrf-token', {
+    fetch('/api/csrf-token', {
       credentials: 'include',
     })
       .then(response => response.json())
@@ -367,29 +64,45 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-  const checkAuthStatus = () => {
-    fetch("http://localhost:5000/auth/status", {
-      credentials: "include",
+    const checkAuthStatus = () => {
+      fetch("/api/auth/status", {
+        credentials: "include",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.authenticated && data.user) {
+            setIsAuthenticated(true);
+            setUser(data.user);
+          }
+        })
+        .catch((error) => {
+          console.error("Error checking auth status:", error);
+        })
+        .finally(() => {
+          setIsLoadingAuth(false);
+        });
+    };
+
+    checkAuthStatus();
+  }, []);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    fetch('/api/planner', {
+      credentials: 'include'
     })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.authenticated && data.user) {
-          setIsAuthenticated(true);
-          setUser(data.user);
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          const ids = new Set(data.sections.map((s: any) => s.section_id.toString()));
+          setPlannedCourseIds(ids as Set<string>);
         }
       })
-      .catch((error) => {
-        console.error("Error checking auth status:", error);
-      })
-      .finally(() => {
-        setIsLoadingAuth(false);
-      });
-  };
+      .catch(err => console.error('Failed to load planner:', err));
+  }, [isAuthenticated]);
 
-  checkAuthStatus();
-}, []);
 
-  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings">("home");
+  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup">("home");
   const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [department, setDepartment] = useState("all");
@@ -418,68 +131,6 @@ export default function App() {
 
   // Planner state
   const [plannedCourseIds, setPlannedCourseIds] = useState<Set<string>>(new Set());
-/*
-  const filteredCourses = useMemo(() => {
-    if (!hasSearched) {
-      return [];
-    }
-    
-    return MOCK_COURSES.filter((course) => {
-      // Search query filter
-      const query = appliedFilters.searchQuery.toLowerCase();
-      const matchesSearch =
-        !query ||
-        course.code.toLowerCase().includes(query) ||
-        course.title.toLowerCase().includes(query) ||
-        course.instructor.toLowerCase().includes(query);
-
-      // Subject filter
-      const matchesSubject =
-        appliedFilters.subject === "all" || course.department === appliedFilters.subject;
-
-      // Course number filter
-      const matchesCourseNumber =
-        !appliedFilters.courseNumber || course.courseNumber.includes(appliedFilters.courseNumber);
-
-      // Course career filter
-      const matchesCareer =
-        appliedFilters.courseCareer === "all" || course.courseCareer === appliedFilters.courseCareer;
-
-      // Show open only filter
-      const matchesOpenOnly =
-        !appliedFilters.showOpenOnly || course.enrolled < course.capacity;
-
-      // Mode of instruction filter
-      const matchesMode =
-        appliedFilters.modeOfInstruction === "all" ||
-        course.modeOfInstruction === appliedFilters.modeOfInstruction;
-
-      // Level filter
-      const matchesLevel = appliedFilters.level === "all" || course.level === appliedFilters.level;
-
-      // Credits filter
-      const matchesCredits =
-        appliedFilters.credits === "all" || course.credits === parseInt(appliedFilters.credits);
-
-      // Days filter
-      const matchesDays =
-        appliedFilters.selectedDays.length === 0 ||
-        appliedFilters.selectedDays.some((day) => course.days.includes(day));
-
-      return (
-        matchesSearch &&
-        matchesSubject &&
-        matchesCourseNumber &&
-        matchesCareer &&
-        matchesOpenOnly &&
-        matchesMode &&
-        matchesLevel &&
-        matchesCredits &&
-        matchesDays
-      );
-    });
-  }, [hasSearched, appliedFilters]);
-*/
 
   const handleSearch = async () => {
     setIsSearching(true);
@@ -657,21 +308,67 @@ export default function App() {
     });
   };
 
-  const handleAddToPlanner = (courseId: string) => {
-    setPlannedCourseIds((prev) => new Set(prev).add(courseId));
+  const handleAddToPlanner = async (courseId: string) => {
+    //setPlannedCourseIds((prev) => new Set(prev).add(courseId));
+    try {
+      const response = await fetch('/api/planner/section', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ section_id: parseInt(courseId) })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to add to planner:', data.error);
+        return;
+      }
+
+      setPlannedCourseIds((prev) => new Set(prev).add(courseId));
+      console.log('Section added to planner');
+
+    } catch (error) {
+      console.error('Error adding to planner:', error);
+    }
   };
 
-  const handleRemoveFromPlanner = (courseId: string) => {
+  const handleRemoveFromPlanner = async (courseId: string) => {
+    /*
     setPlannedCourseIds((prev) => {
       const newSet = new Set(prev);
       newSet.delete(courseId);
       return newSet;
     });
-  };
+    */
+    try {
+      const response = await fetch(`/api/planner/section/${courseId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      });
 
-  const plannedCourses = MOCK_COURSES.filter((course) =>
-    plannedCourseIds.has(course.id)
-  );
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to remove from planner:', data.error);
+        return;
+      }
+
+      setPlannedCourseIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(courseId);
+        return newSet;
+      });
+      console.log('Section removed from planner');
+
+    } catch (error) {
+      console.error('Error removing from planner:', error);
+    }
+  };
 
   // Handle authentication
   const handleLogin = (userData: User) => {
@@ -684,11 +381,12 @@ export default function App() {
     //setIsAuthenticated(true);
     //setUser(userData);
     //setCurrentView("home");
-    setAuthView("login");
+    //setAuthView("login");
+    setCurrentView("login");
   };
 
   const handleLogout = () => {
-    fetch('http://localhost:5000/logout', {
+    fetch('/api/logout', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -705,7 +403,8 @@ export default function App() {
         console.log('Logged out successfully');
         setIsAuthenticated(false);
         setUser(null);
-        setAuthView("login");
+        //setAuthView("login");
+        setCurrentView("home");
       })
       .catch((error: Error) => {
         console.error('Logout error:', error);
@@ -713,7 +412,7 @@ export default function App() {
         //Still log out on frontend even if backend fails
         setIsAuthenticated(false);
         setUser(null);
-        setAuthView("login");
+        setCurrentView("home");
       });
   };
 
@@ -726,6 +425,7 @@ export default function App() {
   }
 
   // Show login/signup pages if not authenticated
+  /*
   if (!isAuthenticated) {
     if (authView === "signup") {
       return (
@@ -742,10 +442,11 @@ export default function App() {
       />
     );
   }
+    */
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} />
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} onNavigateToLogin={() => setCurrentView("login")} />
       
       <div className="flex-1">
 
@@ -759,17 +460,40 @@ export default function App() {
         )}
 
 
-        {currentView === "home" ? (
+        {currentView === "login" ? (
+          <Login
+            onLogin={handleLogin}
+            onNavigateToSignUp={() => setCurrentView("signup")}
+          />
+        ) : currentView === "signup" ? (
+          <SignUp
+            onSignUp={() => setCurrentView("login")}
+            onNavigateToLogin={() => setCurrentView("login")}
+          />
+        ) : currentView === "planner" && !isAuthenticated ? (
+          <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+            <p className="text-slate-600 text-lg">You must be logged in to view your planner.</p>
+            <button
+              onClick={() => setCurrentView("login")}
+              className="px-6 py-2 bg-[#003366] text-white rounded-lg hover:bg-[#002244]"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => setCurrentView("search")}
+              className="text-sm text-slate-500 underline"
+            >
+              Continue as Guest
+            </button>
+          </div>
+        ) : currentView === "home" ? (
           <Home onGetStarted={() => setCurrentView("search")} />
         ) : currentView === "settings" ? (
           <Settings />
         ) : currentView === "programs" ? (
           <Programs />
         ) : currentView === "planner" ? (
-          <Planner 
-            plannedCourses={plannedCourses} 
-            onRemoveFromPlanner={handleRemoveFromPlanner}
-          />
+          <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
         ) : (
           <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
             {/* Page Title Section */}
@@ -811,6 +535,17 @@ export default function App() {
                   <p className="text-slate-700">
                     <span className="text-[#003366]">{searchResults.length}</span> sections found
                   </p>
+                  {!isAuthenticated && (
+                    <p className="text-sm text-slate-500">
+                      <button
+                      onClick={() => setCurrentView("login")}
+                      className="text-[#003366] underline hover:text-[#002244]"
+                      >
+                        Log in
+                        </button>{" "}
+                        to save sections to your planner
+                        </p>
+                      )}
                 </div>
 
                 {isSearching ? (
@@ -824,7 +559,7 @@ export default function App() {
                 ) : searchResults.length > 0 ? (
                   <div className="grid gap-5">
                     {searchResults.map((section) => (
-                      <CourseCard 
+                      <CourseCard
                         key={section.section_id}
                         id={section.section_id.toString()}
                         code={section.course_code}
@@ -843,7 +578,9 @@ export default function App() {
                         modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                         isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                         onAddToPlanner={handleAddToPlanner}
-                        showPlannerButton={true}
+                        showPlannerButton={isAuthenticated}       // hide for guests
+                        isGuest={!isAuthenticated}
+                        onLoginPrompt={() => setCurrentView("login")}
                       />
                     ))}
                   </div>

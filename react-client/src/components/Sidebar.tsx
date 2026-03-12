@@ -5,12 +5,12 @@ import UNR_Logo from "../assets/UNR_Logo.svg"
 interface NavItem {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  view?: "home" | "search" | "planner" | "programs" | "settings";
+  view?: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
 }
 
 interface SidebarProps {
-  currentView: "home" | "search" | "planner" | "programs" | "settings";
-  onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings") => void;
+  currentView: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
+  onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup") => void;
   onLogout: () => void;
   onToggle: () => void;
   isOpen: boolean;
@@ -20,10 +20,11 @@ interface SidebarProps {
     first_name: string;
     last_name: string;
   } | null;
+  onNavigateToLogin: () => void;
 }
 
-export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, user }: SidebarProps) {
-  const navItems: NavItem[] = [
+export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, user, onNavigateToLogin }: SidebarProps) {
+  const allNavItems: NavItem[] = [
     { name: "Home", icon: Home, view: "home" },
     { name: "Search", icon: Search, view: "search" },
     { name: "Planner", icon: Calendar, view: "planner" },
@@ -31,10 +32,17 @@ export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, u
     { name: "Settings", icon: Settings, view: "settings" },
   ];
 
+const navItems = user
+  ? allNavItems
+  : allNavItems.filter(item => item.view === "home" || item.view === "search" || item.view === "planner");
+
+
   if (!isOpen) return null;
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col">
+    //Old made the logout button go way down page when having huge search result
+    //<aside className="w-64 bg-white border-r border-slate-200 min-h-screen flex flex-col">
+    <aside className="w-64 bg-white border-r border-slate-200 h-screen sticky top-0 flex flex-col">
       {/* Logo and Profile */}
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
@@ -52,9 +60,11 @@ export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, u
           <div className="flex-1 min-w-0">
             {/* TO BE REPLACED WITH USER'S NAME */}
             <p className="text-slate-900 truncate text-sm">
-              {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
+              {user ? `${user.first_name} ${user.last_name}` : 'Guest'}
             </p>
-            <p className="text-xs text-slate-500 truncate">Student</p>
+            <p className="text-xs text-slate-500 truncate">
+              {user ? 'Student' : ''}
+            </p>
           </div>
           <button
             onClick={onToggle}
@@ -92,15 +102,28 @@ export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, u
       </nav>
       
       {/* Logout Button */}
-      <div className="p-4 border-t border-slate-200">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-slate-600 hover:bg-red-50 hover:text-red-600"
-        >
-          <LogOut className="w-5 h-5" />
-          <span>Logout</span>
-        </button>
-      </div>
+      {user ? (
+        <div className="p-4 border-t border-slate-200">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-slate-600 hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
+        </div>
+      ) : (
+        <div className="p-4 border-t border-slate-200">
+          <button
+            onClick={onNavigateToLogin}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all bg-[#003366] text-white hover:bg-[#002244]"
+          >
+            <LogOut className="w-5 h-5 rotate-180" />  {/* Flipped logout icon = login */}
+            <span>Login</span>
+          </button>
+        </div>
+      )}
+
     </aside>
   );
 }

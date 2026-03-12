@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import os
 import psycopg2
 from dbconnect.connection import DatabaseConnection
+
+import traceback
 
 from database import db
 
@@ -24,17 +26,22 @@ app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for deb
 
 app.config['SESSION_PROTECTION'] = 'strong'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = False #Off During Development
+app.config['SESSION_COOKIE_SECURE'] = False #False During Development #True in the VPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 csrf = CSRFProtect(app)
-CORS(app, supports_credentials=True) #, origins=["http://localhost:5173"]
+CORS(app, supports_credentials=True) #, origins=["https://ncs.unr.dev"] for the VPS
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({'error': 'Authentication required', 'authenticated': False}), 401
 
 @app.route("/NCS_db")
 def NCS_db():
@@ -142,7 +149,8 @@ def login():
         if not user or not check_password_hash(user.password, password):
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        login_user(user, remember=True)
+        #Logs out on browser closer prevents csrf issues will be fixed in the future
+        login_user(user, remember=False)
         
         print("Authenticated: " + str(current_user.is_authenticated))
         print("ID: " + str(current_user.id))
@@ -297,6 +305,65 @@ def search_courses():
         print(traceback.format_exc())
         print("=" * 50)
         return {"status": "error", "message": str(e)}, 500
+
+@app.route('/planner/section', methods=['POST'])
+@login_required
+def add_to_planner():
+    try:
+        data = request.get_json()
+        section_id = data.get('section_id')
+        
+        section = db.session.get(Section, section_id)
+        if not section:
+            return jsonify({'error': 'Section not found'}), 404
+        
+        if section in current_user.planned_sections:
+            return jsonify({'error': 'Section already in planner'}), 400
+        
+        current_user.planned_sections.append(section)
+        db.session.commit()
+        
+        return jsonify({'message': 'Section added to planner'}), 200
+    
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/planner/section/<int:section_id>', methods=['DELETE'])
+@login_required
+def remove_from_planner(section_id):
+    try:
+        section = db.session.get(Section, section_id)
+        if not section:
+            return jsonify({'error': 'Section not found'}), 404
+        
+        if section not in current_user.planned_sections:
+            return jsonify({'error': 'Section not in planner'}), 400
+        
+        current_user.planned_sections.remove(section)
+        db.session.commit()
+        
+        return jsonify({'message': 'Section removed from planner'}), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/planner', methods=['GET'])
+@login_required
+def get_planner():
+    try:
+        sections = current_user.planned_sections
+        return jsonify({
+            'status': 'success',
+            'sections': [s.format(include_course=True, include_instructors=True) for s in sections],
+            'count': len(sections)
+        }), 200
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
      
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)

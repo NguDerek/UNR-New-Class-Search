@@ -24,6 +24,8 @@ interface CourseCardProps {
   showPlannerButton?: boolean;
   onRemoveFromPlanner?: (courseId: string) => void;
   showRemoveButton?: boolean
+  isGuest?: boolean;
+  onLoginPrompt?: () => void;
   showSwapButton?: boolean
 }
 
@@ -48,8 +50,9 @@ export function CourseCard({
   showPlannerButton = false,
   onRemoveFromPlanner,
   showRemoveButton = false,
+  isGuest = false,
+  onLoginPrompt,
   showSwapButton = false
-  
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -125,7 +128,20 @@ export function CourseCard({
         </div>
       </div>
 
-      {showPlannerButton && onAddToPlanner && (
+      {/* Guest: show login prompt button */}
+      {isGuest && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <Button
+            onClick={onLoginPrompt}
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300"
+          >
+            Login to Add to Planner
+          </Button>
+        </div>
+      )}
+
+      {/* Authenticated: show add button */}
+      {!isGuest && showPlannerButton && onAddToPlanner && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={() => onAddToPlanner(id)}
@@ -150,6 +166,8 @@ export function CourseCard({
           </Button>
         </div>
       )}
+
+      {/* Remove button (planner page only) */}
       {showRemoveButton && onRemoveFromPlanner && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button

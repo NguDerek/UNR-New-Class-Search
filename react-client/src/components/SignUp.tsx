@@ -27,7 +27,7 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
   const [csrfToken, setCsrfToken] = useState("");
 
   useEffect(() => {
-    fetch('http://localhost:5000/csrf-token', {
+    fetch('/api/csrf-token', {
       credentials: 'include',
     })
       .then(response => response.json())
@@ -61,7 +61,7 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
       return;
     }
 
-    fetch('http://localhost:5000/signup', {
+    fetch('/api/signup', {
       method: 'POST',
       credentials: 'include',
       headers: {
