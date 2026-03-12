@@ -168,7 +168,8 @@ def verify_email(token):
     user.is_verified = True
     db.session.commit()
     
-    return redirect("http://localhost:8080/login?verified=true")
+    #ADD PROPER PAGE ROUTING TO LOGIN VERIFIED IN THE FUTURE
+    return redirect("http://localhost:8080")
     
 #WHEN RESEND GETS IMPLEMENTED
 @app.route('/resend-verification', methods=['POST'])

@@ -5,19 +5,11 @@ import { Label } from "./ui/Label";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import UNR_Logo from "../assets/UNR_Logo.svg"
 
-interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-}
-
 interface SignUpProps {
-  onSignUp: (userData: User) => void;
   onNavigateToLogin: () => void;
 }
 
-export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
+export function SignUp({onNavigateToLogin }: SignUpProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -84,13 +76,37 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
         }
         return response.json();
       })
-      .then((data) => {
-        onSignUp(data.user);
+      .then(() => {
+        setSubmitted(true);
       })
       .catch((error: Error) => {
         setError(error.message || 'Signup failed');
       });
   };
+
+  if (submitted) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center space-y-4">
+        <div className="text-5xl">✉</div>
+        <h2 className="text-[#003366]">Check your email</h2>
+        <p className="text-slate-600">
+          We sent a verification link to <strong>{email}</strong>
+        </p>
+        <p className="text-sm text-slate-400">
+          Click the link in the email to activate your account. It expires in 1 hour.
+        </p>
+
+        <button
+          onClick={onNavigateToLogin}
+          className="w-full h-11 border-2 border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white rounded-lg transition-colors text-sm font-medium"
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4 py-8">
