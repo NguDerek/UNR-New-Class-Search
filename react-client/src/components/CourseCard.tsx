@@ -202,12 +202,32 @@ export function CourseCard({
       )}
       {showSearchSwapButton && onSwapWithCourse &&(
         <div className="mt-4">
-          <Button
+          {/* <Button
             // onClick={() => onSwapWithCourse(id)}
             className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Switch
+          </Button> */}
+          <Button
+            disabled={isInPlanner}
+            className={
+              isInPlanner
+                ? "w-full bg-slate-100 text-slate-600 cursor-not-allowed hover:bg-slate-100"
+                : "w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+            }
+          >
+            {isInPlanner ? (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Already added to Planner
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Switch
+              </>
+            )}
           </Button>
         </div>
       )}
