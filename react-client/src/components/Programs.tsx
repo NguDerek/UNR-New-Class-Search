@@ -2,8 +2,13 @@ import { Search } from "lucide-react";
 import { Input } from "./ui/Input";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
 import { Info } from "lucide-react";
+import type { Role } from "../lib/permissions";
 
-export function Programs() {
+interface ProgramsProps {
+  role: Role;
+}
+
+export function Programs({ role }: ProgramsProps) {
   // TO BE REPLACED WITH UNR'S COLLEGES
   const programCategories = [
     {
@@ -73,6 +78,28 @@ export function Programs() {
           </Card>
         ))}
       </div>
+      
+      {/* Advisor-Specific UI*/}
+      {role === "Advisor" && (
+      <div className="advisor-upload mt-6 p-4 border border-slate-200 rounded-lg bg-white">
+        <h2 className="text-lg font-semibold mb-2">Upload Flowchart</h2>
+
+        <label className="inline-block px-4 py-2 bg-[#003366] text-white rounded-lg cursor-pointer hover:bg-[#004080] shadow-md">
+          Upload File
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                console.log("Advisor uploaded file:", file);
+                // store in state for now, later integrate backend
+              }
+            }}
+          />
+        </label>
+      </div>
+    )}
     </div>
   );
 }

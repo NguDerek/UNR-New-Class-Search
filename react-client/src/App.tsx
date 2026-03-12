@@ -527,7 +527,7 @@ export default function App() {
         ) : currentView === "settings" ? (
           <Settings />
         ) : currentView === "programs" ? (
-          <Programs />
+          <Programs role={role}/>
         ) : currentView === "planner" ? (
           <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
         ) : (
