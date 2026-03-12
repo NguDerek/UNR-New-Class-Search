@@ -23,11 +23,12 @@ interface CourseCardProps {
   onAddToPlanner?: (courseId: string) => void;
   showPlannerButton?: boolean;
   onRemoveFromPlanner?: (courseId: string) => void;
-  showRemoveButton?: boolean
+  showRemoveButton?: boolean;
   isGuest?: boolean;
   onLoginPrompt?: () => void;
   showSwapButton?: boolean
   isConflict?: boolean;
+  onSwapPrompt?: (courseId: string) => void;
 }
 
 export function CourseCard({
@@ -55,6 +56,7 @@ export function CourseCard({
   onLoginPrompt,
   showSwapButton = false
   isConflict = false,
+  onSwapPrompt,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =

@@ -8,10 +8,10 @@ import { Programs } from "./components/Programs";
 import { Planner } from "./components/Planner";
 import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp"
-import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
+import { executeCourseSearch } from "./utils/searchUtils.ts";
 
 interface User {
   id: number;
@@ -175,97 +175,97 @@ export default function App() {
         }
       }
         
-      // === DEPARTMENT DROPDOWN ===
-      if (department && department !== 'all') {
-        searchParams.department = department;
-      }
+//       // === DEPARTMENT DROPDOWN ===
+//       if (department && department !== 'all') {
+//         searchParams.department = department;
+//       }
       
-      // === COURSE NUMBER INPUT ===
-      if (roomSearch && roomSearch.trim() !== '') {
-        searchParams.room = roomSearch;
-      }
+//       // === COURSE NUMBER INPUT ===
+//       if (roomSearch && roomSearch.trim() !== '') {
+//         searchParams.room = roomSearch;
+//       }
       
-      // === DAYS BUTTONS ===
-      if (selectedDays.length > 0) {
-        // Convert ["Mon", "Tue", "Wed"] to "MTW"
-        const daysMap: Record<string, string> = {
-          'Mon': 'M',
-          'Tue': 'T',
-          'Wed': 'W',
-          'Thu': 'R',  // Thursday is 'R' to avoid confusion with Tuesday
-          'Fri': 'F',
-          'Sat': 'S',
-          'Sun': 'U'
-        };
-        const daysString = selectedDays.map(d => daysMap[d] || '').join('');
-        searchParams.days = daysString;
-      }
+//       // === DAYS BUTTONS ===
+//       if (selectedDays.length > 0) {
+//         // Convert ["Mon", "Tue", "Wed"] to "MTW"
+//         const daysMap: Record<string, string> = {
+//           'Mon': 'M',
+//           'Tue': 'T',
+//           'Wed': 'W',
+//           'Thu': 'R',  // Thursday is 'R' to avoid confusion with Tuesday
+//           'Fri': 'F',
+//           'Sat': 'S',
+//           'Sun': 'U'
+//         };
+//         const daysString = selectedDays.map(d => daysMap[d] || '').join('');
+//         searchParams.days = daysString;
+//       }
       
-      // === TERM DROPDOWN ===
-      if (term && term !== 'all') {
-        // Map frontend term names to backend session codes
-        const termMap: Record<string, string> = {
-          'Spring 2025': '2025',
-          'Summer 2025': '202505',
-          'Fall 2025': '1',
-          'Winter 2026': '202601'
-        };
-        searchParams.term = termMap[term] || term;
-      }
+//       // === TERM DROPDOWN ===
+//       if (term && term !== 'all') {
+//         // Map frontend term names to backend session codes
+//         const termMap: Record<string, string> = {
+//           'Spring 2025': '2025',
+//           'Summer 2025': '202505',
+//           'Fall 2025': '1',
+//           'Winter 2026': '202601'
+//         };
+//         searchParams.term = termMap[term] || term;
+//       }
       
-      // === COURSE CAREER DROPDOWN ===
-      if (courseCareer && courseCareer !== 'all') {
-        searchParams.course_career = courseCareer
-      }
+//       // === COURSE CAREER DROPDOWN ===
+//       if (courseCareer && courseCareer !== 'all') {
+//         searchParams.course_career = courseCareer
+//       }
       
-      // === CREDITS DROPDOWN ===
-      if (credits && credits !== 'all') {
-        if (credits === '5+') {
-          searchParams.units = '5';
-          searchParams.units_operator = 'greater_equal';
-        } else {
-          searchParams.units = credits;
-          searchParams.units_operator = 'exact';
-        }
-      }
+//       // === CREDITS DROPDOWN ===
+//       if (credits && credits !== 'all') {
+//         if (credits === '5+') {
+//           searchParams.units = '5';
+//           searchParams.units_operator = 'greater_equal';
+//         } else {
+//           searchParams.units = credits;
+//           searchParams.units_operator = 'exact';
+//         }
+//       }
       
-      // === MODE OF INSTRUCTION DROPDOWN ===
-      if (modeOfInstruction && modeOfInstruction !== 'all') {
-        const modeMap: Record<string, string> = {
-          'In Person': 'P',
-          'Hybrid': 'HY',
-          'Asynchronous Online': 'WA',
-          'Synchronous Online': 'WL'
-        };
-        searchParams.instruction_mode = modeMap[modeOfInstruction] || modeOfInstruction;
-      }
+//       // === MODE OF INSTRUCTION DROPDOWN ===
+//       if (modeOfInstruction && modeOfInstruction !== 'all') {
+//         const modeMap: Record<string, string> = {
+//           'In Person': 'P',
+//           'Hybrid': 'HY',
+//           'Asynchronous Online': 'WA',
+//           'Synchronous Online': 'WL'
+//         };
+//         searchParams.instruction_mode = modeMap[modeOfInstruction] || modeOfInstruction;
+//       }
       
-      // === LEVEL DROPDOWN ===
-      if (level && level !== 'all') {
-        // Map level to catalog_num ranges
-        if (level === '100') {
-          searchParams.level = '1';
-        } else if (level === '200') {
-          searchParams.level = '2';
-        } else if (level === '300') {
-          searchParams.level = '3';;
-        } else if (level === '400') {
-          searchParams.level = '4';
-        } else if (level === '500+') {
-          searchParams.level = '5';
-        }
-      }
+//       // === LEVEL DROPDOWN ===
+//       if (level && level !== 'all') {
+//         // Map level to catalog_num ranges
+//         if (level === '100') {
+//           searchParams.level = '1';
+//         } else if (level === '200') {
+//           searchParams.level = '2';
+//         } else if (level === '300') {
+//           searchParams.level = '3';;
+//         } else if (level === '400') {
+//           searchParams.level = '4';
+//         } else if (level === '500+') {
+//           searchParams.level = '5';
+//         }
+//       }
       
-      // === SHOW OPEN ONLY TOGGLE ===
-      if (showOpenOnly) {
-        //searchParams.status = 'Open';
-        //To be implemented later
-      }
+//       // === SHOW OPEN ONLY TOGGLE ===
+//       if (showOpenOnly) {
+//         //searchParams.status = 'Open';
+//         //To be implemented later
+//       }
       
-      console.log('Search params:', searchParams); // Debug - see what's being sent
+//       console.log('Search params:', searchParams); // Debug - see what's being sent
       
-      // Make API call
-      const response = await courseAPI.searchCourses(searchParams);
+//       // Make API call
+//       const response = await courseAPI.searchCourses(searchParams);
       
       if (response.status === 'success') {
         setSearchResults(response.sections);
@@ -283,23 +283,6 @@ export default function App() {
     }
   };
 
-/*
-  const handleSearch = () => {
-    setAppliedFilters({
-      term,
-      searchQuery,
-      subject,
-      courseNumber,
-      courseCareer,
-      showOpenOnly,
-      modeOfInstruction,
-      level,
-      credits,
-      selectedDays,
-    });
-    setHasSearched(true);
-  };
-*/
   const handleReset = () => {
     setTerm("all");
     setSearchQuery("");

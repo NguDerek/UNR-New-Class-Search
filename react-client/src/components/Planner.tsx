@@ -5,6 +5,7 @@ import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } fr
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventContentArg } from "@fullcalendar/core";
+import { SwapModal } from "./SwapModal.tsx";
 
 interface Course {
   section_id: number;
@@ -341,6 +342,10 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
                     isConflict={conflictIds.has(section.section_id)}
+                    // onSwapPrompt={(id) => {
+                    //   const course = plannedCourses.find((c) => c.id === id);
+                    //   if (course) setCourseToSwap(course);
+                    // }}
                   />
                 ))}
               </div>
