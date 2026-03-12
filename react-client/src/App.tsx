@@ -11,6 +11,8 @@ import { SignUp } from "./components/SignUp"
 import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
+import { viewPermissions } from "./lib/permissions";
+import type { Role } from "./lib/permissions";
 import { executeCourseSearch } from "./utils/searchUtils.ts";
 import { AdminDashboard } from "./components/AdminDashboard.tsx";
 
@@ -19,6 +21,7 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  role: string;
 }
 
 interface Course {
@@ -55,6 +58,7 @@ export default function App() {
   const [searchResults, setSearchResults] = useState<APISection[]>([]);//useState<Section[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+
   useEffect(() => {
     fetch('/api/csrf-token', {
       credentials: 'include',
@@ -115,6 +119,18 @@ export default function App() {
   const [level, setLevel] = useState("all");
   const [credits, setCredits] = useState("all");
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  
+  const role: Role = (user?.role as Role) ?? "Guest";
+
+  const publicViews: typeof currentView[] = ["login", "signup"];
+
+  if (!publicViews.includes(currentView) && !viewPermissions[currentView].includes(role)) {
+    return (
+      <div className="flex-1 p-6 text-center text-red-600">
+        You are not authorized to view this page.
+      </div>
+    );
+  }
   
   // Applied filters - only updated when user clicks "Search Courses"
   const [hasSearched, setHasSearched] = useState(false);
@@ -366,9 +382,9 @@ export default function App() {
         ) : currentView === "settings" ? (
           <Settings />
         ) : currentView === "programs" ? (
-          <Programs />
+          <Programs role={role}/>
         ) : currentView === "planner" ? (
-          <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
+          <Planner onRemoveFromPlanner={handleRemoveFromPlanner} onSwapPrompt={() => {}}/>
         ) : currentView === "admin" ? (
           <AdminDashboard />
         ) : (
@@ -455,10 +471,10 @@ export default function App() {
                         level={getCourseLevel(section.catalog_num)}
                         courseCareer={getCourseCareer(section.catalog_num)}
                         modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                        role={role}
                         isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                         onAddToPlanner={handleAddToPlanner}
                         showPlannerButton={isAuthenticated}       // hide for guests
-                        isGuest={!isAuthenticated}
                         onLoginPrompt={() => setCurrentView("login")}
                       />
                     ))}

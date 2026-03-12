@@ -2,6 +2,7 @@ import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft } from "lucide-react";
+import type { Role } from "../lib/permissions";
 
 interface CourseCardProps {
   id: string;
@@ -19,12 +20,12 @@ interface CourseCardProps {
   level: string;
   courseCareer: string;
   modeOfInstruction: string;
+  role?: Role;
   isInPlanner?: boolean;
   onAddToPlanner?: (courseId: string) => void;
   showPlannerButton?: boolean;
   onRemoveFromPlanner?: (courseId: string) => void;
-  showRemoveButton?: boolean;
-  isGuest?: boolean;
+  showRemoveButton?: boolean
   onLoginPrompt?: () => void;
   showSwapButton?: boolean;
   onSwapPrompt?: (courseId: string) => void;
@@ -49,12 +50,12 @@ export function CourseCard({
   // level,
   courseCareer,
   modeOfInstruction,
+  role,
   isInPlanner = false,
   onAddToPlanner,
   showPlannerButton = false,
   onRemoveFromPlanner,
   showRemoveButton = false,
-  isGuest = false,
   onLoginPrompt,
   showSwapButton = false,
   onSwapPrompt,
@@ -139,7 +140,7 @@ export function CourseCard({
       </div>
 
       {/* Guest: show login prompt button */}
-      {isGuest && (
+      {role === "Guest" && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={onLoginPrompt}
@@ -151,7 +152,7 @@ export function CourseCard({
       )}
 
       {/* Authenticated: show add button */}
-      {!isGuest && showPlannerButton && onAddToPlanner && (
+      {role === "Student" && showPlannerButton && onAddToPlanner && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={() => onAddToPlanner(id)}
@@ -189,6 +190,29 @@ export function CourseCard({
           </Button>
         </div>
       )}
+
+      {/* Instructor upload button */}
+      {role === "Instructor" && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <label className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+            <GraduationCap className="w-4 h-4" />
+            Upload Course Info
+            <input
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  console.log(`Instructor uploaded file for ${code}:`, file);
+                  // Later this could send to backend
+                }
+              }}
+            />
+          </label>
+        </div>
+      )}
+
+      {/* Planner Swap Button */}
       {showSwapButton && onSwapPrompt &&(
         <div className="mt-4">
           <Button

@@ -110,6 +110,7 @@ def signup():
         last_name = data.get('last_name')
         email = data.get('email')
         password = data.get('password')
+        role = data.get('role')
     
         #Check DB for user existing
         #existing_user = User.query.filter_by(email=email).first()
@@ -127,6 +128,7 @@ def signup():
             last_name=last_name,
             email=email,
             password=hashed_password,
+            role=role,
             is_verified=False
         )
         
@@ -223,7 +225,8 @@ def login():
                 'id': user.id, 
                 'email': user.email,
                 'first_name': user.first_name,
-                'last_name': user.last_name
+                'last_name': user.last_name,
+                'role': user.role
             }
         }), 200
         
@@ -247,7 +250,8 @@ def auth_status():
                 'id': current_user.id,
                 'email': current_user.email,
                 'first_name': current_user.first_name,
-                'last_name': current_user.last_name
+                'last_name': current_user.last_name,
+                'role': current_user.role
             }
         }), 200
     return jsonify({'authenticated': False}), 200
