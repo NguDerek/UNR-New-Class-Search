@@ -41,7 +41,8 @@ class Term(db.Model):
             'id': self.id,
             'session_code': self.session_code,
             'start_date': self.start_date,
-            'end_date': self.end_date
+            'end_date': self.end_date,
+            'year': self.year,
         }
     
     #Static methods to test database operations

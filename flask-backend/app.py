@@ -426,6 +426,77 @@ def get_planner():
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+# helpers for adding section
+def empty_to_none(value):
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+    return value
+    
+@app.route('/admin/sections', methods=['POST'])
+@login_required
+def create_section():
+    try:
+        data = request.get_json()
+        print("Received section payload:", data)
+
+        course_id = data.get('course_id')
+        term_id = data.get('term_id')
+        section_num = data.get('section_num')
+
+        component = empty_to_none(data.get('component'))
+        instruction_mode = empty_to_none(data.get('instruction_mode'))
+        class_days = empty_to_none(data.get('days'))
+        start_time = empty_to_none(data.get('start_time') or None)
+        end_time = empty_to_none(data.get('end_time') or None)
+        combined = data.get('combined')
+        class_status = empty_to_none(data.get('status'))
+        enrollment_capacity = data.get('capacity')
+        room_code = empty_to_none(data.get('room') or None)
+
+        if not course_id or not term_id or not section_num:
+            return jsonify({
+                'error': 'course_id, term_id, and section_num are required'
+            }), 400
+
+        course = db.session.get(Course, course_id)
+        if not course:
+            return jsonify({'error': 'Course not found'}), 404
+
+        term = db.session.get(Term, term_id)
+        if not term:
+            return jsonify({'error': 'Term not found'}), 404
+
+        new_section = Section(
+            course_id=course_id,
+            term_id=term_id,
+            section_num=section_num,
+            component=component,
+            instruction_mode=instruction_mode,
+            class_days=class_days,
+            start_time=start_time,
+            end_time=end_time,
+            combined=combined,
+            class_status=class_status,
+            enrollment_capacity=enrollment_capacity,
+            room_code=room_code,
+        )
+
+        db.session.add(new_section)
+        db.session.commit()
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Section created successfully',
+            'section': new_section.format()
+        }), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
      
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

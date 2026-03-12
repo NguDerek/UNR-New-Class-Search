@@ -12,6 +12,7 @@ import { courseAPI } from './services/api';
 import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
+import { AdminDashboard } from "./components/AdminDashboard.tsx";
 
 interface User {
   id: number;
@@ -102,7 +103,7 @@ export default function App() {
   }, [isAuthenticated]);
 
 
-  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup">("home");
+  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin">("home");
   const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchQueryType, setSearchQueryType] = useState("all");
@@ -513,6 +514,8 @@ export default function App() {
           <Programs />
         ) : currentView === "planner" ? (
           <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
+        ) : currentView === "admin" ? (
+          <AdminDashboard />
         ) : (
           <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
             {/* Page Title Section */}
