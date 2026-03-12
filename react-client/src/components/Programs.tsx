@@ -55,6 +55,28 @@ export function Programs({ role }: ProgramsProps) {
         <p className="text-slate-600">Explore all UNR programs and majors</p>
       </div>
 
+      {/* Advisor-Specific UI*/}
+      {role === "Advisor" && (
+      <div className="advisor-upload mt-6 mb-8 p-4 border border-slate-200 rounded-lg bg-white">
+        <h2 className="text-lg font-semibold mb-2">Upload Flowchart</h2>
+
+        <label className="inline-block px-4 py-2 bg-[#003366] text-white rounded-lg cursor-pointer hover:bg-[#004080] shadow-md">
+          Upload File
+          <input
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                console.log("Advisor uploaded file:", file);
+                // store in state for now, later integrate backend
+              }
+            }}
+          />
+        </label>
+      </div>
+      )}
+
       {/* Search Bar */}
       <div className="mb-8">
         <div className="relative">
@@ -79,27 +101,6 @@ export function Programs({ role }: ProgramsProps) {
         ))}
       </div>
       
-      {/* Advisor-Specific UI*/}
-      {role === "Advisor" && (
-      <div className="advisor-upload mt-6 p-4 border border-slate-200 rounded-lg bg-white">
-        <h2 className="text-lg font-semibold mb-2">Upload Flowchart</h2>
-
-        <label className="inline-block px-4 py-2 bg-[#003366] text-white rounded-lg cursor-pointer hover:bg-[#004080] shadow-md">
-          Upload File
-          <input
-            type="file"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                console.log("Advisor uploaded file:", file);
-                // store in state for now, later integrate backend
-              }
-            }}
-          />
-        </label>
-      </div>
-    )}
     </div>
   );
 }

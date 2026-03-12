@@ -614,6 +614,7 @@ export default function App() {
                         level={getCourseLevel(section.catalog_num)}
                         courseCareer={getCourseCareer(section.catalog_num)}
                         modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                        role={role}
                         isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                         onAddToPlanner={handleAddToPlanner}
                         showPlannerButton={isAuthenticated}       // hide for guests
