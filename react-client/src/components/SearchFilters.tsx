@@ -464,22 +464,3 @@ export function SearchFilters({
     </TooltipProvider>
   );
 }
-
-/*
-<Select value={subject} onValueChange={setSubject}>
-                <SelectTrigger id="subject" className="border-slate-300">
-                  <SelectValue placeholder="All Subjects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  <SelectItem value="Computer Science">Computer Science</SelectItem>
-                  <SelectItem value="Mathematics">Mathematics</SelectItem>
-                  <SelectItem value="Physics">Physics</SelectItem>
-                  <SelectItem value="Chemistry">Chemistry</SelectItem>
-                  <SelectItem value="Biology">Biology</SelectItem>
-                  <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="History">History</SelectItem>
-                  <SelectItem value="Psychology">Psychology</SelectItem>
-                </SelectContent>
-              </Select>
-*/

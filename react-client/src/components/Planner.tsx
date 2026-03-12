@@ -5,6 +5,7 @@ import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } fr
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventContentArg } from "@fullcalendar/core";
+import { SwapModal } from "./SwapModal.tsx";
 
 interface Course {
   section_id: number;
@@ -37,12 +38,14 @@ interface Course {
 
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
+  onSwapPrompt: (courseId: string) => void;
 }
 
-export function Planner({ onRemoveFromPlanner }: PlannerProps) {
+export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
   const [plannedCourses, setPlannedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [courseToSwap, setCourseToSwap] = useState<Course | null>(null);
 
   useEffect(() => {
     fetch('/api/planner', {
@@ -66,6 +69,15 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
   const handleRemove = (courseId: string) => {
     setPlannedCourses(prev => prev.filter(s => s.section_id.toString() !== courseId));
     onRemoveFromPlanner(courseId);
+  };
+
+  const handleSwap = (newCourse: Course): void => {
+    if (!courseToSwap) return;
+    const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
+    const updated = [...plannedCourses];
+    updated[index] = newCourse;
+    setPlannedCourses(updated);
+    setCourseToSwap(null); // closes modal
   };
 
   const totalCredits = plannedCourses.reduce((sum, s) => sum + s.course.units, 0);
@@ -340,11 +352,23 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
+                    showSwapButton={true}
+                    onSwapPrompt={(id) => {
+                      const course = plannedCourses.find((c) => c.section_id.toString() === id);
+                      if (course) setCourseToSwap(course);
+                    }}
                     isConflict={conflictIds.has(section.section_id)}
                   />
                 ))}
               </div>
-
+                {courseToSwap && (
+                  <SwapModal
+                    courseToSwap={courseToSwap}
+                    plannedCourseIds={plannedCourses.map((c) => c.section_id.toString())}
+                    onSwap={handleSwap}
+                    onClose={() => setCourseToSwap(null)}
+                  />
+                )}
               {/* Weekly schedule view */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-[#003366] px-4 py-3">
