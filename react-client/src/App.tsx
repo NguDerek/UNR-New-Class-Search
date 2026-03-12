@@ -42,7 +42,7 @@ interface Course {
 
 export default function App() {
 // Authentication state
-  console.log("App component rendering"); // ADD THIS
+  console.log("App component rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
