@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, redirect, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer
 import os
 import psycopg2
 from dbconnect.connection import DatabaseConnection
@@ -29,10 +31,19 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False #False During Development #True in the VPS
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 csrf = CSRFProtect(app)
+mail = Mail(app)
+timedSerializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 CORS(app, supports_credentials=True) #, origins=["https://ncs.unr.dev"] for the VPS
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -118,11 +129,18 @@ def signup():
             first_name=first_name,
             last_name=last_name,
             email=email,
-            password=hashed_password
+            password=hashed_password,
+            is_verified=False
         )
         
         db.session.add(new_user)
         db.session.commit() #DO NOT FORGET () DUMBO
+        
+        token = timedSerializer.dumps(email, salt='email-verify')
+        verify_url = f"http://localhost:5000/verify-email/{token}"
+        msg = Message('Verify your NCS email', recipients=[email])
+        msg.body = f"Hi {first_name}, \n\nClick the link in order to verify your account:\n{verify_url}\n" #\nLink expires in 1 hour.
+        mail.send(msg)
         
         return jsonify({'message': 'User created successfully'}), 201
         
@@ -130,6 +148,46 @@ def signup():
         db.session.rollback()
         print(f"Error: {e}")
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    try:
+        # Token expires after 3600 seconds (1 hour) , max_age=3600 removed for now until reverification is added
+        email = timedSerializer.loads(token, salt='email-verify')
+    except Exception:
+        return jsonify({'error': 'Verification link is invalid or has expired'}), 400
+
+    user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if user.is_verified:
+        return jsonify({'message': 'Account already verified'}), 200
+
+    user.is_verified = True
+    db.session.commit()
+    
+    #ADD PROPER PAGE ROUTING TO LOGIN VERIFIED IN THE FUTURE
+    return redirect("http://localhost:8080")
+    
+#WHEN RESEND GETS IMPLEMENTED
+@app.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    data = request.get_json()
+    email = data.get('email')
+    user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+
+    if not user or user.is_verified:
+        return jsonify({'error': 'Invalid request'}), 400
+
+    token = timedSerializer.dumps(email, salt='email-verify')
+    verify_url = f"http://localhost:5000/verify-email/{token}"
+    msg = Message('Verify your NCS email', recipients=[email])
+    msg.body = f"New verification link:\n{verify_url}\n\nExpires in 1 hour."
+    mail.send(msg)
+
+    return jsonify({'message': 'Verification email resent'}), 200
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -148,6 +206,10 @@ def login():
         # Check if user exists and password matches
         if not user or not check_password_hash(user.password, password):
             return jsonify({'error': 'Invalid email or password'}), 401
+        
+        #Prevent login unless verified
+        if not user.is_verified:
+            return jsonify({'error': 'Please verify your email before logging in'}), 403
         
         #Logs out on browser closer prevents csrf issues will be fixed in the future
         login_user(user, remember=False)
