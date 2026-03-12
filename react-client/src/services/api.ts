@@ -15,6 +15,7 @@ export interface SearchParams {
   status?: string;
   department?: string;
   search_query?: string;
+  //search_query_type?: string;
   course_career?: string;
   level?: string;
 }
@@ -35,6 +36,7 @@ export interface Section {
   instruction_mode: string;
   catalog_num: number;
   //department: string;
+  enrollment_cap: number;
 }
 
 export interface SectionDetails {

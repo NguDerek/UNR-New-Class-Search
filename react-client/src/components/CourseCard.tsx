@@ -27,6 +27,7 @@ interface CourseCardProps {
   isGuest?: boolean;
   onLoginPrompt?: () => void;
   showSwapButton?: boolean
+  isConflict?: boolean;
 }
 
 export function CourseCard({
@@ -53,6 +54,7 @@ export function CourseCard({
   isGuest = false,
   onLoginPrompt,
   showSwapButton = false
+  isConflict = false,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -63,7 +65,9 @@ export function CourseCard({
       : "open";
 
   return (
-    <Card className="p-6 hover:shadow-xl transition-all duration-200 border-slate-200 bg-white hover:border-indigo-200">
+    <Card className={`p-6 hover:shadow-xl transition-all duration-200 border rounded-xl 
+      ${isConflict ? "border-red-600 bg-red-50 hover:bg-red-100" 
+      : "border-slate-200 bg-white hover:border-indigo-200"}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -95,7 +99,7 @@ export function CourseCard({
                 : "bg-red-100 text-red-700 border-red-200"
             }
           >
-            {enrolled}/{capacity} Enrolled
+            {capacity} Total Seats
           </Badge>
           <Badge variant="outline" className="border-slate-300 text-slate-600">
             Section {section}
