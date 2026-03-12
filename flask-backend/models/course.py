@@ -85,13 +85,15 @@ class Course(db.Model):
     #Static methods to test database operations
     @staticmethod
     def get_all():
-        return db.session.execute(db.select(Course).order_by(Course.subject, Course.catalog_num)).scalars.all()
+        return db.session.execute(db.select(Course).order_by(Course.subject, Course.catalog_num)).scalars().all()
     
     def get_by_id(course_id):
-        db.session.get(Course, course_id)
+        return db.session.get(Course, course_id)
     
     def get_by_subject(subject):
-        return db.session.get(db.select(Course).filter_by(subject=subject)).scalar_one_or_none()
+        return db.session.execute(
+            db.select(Course).filter_by(subject=subject)
+        ).scalar_one_or_none()
     
     #Magic methods
     def __str__(self):

@@ -1,15 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardDescription, CardHeader, CardTitle } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select";
 import { ShieldUser, PlusCircle, Trash2, Search, Hash, Monitor, Calendar, Clock3,
-         MapPin, Users, CheckCircle2, Layers, User } from "lucide-react";
+         MapPin, Users, CheckCircle2, Layers, User, BookOpen } from "lucide-react";
 
 export function AdminDashboard() {
   const [openPanel, setOpenPanel] = useState<"add" | "delete" | null>(null);
   const [instructors, setInstructors] = useState([""]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [terms, setTerms] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    course_id: "",
+    term_id: "",
+    section_num: "",
+    component: "",
+    instruction_mode: "",
+    days: "",
+    start_time: "",
+    end_time: "",
+    combined: "",
+    status: "",
+    capacity: "",
+    room: "",
+  });
 
   const togglePanel = (panel: "add" | "delete") => {
     setOpenPanel((prev) => (prev === panel ? null : panel));
@@ -28,6 +44,88 @@ export function AdminDashboard() {
   const removeInstructorField = (index: number) => {
     setInstructors(instructors.filter((_, i) => i !== index));
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmitSection = async () => {
+    try {
+      const csrfRes = await fetch("/api/csrf-token", {
+        credentials: "include",
+      });
+
+      const csrfData = await csrfRes.json();
+
+      const payload = {
+        ...formData,
+        course_id: Number(formData.course_id),
+        term_id: Number(formData.term_id),
+        section_num: Number(formData.section_num),
+        capacity: Number(formData.capacity),
+        combined: formData.combined === "true",
+        instructors: instructors.filter(i => i.trim() !== "")
+      };
+
+      const res = await fetch("/api/admin/sections", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfData.csrf_token,
+        },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to create section");
+
+      console.log("Section created:", data);
+
+    } catch (err) {
+      console.error("Submit error:", err);
+    }
+  };
+
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      try {
+        const [coursesRes, termsRes] = await Promise.all([
+          fetch("api/courses-test", {
+            credentials: "include",
+          }),
+          fetch("api/terms", {
+            credentials: "include",
+          }),
+        ]);
+
+        const coursesData = await coursesRes.json();
+        const termsData = await termsRes.json();
+
+        if (coursesRes.ok) setCourses(coursesData.courses || []);
+        if (termsRes.ok) setTerms(termsData.terms || []);
+
+      } catch (error) {
+        console.error("Failed to load dropdown data:", error);
+      }
+    };
+
+    loadDropdownData();
+  }, []);
+
+  console.log(formData);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
@@ -84,17 +182,70 @@ export function AdminDashboard() {
               </CardDescription>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                {/* Section Form Inputs */}
                 <div>
                   <Label
-                    htmlFor="sectionNum"
+                    htmlFor="course_id"
+                    className="text-slate-700 flex items-center gap-2 mb-2"
+                  >
+                    <BookOpen className="w-4 h-4 text-[#003366]" />
+                    Course
+                  </Label>
+                  <Select 
+                    value={formData.course_id}
+                    onValueChange={(value) => handleSelectChange("course_id", value)}
+                  >
+                    <SelectTrigger id="course_id" className="border-slate-300">
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.map((course) => (
+                        <SelectItem key={course.id} value={String(course.id)}>
+                          {course.subject} {course.catalog_num} - {course.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="term_id"
+                    className="text-slate-700 flex items-center gap-2 mb-2"
+                  >
+                    <Calendar className="w-4 h-4 text-[#003366]" />
+                    Term
+                  </Label>
+                  <Select 
+                    value={formData.term_id}
+                    onValueChange={(value) => handleSelectChange("term_id", value)}
+                  >
+                    <SelectTrigger id="term_id" className="border-slate-300">
+                      <SelectValue placeholder="Select term" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {terms.map((term) => (
+                        <SelectItem key={term.id} value={String(term.id)}>
+                          {term.session_code} {term.year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="section_num"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <Hash className="w-4 h-4 text-[#003366]" />
                     Section Number
                   </Label>
                   <Input
-                    id="sectionNum"
+                    id="section_num"
                     type="number"
+                    value={formData.section_num}
+                    onChange={handleChange}
                     placeholder="e.g. 1001"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -111,6 +262,8 @@ export function AdminDashboard() {
                   <Input
                     id="component"
                     type="text"
+                    value={formData.component}
+                    onChange={handleChange}
                     placeholder="e.g. LEC, LAB"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -118,15 +271,17 @@ export function AdminDashboard() {
 
                 <div>
                   <Label
-                    htmlFor="instructionMode"
+                    htmlFor="instruction_mode"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <Monitor className="w-4 h-4 text-[#003366]" />
                     Instruction Mode
                   </Label>
                   <Input
-                    id="instructionMode"
+                    id="instruction_mode"
                     type="text"
+                    value={formData.instruction_mode}
+                    onChange={handleChange}
                     placeholder="e.g. P, HY, WA"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -134,15 +289,17 @@ export function AdminDashboard() {
 
                 <div>
                   <Label
-                    htmlFor="classDays"
+                    htmlFor="days"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <Calendar className="w-4 h-4 text-[#003366]" />
                     Class Days
                   </Label>
                   <Input
-                    id="classDays"
+                    id="days"
                     type="text"
+                    value={formData.days}
+                    onChange={handleChange}
                     placeholder="e.g. MWF, TR"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -150,30 +307,34 @@ export function AdminDashboard() {
 
                 <div>
                   <Label
-                    htmlFor="startTime"
+                    htmlFor="start_time"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <Clock3 className="w-4 h-4 text-[#003366]" />
                     Start Time
                   </Label>
                   <Input
-                    id="startTime"
+                    id="start_time"
                     type="time"
+                    value={formData.start_time}
+                    onChange={handleChange}
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
                 </div>
 
                 <div>
                   <Label
-                    htmlFor="endTime"
+                    htmlFor="end_time"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <Clock3 className="w-4 h-4 text-[#003366]" />
                     End Time
                   </Label>
                   <Input
-                    id="endTime"
+                    id="end_time"
                     type="time"
+                    value={formData.end_time}
+                    onChange={handleChange}
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
                 </div>
@@ -186,7 +347,7 @@ export function AdminDashboard() {
                     <Layers className="w-4 h-4 text-[#003366]" />
                     Combined
                   </Label>
-                  <Select>
+                  <Select onValueChange={(value) => handleSelectChange("combined", value)}>
                     <SelectTrigger id="combined" className="border-slate-300">
                       <SelectValue placeholder="Select option" />
                     </SelectTrigger>
@@ -199,15 +360,17 @@ export function AdminDashboard() {
 
                 <div>
                   <Label
-                    htmlFor="classStatus"
+                    htmlFor="status"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <CheckCircle2 className="w-4 h-4 text-[#003366]" />
                     Class Status
                   </Label>
                   <Input
-                    id="classStatus"
+                    id="status"
                     type="text"
+                    value={formData.status}
+                    onChange={handleChange}
                     placeholder="e.g. A, C"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -215,15 +378,17 @@ export function AdminDashboard() {
 
                 <div>
                   <Label
-                    htmlFor="enrollmentCapacity"
+                    htmlFor="capacity"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <Users className="w-4 h-4 text-[#003366]" />
                     Enrollment Capacity
                   </Label>
                   <Input
-                    id="enrollmentCapacity"
+                    id="capacity"
                     type="number"
+                    value={formData.capacity}
+                    onChange={handleChange}
                     placeholder="e.g. 30"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -231,15 +396,17 @@ export function AdminDashboard() {
 
                 <div>
                   <Label
-                    htmlFor="roomCode"
+                    htmlFor="room"
                     className="text-slate-700 flex items-center gap-2 mb-2"
                   >
                     <MapPin className="w-4 h-4 text-[#003366]" />
                     Room Code
                   </Label>
                   <Input
-                    id="roomCode"
+                    id="room"
                     type="text"
+                    value={formData.room}
+                    onChange={handleChange}
                     placeholder="e.g. DMSC 110"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
@@ -293,7 +460,10 @@ export function AdminDashboard() {
               </div>
 
               <div className="pt-6 flex justify-end">
-                <Button className="bg-[#003366] hover:bg-[#002244] text-white">
+                <Button 
+                  onClick={handleSubmitSection}
+                  className="bg-[#003366] hover:bg-[#002244] text-white"
+                >
                   Submit Section
                 </Button>
               </div>
