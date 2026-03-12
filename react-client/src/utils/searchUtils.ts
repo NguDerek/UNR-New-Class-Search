@@ -4,6 +4,8 @@ export interface SearchParams{
     subject?: string;
     catalog_num?: string;
     search_query?: string;
+    title?: string;
+    instructor?: string;
     department?: string;
     room?: string;
     days?: string;
@@ -17,6 +19,7 @@ export interface SearchParams{
 
 export interface SearchFilterValues {
   searchQuery: string;
+  searchQueryType: string;
   department: string;
   roomSearch: string;
   selectedDays: string[];
@@ -36,17 +39,33 @@ export async function executeCourseSearch(filters: SearchFilterValues){
         // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")
         const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
         const match = filters.searchQuery.match(courseCodePattern);
-        
-        if (match) {
+
+        if (match && (filters.searchQueryType == "course_code" || filters.searchQueryType == "all")) {
           // Exact course code - use subject and catalog_num
           searchParams.subject = match[1].toUpperCase();
           searchParams.catalog_num = match[2];
-        } else {
+        }
+        else if (filters.searchQueryType == "course_code") {
+          searchParams.subject = "error"
+        } 
+        else if (filters.searchQueryType == "subject") {
+          searchParams.subject = filters.searchQuery;
+        }
+        else if (filters.searchQueryType == "catalog_number") {
+          searchParams.catalog_num = filters.searchQuery;
+        }
+        else if (filters.searchQueryType == "title") {
+          searchParams.title = filters.searchQuery;
+        }
+        else if (filters.searchQueryType == "instructor") {
+          searchParams.instructor = filters.searchQuery;
+        }
+        else {
           // Everything else - use general search_query
           // This will search title, instructor name, and course code
           searchParams.search_query = filters.searchQuery;
-  }
-}
+        }
+      }
         
       // === DEPARTMENT DROPDOWN ===
       if (filters.department && filters.department !== 'all') {
@@ -129,5 +148,6 @@ export async function executeCourseSearch(filters: SearchFilterValues){
         }
       }
 
+      //Make API call
       return await courseAPI.searchCourses(searchParams);
 }
