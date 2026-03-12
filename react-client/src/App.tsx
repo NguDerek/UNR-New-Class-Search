@@ -41,266 +41,6 @@ interface Course {
   modeOfInstruction: string;
 }
 
-const MOCK_COURSES: Course[] = [
-  {
-    id: "1",
-    code: "CS 101",
-    courseNumber: "101",
-    title: "Introduction to Computer Science",
-    instructor: "Dr. Sarah Johnson",
-    schedule: "MWF 9:00 AM - 10:00 AM",
-    credits: 3,
-    enrolled: 28,
-    capacity: 30,
-    location: "Science Building 201",
-    department: "Computer Science",
-    component: "LEC",
-    section: 1001,
-    level: "100-Level",
-    days: ["Mon", "Wed", "Fri"],
-    courseCareer: "Undergraduate",
-    modeOfInstruction: "In Person",
-  },
-  // {
-  //   id: "2",
-  //   code: "CS 201",
-  //   courseNumber: "201",
-  //   title: "Data Structures and Algorithms",
-  //   instructor: "Prof. Michael Chen",
-  //   schedule: "TTh 1:00 PM - 2:30 PM",
-  //   credits: 4,
-  //   enrolled: 35,
-  //   capacity: 35,
-  //   location: "Engineering Hall 105",
-  //   department: "Computer Science",
-  //   level: "200-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "Hybrid",
-  // },
-  // {
-  //   id: "3",
-  //   code: "MATH 210",
-  //   courseNumber: "210",
-  //   title: "Calculus II",
-  //   instructor: "Dr. Emily Rodriguez",
-  //   schedule: "MWF 11:00 AM - 12:00 PM",
-  //   credits: 4,
-  //   enrolled: 22,
-  //   capacity: 30,
-  //   location: "Mathematics Building 301",
-  //   department: "Mathematics",
-  //   level: "200-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "4",
-  //   code: "PHYS 150",
-  //   courseNumber: "150",
-  //   title: "General Physics I",
-  //   instructor: "Dr. James Wilson",
-  //   schedule: "MWF 2:00 PM - 3:00 PM",
-  //   credits: 3,
-  //   enrolled: 18,
-  //   capacity: 25,
-  //   location: "Physics Lab 102",
-  //   department: "Physics",
-  //   level: "100-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "5",
-  //   code: "CS 305",
-  //   courseNumber: "305",
-  //   title: "Database Management Systems",
-  //   instructor: "Prof. Rachel Kim",
-  //   schedule: "TTh 10:00 AM - 11:30 AM",
-  //   credits: 3,
-  //   enrolled: 26,
-  //   capacity: 28,
-  //   location: "Computer Lab 220",
-  //   department: "Computer Science",
-  //   level: "300-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "Hybrid",
-  // },
-  // {
-  //   id: "6",
-  //   code: "CHEM 101",
-  //   courseNumber: "101",
-  //   title: "Introduction to Chemistry",
-  //   instructor: "Dr. David Martinez",
-  //   schedule: "MWF 8:00 AM - 9:00 AM",
-  //   credits: 4,
-  //   enrolled: 30,
-  //   capacity: 32,
-  //   location: "Chemistry Building 150",
-  //   department: "Chemistry",
-  //   level: "100-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "7",
-  //   code: "BIO 220",
-  //   courseNumber: "220",
-  //   title: "Cellular Biology",
-  //   instructor: "Dr. Lisa Anderson",
-  //   schedule: "TTh 2:00 PM - 3:30 PM",
-  //   credits: 4,
-  //   enrolled: 24,
-  //   capacity: 30,
-  //   location: "Biology Lab 215",
-  //   department: "Biology",
-  //   level: "200-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "8",
-  //   code: "ENG 200",
-  //   courseNumber: "200",
-  //   title: "American Literature",
-  //   instructor: "Prof. Robert Taylor",
-  //   schedule: "MW 3:00 PM - 4:30 PM",
-  //   credits: 3,
-  //   enrolled: 20,
-  //   capacity: 25,
-  //   location: "Liberal Arts 310",
-  //   department: "English",
-  //   level: "200-Level",
-  //   days: ["Mon", "Wed"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "9",
-  //   code: "HIST 101",
-  //   courseNumber: "101",
-  //   title: "World History I",
-  //   instructor: "Dr. Patricia Brown",
-  //   schedule: "TTh 9:00 AM - 10:30 AM",
-  //   credits: 3,
-  //   enrolled: 27,
-  //   capacity: 30,
-  //   location: "Humanities Building 205",
-  //   department: "History",
-  //   level: "100-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "10",
-  //   code: "PSY 101",
-  //   courseNumber: "101",
-  //   title: "Introduction to Psychology",
-  //   instructor: "Dr. Jennifer Lee",
-  //   schedule: "MWF 1:00 PM - 2:00 PM",
-  //   credits: 3,
-  //   enrolled: 32,
-  //   capacity: 35,
-  //   location: "Social Sciences 180",
-  //   department: "Psychology",
-  //   level: "100-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "11",
-  //   code: "CS 401",
-  //   courseNumber: "401",
-  //   title: "Machine Learning",
-  //   instructor: "Prof. Alex Zhang",
-  //   schedule: "MW 4:00 PM - 5:30 PM",
-  //   credits: 3,
-  //   enrolled: 19,
-  //   capacity: 20,
-  //   location: "AI Research Center 301",
-  //   department: "Computer Science",
-  //   level: "400-Level",
-  //   days: ["Mon", "Wed"],
-  //   courseCareer: "Graduate",
-  //   modeOfInstruction: "Synchronous Online",
-  // },
-  // {
-  //   id: "12",
-  //   code: "MATH 310",
-  //   courseNumber: "310",
-  //   title: "Linear Algebra",
-  //   instructor: "Dr. Kevin Park",
-  //   schedule: "TTh 11:00 AM - 12:30 PM",
-  //   credits: 3,
-  //   enrolled: 15,
-  //   capacity: 25,
-  //   location: "Mathematics Building 205",
-  //   department: "Mathematics",
-  //   level: "300-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Undergraduate",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "13",
-  //   code: "BIO 500",
-  //   courseNumber: "500",
-  //   title: "Advanced Molecular Biology",
-  //   instructor: "Dr. Amanda Stevens",
-  //   schedule: "Asynchronous",
-  //   credits: 4,
-  //   enrolled: 12,
-  //   capacity: 20,
-  //   location: "Online",
-  //   department: "Biology",
-  //   level: "400-Level",
-  //   days: [],
-  //   courseCareer: "Graduate",
-  //   modeOfInstruction: "Asynchronous",
-  // },
-  // {
-  //   id: "14",
-  //   code: "MED 601",
-  //   courseNumber: "601",
-  //   title: "Human Anatomy",
-  //   instructor: "Dr. Robert Chen",
-  //   schedule: "MWF 8:00 AM - 11:00 AM",
-  //   credits: 6,
-  //   enrolled: 48,
-  //   capacity: 50,
-  //   location: "Medical School Building A",
-  //   department: "Biology",
-  //   level: "400-Level",
-  //   days: ["Mon", "Wed", "Fri"],
-  //   courseCareer: "Medical School",
-  //   modeOfInstruction: "In Person",
-  // },
-  // {
-  //   id: "15",
-  //   code: "CS 502",
-  //   courseNumber: "502",
-  //   title: "Artificial Intelligence",
-  //   instructor: "Dr. Linda Wu",
-  //   schedule: "TTh 6:00 PM - 8:30 PM",
-  //   credits: 3,
-  //   enrolled: 18,
-  //   capacity: 25,
-  //   location: "Engineering Hall 302",
-  //   department: "Computer Science",
-  //   level: "400-Level",
-  //   days: ["Tue", "Thu"],
-  //   courseCareer: "Graduate",
-  //   modeOfInstruction: "Hybrid",
-  // },
-];
-
 export default function App() {
 // Authentication state
   console.log("App component rendering"); // ADD THIS
@@ -366,6 +106,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup">("home");
   const [term, setTerm] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchQueryType, setSearchQueryType] = useState("all");
   const [department, setDepartment] = useState("all");
   const [roomSearch, setRoomSearch] = useState("");
   const [courseCareer, setCourseCareer] = useState("all");
@@ -380,6 +121,7 @@ export default function App() {
   const [appliedFilters, setAppliedFilters] = useState({
     term: "Spring 2025",
     searchQuery: "",
+    searchQueryType: "all",
     department: "all",
     roomSearch: "",
     courseCareer: "all",
@@ -392,68 +134,6 @@ export default function App() {
 
   // Planner state
   const [plannedCourseIds, setPlannedCourseIds] = useState<Set<string>>(new Set());
-/*
-  const filteredCourses = useMemo(() => {
-    if (!hasSearched) {
-      return [];
-    }
-    
-    return MOCK_COURSES.filter((course) => {
-      // Search query filter
-      const query = appliedFilters.searchQuery.toLowerCase();
-      const matchesSearch =
-        !query ||
-        course.code.toLowerCase().includes(query) ||
-        course.title.toLowerCase().includes(query) ||
-        course.instructor.toLowerCase().includes(query);
-
-      // Subject filter
-      const matchesSubject =
-        appliedFilters.subject === "all" || course.department === appliedFilters.subject;
-
-      // Course number filter
-      const matchesCourseNumber =
-        !appliedFilters.courseNumber || course.courseNumber.includes(appliedFilters.courseNumber);
-
-      // Course career filter
-      const matchesCareer =
-        appliedFilters.courseCareer === "all" || course.courseCareer === appliedFilters.courseCareer;
-
-      // Show open only filter
-      const matchesOpenOnly =
-        !appliedFilters.showOpenOnly || course.enrolled < course.capacity;
-
-      // Mode of instruction filter
-      const matchesMode =
-        appliedFilters.modeOfInstruction === "all" ||
-        course.modeOfInstruction === appliedFilters.modeOfInstruction;
-
-      // Level filter
-      const matchesLevel = appliedFilters.level === "all" || course.level === appliedFilters.level;
-
-      // Credits filter
-      const matchesCredits =
-        appliedFilters.credits === "all" || course.credits === parseInt(appliedFilters.credits);
-
-      // Days filter
-      const matchesDays =
-        appliedFilters.selectedDays.length === 0 ||
-        appliedFilters.selectedDays.some((day) => course.days.includes(day));
-
-      return (
-        matchesSearch &&
-        matchesSubject &&
-        matchesCourseNumber &&
-        matchesCareer &&
-        matchesOpenOnly &&
-        matchesMode &&
-        matchesLevel &&
-        matchesCredits &&
-        matchesDays
-      );
-    });
-  }, [hasSearched, appliedFilters]);
-*/
 
   const handleSearch = async () => {
     setIsSearching(true);
@@ -462,23 +142,39 @@ export default function App() {
     
     try {
       const searchParams: SearchParams = {};
-      
+
       // === SEARCH BAR ===
       if (searchQuery && searchQuery.trim() !== '') {
         // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")
         const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
         const match = searchQuery.match(courseCodePattern);
-        
-        if (match) {
+
+        if (match && (searchQueryType == "course_code" || searchQueryType == "all")) {
           // Exact course code - use subject and catalog_num
           searchParams.subject = match[1].toUpperCase();
           searchParams.catalog_num = match[2];
-        } else {
+        }
+        else if (searchQueryType == "course_code") {
+          searchParams.subject = "error"
+        } 
+        else if (searchQueryType == "subject") {
+          searchParams.subject = searchQuery;
+        }
+        else if (searchQueryType == "catalog_number") {
+          searchParams.catalog_num = searchQuery;
+        }
+        else if (searchQueryType == "title") {
+          searchParams.title = searchQuery;
+        }
+        else if (searchQueryType == "instructor") {
+          searchParams.instructor = searchQuery;
+        }
+        else {
           // Everything else - use general search_query
           // This will search title, instructor name, and course code
           searchParams.search_query = searchQuery;
-  }
-}
+        }
+      }
         
       // === DEPARTMENT DROPDOWN ===
       if (department && department !== 'all') {
@@ -608,6 +304,7 @@ export default function App() {
   const handleReset = () => {
     setTerm("all");
     setSearchQuery("");
+    setSearchQueryType("all")
     setDepartment("all");
     setRoomSearch("");
     setCourseCareer("all");
@@ -620,6 +317,7 @@ export default function App() {
     setAppliedFilters({
       term: "all",
       searchQuery: "",
+      searchQueryType: "all",
       department: "all",
       roomSearch: "",
       courseCareer: "all",
@@ -692,10 +390,6 @@ export default function App() {
       console.error('Error removing from planner:', error);
     }
   };
-
-  const plannedCourses = MOCK_COURSES.filter((course) =>
-    plannedCourseIds.has(course.id)
-  );
 
   // Handle authentication
   const handleLogin = (userData: User) => {
@@ -835,6 +529,8 @@ export default function App() {
               setTerm={setTerm}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              searchQueryType={searchQueryType}
+              setSearchQueryType={setSearchQueryType}
               department={department}
               setDepartment={setDepartment}
               roomSearch={roomSearch}
@@ -895,7 +591,7 @@ export default function App() {
                         schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
                         credits={section.units}
                         enrolled={0}
-                        capacity={100}
+                        capacity={section.enrollment_cap}
                         location={section.room || 'TBA'}
                         department={section.course_code.split(' ')[0]}//{section.department}
                         component={section.component}

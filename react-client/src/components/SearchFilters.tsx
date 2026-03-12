@@ -23,6 +23,8 @@ interface SearchFiltersProps {
   setTerm: (term: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  searchQueryType: string;
+  setSearchQueryType: (subject: string) => void;
   department: string;
   setDepartment: (subject: string) => void;
   roomSearch: string;
@@ -50,6 +52,8 @@ export function SearchFilters({
   setTerm,
   searchQuery,
   setSearchQuery,
+  searchQueryType,
+  setSearchQueryType,
   department,
   setDepartment,
   roomSearch,
@@ -73,6 +77,15 @@ export function SearchFilters({
   const [isCollapsed, setIsCollapsed] = useState(false);
   // Inside the component:
   const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
+
+  const placeholders: Record<string, string> = {
+    all: "Course code, subject, number, title, or instructor",
+    course_code: "Example: MATH 126, CS 135",
+    subject: "Example: MATH or CS",
+    catalog_number: "Example: 101, 135",
+    title: "Example: Calculus I, Computer Science I",
+    instructor: "Example: Smith, John Smith",
+  };
 
   useEffect(() => {
     // Fetch departments on mount
@@ -130,19 +143,37 @@ export function SearchFilters({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
-                    <p>Search by course code (eg. MATH 126), subject (eg. MATH, CS), catalog number (eg. 101, 135), title (eg. Precalculus I), or instructor first OR last name (eg. David, Smith)</p>
+                    <p>Search by course code (eg. MATH 126), subject (eg. MATH, CS), catalog number (eg. 101, 135), title (eg. Precalculus I), or instructor first and/or last name (eg. David, Smith)</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  id="search"
-                  placeholder="Course code, subject, catalog number, title, or instructor first OR last name"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
-                />
+              <div className="flex gap-2">
+                {/* Search Type Dropdown */}
+                <Select value={searchQueryType} onValueChange={setSearchQueryType}>
+                  <SelectTrigger id="searchQueryType" className="w-[180px] border-slate-300">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="course_code">Course Code</SelectItem>
+                    <SelectItem value="subject">Subject</SelectItem>
+                    <SelectItem value="catalog_number">Catalog Number</SelectItem>
+                    <SelectItem value="title">Course Title</SelectItem>
+                    <SelectItem value="instructor">Instructor</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Search Input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    id="search"
+                    placeholder={placeholders[searchQueryType]}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
+                  />
+                </div>
               </div>
             </div>
 
