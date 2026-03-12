@@ -36,7 +36,7 @@ class SearchService:
         
         # Add filters dynamically based on what was provided
         if 'subject' in self.filters:
-            query = query.filter(Course.subject == self.filters['subject'])
+            query = query.filter(Course.subject == self.filters['subject'].upper())
 
         if 'catalog_num' in self.filters:
             query = query.filter(Course.catalog_num == self.filters['catalog_num'])
@@ -46,25 +46,44 @@ class SearchService:
         
         if 'search_query' in self.filters:
             search_term = f"%{self.filters['search_query']}%"
-            query = query.filter(
-                or_(
-                    Course.title.ilike(search_term),
-                    Instructor.first_name.ilike(search_term),
-                    Instructor.last_name.ilike(search_term),
-                    func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+            split_search_term = self.filters['search_query'].split()
+            if len(split_search_term) == 2:
+                query = query.filter( 
+                    or_(
+                            Course.title.ilike(search_term),
+                            and_(
+                                Instructor.first_name.ilike(f"%{split_search_term[0]}%"),
+                                Instructor.last_name.ilike(f"%{split_search_term[-1]}%"),
+                            ),
+                            func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+                        )
                 )
-            )
+            else:  
+                query = query.filter(
+                    or_(
+                        Course.title.ilike(search_term),
+                        Instructor.first_name.ilike(search_term),
+                        Instructor.last_name.ilike(search_term),
+                        func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+                    )
+                )   
         if 'title' in self.filters:
             query = query.filter(Course.title.ilike(f"%{self.filters['title']}%"))
         
         if 'instructor' in self.filters:
-            pattern = f"%{self.filters['instructor']}%"
-            query = query.filter(
-                or_(
-                    Instructor.first_name.ilike(pattern),
-                    Instructor.last_name.ilike(pattern)
+            names = self.filters['instructor'].split()
+            if len(names) >= 2:
+                query = query.filter(
+                    Instructor.first_name.ilike(f"%{names[0]}%"),
+                    Instructor.last_name.ilike(f"%{names[-1]}%")
+                    )
+            else:
+                query = query.filter(
+                    or_(
+                        Instructor.first_name.ilike(f"%{names[0]}%"),
+                        Instructor.last_name.ilike(f"%{names[0]}%")
+                    )
                 )
-            )
         
         if 'days' in self.filters:
             days_filter = self.filters['days']
@@ -176,13 +195,14 @@ class SearchService:
                 "start_time": str(s.start_time) if s.start_time else None,
                 "end_time": str(s.end_time) if s.end_time else None,
                 "units": s.get_course().units,
-                "instructor": s.get_instructors()[0].get_full_name() if s.get_instructors() else "TBA",
+                "instructor": s.get_instructors_as_string() if len(s.get_instructors_as_string()) != 0 else "TBA",
                 "status": s.class_status,
                 "room": s.room_code,
                 "component": s.component,
                 "instruction_mode": s.instruction_mode,
-                "catalog_num": s.get_course().catalog_num
+                "catalog_num": s.get_course().catalog_num,
                 #"department": s.get_course().get_department().college
+                "enrollment_cap": s.enrollment_capacity
             }
             for s in self.results
         ]
