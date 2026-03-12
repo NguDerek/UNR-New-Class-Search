@@ -618,7 +618,6 @@ export default function App() {
                         isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                         onAddToPlanner={handleAddToPlanner}
                         showPlannerButton={isAuthenticated}       // hide for guests
-                        isGuest={!isAuthenticated}
                         onLoginPrompt={() => setCurrentView("login")}
                       />
                     ))}
