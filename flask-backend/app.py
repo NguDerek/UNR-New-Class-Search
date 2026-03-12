@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_mail import Mail, Message
 import os
 import psycopg2
 from dbconnect.connection import DatabaseConnection
@@ -29,10 +30,18 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False #False During Development #True in the VPS
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 csrf = CSRFProtect(app)
+mail = Mail(app)
 CORS(app, supports_credentials=True) #, origins=["https://ncs.unr.dev"] for the VPS
 DATABASE_URL = os.getenv("DATABASE_URL")
 
