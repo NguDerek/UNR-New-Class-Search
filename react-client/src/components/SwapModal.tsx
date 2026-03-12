@@ -149,9 +149,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
 
             {/* Sticky "swapping out" banner */}
             <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center gap-2 shrink-0">
-            <ArrowRightLeft className="w-4 h-4 text-amber-600" />
             <span className="text-amber-800 text-sm">
-                Swapping out: <strong>{courseToSwap.course.subject} — {courseToSwap.course.title}</strong>
+                Swapping out: <strong>{courseToSwap.course.subject} {courseToSwap.course.catalog_num} — {courseToSwap.course.title}</strong>
             </span>
             </div>
 
