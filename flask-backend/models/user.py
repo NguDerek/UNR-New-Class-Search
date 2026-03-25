@@ -25,7 +25,7 @@ class User(UserMixin, db.Model):
         'Section',
         secondary=user_planned_section,
         backref='planned_by_users',
-        lazy='select'
+        lazy='select',
     )
     
     def __repr__(self):

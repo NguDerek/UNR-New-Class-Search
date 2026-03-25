@@ -16,7 +16,7 @@ interface CourseCardProps {
   location: string;
   department: string;
   component: string;
-  section: number;
+  section: string;
   level: string;
   courseCareer: string;
   modeOfInstruction: string;

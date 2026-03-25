@@ -1,4 +1,3 @@
-from dbconnect.connection import DatabaseConnection
 from models.section import Section, section_instructor
 from models.course import Course
 from models.instructor import Instructor
@@ -6,6 +5,7 @@ from models.department import Department
 from models.term import Term
 from sqlalchemy import and_, or_, func
 from database import db
+from sqlalchemy.orm import joinedload, selectinload
 
 class SearchService:
     """Handles complex search operations with multiple criteria"""
@@ -26,8 +26,7 @@ class SearchService:
     
     def _build_query(self):
         #Builds the search query based on filters
-        # Base query with JOINs - gets everything in ONE query (efficient!)
-        query = db.session.query(Section, Course, Instructor).\
+        query = db.session.query(Section).\
             join(Course, Section.course_id == Course.id).\
             join(Department, Course.department_id == Department.id).\
             join(Term, Section.term_id == Term.id).\
@@ -132,80 +131,71 @@ class SearchService:
         if 'course_career' in self.filters:
             grad_level = self.filters['course_career']
             if grad_level == 'Undergraduate':
-                query = query.filter(Course.catalog_num < 500)
+                query = query.filter(Course.catalog_num_int < 500)
             elif grad_level == 'Graduate':
-                query = query.filter(Course.catalog_num > 599)
+                query = query.filter(Course.catalog_num_int > 599)
             elif grad_level == 'Medical School':
-                query = query.filter(Course.catalog_num > 1000)
+                query = query.filter(Course.catalog_num_int > 1000)
         
         if 'level' in self.filters:
             lvl = int(self.filters['level'])
-            print(lvl)
+            
             if lvl == 1:
-                query = query.filter(and_(Course.catalog_num >= 100, Course.catalog_num <= 199))
+                query = query.filter(and_(Course.catalog_num_int >= 100, Course.catalog_num_int <= 199))
             elif lvl == 2:
-                query = query.filter(and_(Course.catalog_num >= 200, Course.catalog_num <= 299))
+                query = query.filter(and_(Course.catalog_num_int >= 200, Course.catalog_num_int <= 299))
             elif lvl == 3:
-                query = query.filter(and_(Course.catalog_num >= 300, Course.catalog_num <= 399))
+                query = query.filter(and_(Course.catalog_num_int >= 300, Course.catalog_num_int <= 399))
             elif lvl == 4:
-                query = query.filter(and_(Course.catalog_num >= 400, Course.catalog_num <= 499))
+                query = query.filter(and_(Course.catalog_num_int >= 400, Course.catalog_num_int <= 499))
             elif lvl == 5:
-                query = query.filter(Course.catalog_num >= 600)
+                query = query.filter(Course.catalog_num_int >= 600)
 
         if 'room' in self.filters:
             room_search = self.filters['room']
             query = query.filter(Section.room_code.ilike(f"%{room_search}%"))
 
         # Order results
-        query = query.order_by(Course.subject, Course.catalog_num, Section.section_num).distinct()
+        query = query.order_by(Course.subject, Course.catalog_num, Section.section_num)
         
         return query
     
     def execute_search(self):
         """Execute the search with current filters"""
         query = self._build_query()
-        results = query.all()
-        
-        # Process results and group instructors by section
-        sections_dict = {}
+        self.results = query.all()
 
-        for section, course, instructor in results:
-            if section.id not in sections_dict:
-                # Create a new section entry
-                section._course = course
-                section._instructors = []
-                sections_dict[section.id] = section
-
-            # Add instructor if exists and not already added
-            if instructor and instructor not in sections_dict[section.id]._instructors:
-                sections_dict[section.id]._instructors.append(instructor)
-
-        self.results = list(sections_dict.values())
         return self.results
     
     def get_results_as_dict(self):
         """Get search results as list of dictionaries (for summary view)"""
-        return [
-            {
+        results = []
+
+        for s in self.results:
+            instructor_names = ", ".join(
+                f"{i.first_name} {i.last_name}" for i in s.instructors
+            )
+
+            results.append({
                 "section_id": s.id,
-                "course_code": s.get_course().get_course_code(),
-                "course_title": s.get_course().title,
+                "course_code": f"{s.course.subject} {s.course.catalog_num}",
+                "course_title": s.course.title,
                 "section_num": s.section_num,
                 "days": s.class_days,
                 "start_time": str(s.start_time) if s.start_time else None,
                 "end_time": str(s.end_time) if s.end_time else None,
-                "units": s.get_course().units,
-                "instructor": s.get_instructors_as_string() if len(s.get_instructors_as_string()) != 0 else "TBA",
+                "units": s.course.units,
+                "instructor": instructor_names if instructor_names else "TBA",
                 "status": s.class_status,
                 "room": s.room_code,
                 "component": s.component,
                 "instruction_mode": s.instruction_mode,
-                "catalog_num": s.get_course().catalog_num,
+                "catalog_num": s.course.catalog_num,
                 #"department": s.get_course().get_department().college
                 "enrollment_cap": s.enrollment_capacity
-            }
-            for s in self.results
-        ]
+            })
+
+        return results
     
     def get_result_count(self):
         """Get number of results found"""

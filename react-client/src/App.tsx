@@ -37,7 +37,7 @@ interface Course {
   location: string;
   department: string;
   component: string;
-  section: number;
+  section: string;
   level: string;
   days: string[];
   courseCareer: string;
