@@ -11,7 +11,7 @@ class Section(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     term_id = db.Column(db.Integer, db.ForeignKey('term.id'), nullable=False)
-    section_num = db.Column(db.Integer, nullable=False)
+    section_num = db.Column(db.String(10), nullable=False)
     component = db.Column(db.String(20), nullable=False)
     instruction_mode = db.Column(db.String(10), nullable=False)
     class_days = db.Column(db.String(10))
@@ -29,24 +29,6 @@ class Section(db.Model):
         secondary=section_instructor,
         backref='sections'
     )
-    
-    def get_course(self):
-        return self.course
-    
-    def get_term(self):
-        return self.term
-    
-    def get_instructors(self):
-        return self.instructors
-    
-    def get_instructors_as_string(self):
-        all_instructors_string = ''
-        length = len(self.instructors)
-        for index, instructor in enumerate(self.instructors):
-            all_instructors_string += instructor.get_full_name()
-            if(index + 1 != length):
-                all_instructors_string += ", "
-        return all_instructors_string
 
     #Format method to convert properties into json format
     def format(self, include_course=False, include_term=False, include_instructors=False):
@@ -85,15 +67,15 @@ class Section(db.Model):
     
     @staticmethod
     def get_by_course_id(course_id):
-        #Get all sections for a course
-        return db.session.execute(db.select(Section).filter_by(course_id=course_id).order_by(Section.section_num)).scalars().all()
+        return db.session.execute(
+            db.select(Section)
+            .filter_by(course_id=course_id)
+            .order_by(Section.section_num)
+        ).scalars().all()
     
     #Magic methods
     def __str__(self):
-        #String representation for users
-        course = self.get_course()
-        return f"{course.get_course_code()} Section {self.section_num}"
+        return f"{self.course.subject} {self.course.catalog_num} Section {self.section_num}"
     
     def __repr__(self):
-        #String representation for developers
-        return f"Section(id={self.id}, course_id={self.course_id}, section={self.section_num})"
+        return f"Section(id={self.id}, course_id={self.course_id}, section='{self.section_num}')"
