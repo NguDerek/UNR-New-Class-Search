@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { X, ArrowRightLeft } from "lucide-react";
-import { Button } from "./ui/Button";
 import { SearchFilters } from "./SearchFilters";
 import { CourseCard } from "./CourseCard";
 import { executeCourseSearch } from "@/utils/searchUtils";

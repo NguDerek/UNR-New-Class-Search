@@ -35,13 +35,12 @@ interface Course {
   };
 }
 
-
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
-  onSwapPrompt: (courseId: string) => void;
+  // onSwapPrompt: (courseId: string) => void;
 }
 
-export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
+export function Planner({ onRemoveFromPlanner }: PlannerProps) {
   const [plannedCourses, setPlannedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,13 +70,14 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
     onRemoveFromPlanner(courseId);
   };
 
+  //Opens swap modal and uses information of course you're trying to swap out
   const handleSwap = (newCourse: Course): void => {
     if (!courseToSwap) return;
     const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
     const updated = [...plannedCourses];
     updated[index] = newCourse;
     setPlannedCourses(updated);
-    setCourseToSwap(null); // closes modal
+    setCourseToSwap(null);
   };
 
   const totalCredits = plannedCourses.reduce((sum, s) => sum + s.course.units, 0);

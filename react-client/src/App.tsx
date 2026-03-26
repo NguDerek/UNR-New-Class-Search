@@ -246,6 +246,14 @@ export default function App() {
     }
   };
 
+  const handleSwap = async (courseId: string) =>{
+    try {
+      const response = await fetch()
+    } catch (error) {
+
+    }
+  };
+
   // Handle authentication
   const handleLogin = (userData: User) => {
     setIsAuthenticated(true);
@@ -368,7 +376,7 @@ export default function App() {
         ) : currentView === "programs" ? (
           <Programs />
         ) : currentView === "planner" ? (
-          <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
+          <Planner onRemoveFromPlanner={handleRemoveFromPlanner}/>
         ) : currentView === "admin" ? (
           <AdminDashboard />
         ) : (
