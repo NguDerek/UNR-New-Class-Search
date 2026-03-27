@@ -5,10 +5,13 @@ from models.department import Department
 from models.term import Term
 from sqlalchemy import and_, or_, func
 from database import db
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 
 class SearchService:
     """Handles complex search operations with multiple criteria"""
+
+    # uncomment this and the limit line in execute search for limited results
+    #DEFAULT_RESULT_LIMIT = 100
     
     def __init__(self):
         self.filters = {}
@@ -23,15 +26,42 @@ class SearchService:
         #Clears all filterse
         self.filters = {}
         self.results = []
+
+    # url gives raw strings -> need to safely convert int values
+    def parse_int(self, value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
     
     def _build_query(self):
         #Builds the search query based on filters
-        query = db.session.query(Section).\
-            join(Course, Section.course_id == Course.id).\
-            join(Department, Course.department_id == Department.id).\
-            join(Term, Section.term_id == Term.id).\
-            outerjoin(section_instructor, Section.id == section_instructor.c.section_id).\
-            outerjoin(Instructor, section_instructor.c.instructor_id == Instructor.id)
+        query = (
+            db.session.query(Section)
+            .join(Course, Section.course_id == Course.id)
+            .join(Department, Course.department_id == Department.id)
+            .join(Term, Section.term_id == Term.id)
+            # added eager loading to prevent extra querries
+            .options(
+                joinedload(Section.course),
+                joinedload(Section.instructors)
+            )
+        )
+
+        # Only join instructor tables when needed for filtering 
+        need_instructor_join = (
+            'instructor' in self.filters or
+            'search_query' in self.filters
+        )
+
+        if need_instructor_join:
+            query = query.outerjoin(
+                section_instructor,
+                Section.id == section_instructor.c.section_id
+            ).outerjoin(
+                Instructor,
+                section_instructor.c.instructor_id == Instructor.id
+            )
         
         # Add filters dynamically based on what was provided
         if 'subject' in self.filters:
@@ -100,24 +130,28 @@ class SearchService:
         # Units with operator support
         if 'units' in self.filters:
             units_operator = self.filters.get('units_operator', 'exact')
-            units_value = self.filters['units']
+            units_value = self.parse_int(self.filters['units'])
             
-            if units_operator == 'exact':
-                query = query.filter(Course.units == units_value)
-            elif units_operator == 'greater':
-                query = query.filter(Course.units > units_value)
-            elif units_operator == 'less':
-                query = query.filter(Course.units < units_value)
-            elif units_operator == 'greater_equal':
-                query = query.filter(Course.units >= units_value)
-            elif units_operator == 'less_equal':
-                query = query.filter(Course.units <= units_value)
+            # ignore this filter if invalid input
+            if units_value is not None:
+                if units_operator == 'exact':
+                    query = query.filter(Course.units == units_value)
+                elif units_operator == 'greater':
+                    query = query.filter(Course.units > units_value)
+                elif units_operator == 'less':
+                    query = query.filter(Course.units < units_value)
+                elif units_operator == 'greater_equal':
+                    query = query.filter(Course.units >= units_value)
+                elif units_operator == 'less_equal':
+                    query = query.filter(Course.units <= units_value)
 
-        if 'min_units' in self.filters:
-            query = query.filter(Course.units >= self.filters['min_units'])
-        
-        if 'max_units' in self.filters:
-            query = query.filter(Course.units <= self.filters['max_units'])
+        min_units = self.parse_int(self.filters.get('min_units'))
+        if min_units is not None:
+            query = query.filter(Course.units >= min_units)
+
+        max_units = self.parse_int(self.filters.get('max_units'))
+        if max_units is not None:
+            query = query.filter(Course.units <= max_units)
         
         if 'instruction_mode' in self.filters:
             query = query.filter(Section.instruction_mode == self.filters['instruction_mode'])
@@ -137,33 +171,44 @@ class SearchService:
             elif grad_level == 'Medical School':
                 query = query.filter(Course.catalog_num_int > 1000)
         
-        if 'level' in self.filters:
-            lvl = int(self.filters['level'])
-            
-            if lvl == 1:
+        level = self.parse_int(self.filters.get('level'))
+        if level is not None:
+            if level == 1:
                 query = query.filter(and_(Course.catalog_num_int >= 100, Course.catalog_num_int <= 199))
-            elif lvl == 2:
+            elif level == 2:
                 query = query.filter(and_(Course.catalog_num_int >= 200, Course.catalog_num_int <= 299))
-            elif lvl == 3:
+            elif level == 3:
                 query = query.filter(and_(Course.catalog_num_int >= 300, Course.catalog_num_int <= 399))
-            elif lvl == 4:
+            elif level == 4:
                 query = query.filter(and_(Course.catalog_num_int >= 400, Course.catalog_num_int <= 499))
-            elif lvl == 5:
+            elif level == 5:
                 query = query.filter(Course.catalog_num_int >= 600)
 
         if 'room' in self.filters:
             room_search = self.filters['room']
             query = query.filter(Section.room_code.ilike(f"%{room_search}%"))
 
-        # Order results
-        query = query.order_by(Course.subject, Course.catalog_num, Section.section_num)
+        # # Order results
+        # query = query.order_by(Course.subject, Course.catalog_num, Section.section_num)
         
+        # Order results
+        if need_instructor_join:
+            query = (
+                query
+                .order_by(Section.id, Course.subject, Course.catalog_num, Section.section_num)
+                # keep a single section with multiple instructors
+                .distinct(Section.id)
+            )
+        else:
+            query = query.order_by(Course.subject, Course.catalog_num, Section.section_num)
+
         return query
     
     def execute_search(self):
         """Execute the search with current filters"""
         query = self._build_query()
         self.results = query.all()
+        #self.results = query.limit(self.DEFAULT_RESULT_LIMIT).all()
 
         return self.results
     
