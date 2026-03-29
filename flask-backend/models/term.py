@@ -9,6 +9,14 @@ class Term(db.Model):
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     year = db.Column(db.Integer, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "session_code",
+            "year",
+            name="term_session_year_unique",
+        ),
+    )
     
     #Format method to convert properties into json format
     def format(self):

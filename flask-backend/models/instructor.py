@@ -6,6 +6,14 @@ class Instructor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "first_name",
+            "last_name",
+            name="unique_instructor",
+        ),
+    )
     
     #Format method to convert properties into json format
     def format(self):

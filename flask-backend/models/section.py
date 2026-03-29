@@ -21,6 +21,15 @@ class Section(db.Model):
     class_status = db.Column(db.String(10), nullable=False)
     enrollment_capacity = db.Column(db.Integer)
     room_code = db.Column(db.String(20))
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "course_id",
+            "term_id",
+            "section_num",
+            name="section_unique_course_term_num",
+        ),
+    )
     
     course = db.relationship('Course', backref='sections')
     term = db.relationship('Term', backref='sections')

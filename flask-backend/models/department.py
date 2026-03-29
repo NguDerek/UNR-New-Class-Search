@@ -5,7 +5,15 @@ class Department(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     college = db.Column(db.String(50), nullable=False)
-    department_code = db.Column(db.String(20), unique=True, nullable=False)
+    department_code = db.Column(db.String(20), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "college",
+            "department_code",
+            name="department_college_department_code_unique",
+        ),
+    )
     
     #Format method to convert properties into json format
     def format(self):
