@@ -12,60 +12,18 @@ class Course(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     units = db.Column(db.SmallInteger, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "department_id",
+            "subject",
+            "catalog_num",
+            name="course_department_subject_catalog_unique",
+        ),
+    )
     
     # backref="courses" automatically allows for department.courses in Department class
     department = db.relationship("Department", backref="courses")
-
-    # def __init__(self, id=None, department_id=None, subject=None, catalog_num=None, title=None, description=None, units=None):
-    #     #IDs (primary and foreign key)
-    #     self.id = id
-    #     self.department_id = department_id
-
-    #     #Course properties
-    #     self.subject = subject
-    #     self.catalog_num = catalog_num
-    #     self.title = title
-    #     self.description = description
-    #     self.units = units
-
-    #     #Cached related objects (objects saved by id for efficient memory usage/lazy loading)
-    #     self._department = None
-
-    # #Getter methods
-    # def get_id(self):
-    #     return self.id
-    
-    # def get_department_id(self):
-    #     return self.department_id
-
-    # def get_subject(self):
-    #     return self.subject
-    
-    # def get_catalog_num(self):
-    #     return self.catalog_num
-    
-    # def get_title(self):
-    #     return self.title
-    
-    # def get_description(self):
-    #     return self.description
-    
-    # def get_units(self):
-    #     return self.units
-    
-    # def get_course_code(self):
-    #     #ie. CS 135, MATH 181
-    #     return f"{self.subject} {self.catalog_num}"
-
-    # #Setter Methods (can add if needed)
-
-    # #Lazy loading for related objects
-    # def get_department(self):
-    #     if self._department is None:
-    #         from models.department import Department
-    #         d = Department.get_by_id(self.department_id)
-    #         self._department = d
-    #     return self._department
     
     #Format method to convert properties into json format
     def format(self, include_department=False):
@@ -101,6 +59,7 @@ class Course(db.Model):
     def get_by_id(course_id):
         return db.session.get(Course, course_id)
     
+    @staticmethod
     def get_by_subject(subject):
         return db.session.execute(
             db.select(Course).filter_by(subject=subject)

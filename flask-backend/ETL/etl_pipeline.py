@@ -1,9 +1,35 @@
-import pandas as pd
-import psycopg2
 import os
 import re
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pandas as pd
 from dotenv import load_dotenv
-from psycopg2.extras import execute_batch
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import insert
+
+from models.course import Course
+from models.department import Department
+from models.term import Term
+from models.section import Section
+from models.instructor import Instructor
+from models.section import section_instructor
+
+# helper for batching in load section 
+def exec_in_batches(conn, stmt, records, batch_size=200, label=""):
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i + batch_size]
+        try:
+            conn.execute(stmt, batch)
+        except Exception as e:
+            raise RuntimeError(
+                f"{label} batch failed at rows {i}-{i + len(batch) - 1}"
+            ) from e
+
+# connection setup
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL, future=True)
+
 
 # ------------------ Extract ------------------
 def extract_excel(file_name):
@@ -19,6 +45,7 @@ def extract_excel(file_name):
 
     return df
 
+# replace with Non-copy version to get full master schedule
 df = extract_excel("Fall 2025 Master Schedule - Copy.xlsx")
 
 # ------------------ Transform ------------------
@@ -40,11 +67,11 @@ def string_to_bool(value):
     return None
 
 def transform_data(df):
-    # ------------------ drop columns not needed or can't use ourselves ------------------
+    # drop columns not needed or can't use ourselves
     df = df.drop(columns=["Class Nbr", "Room Capacity", "Current Enrollment", 
                           "Waitlist Capacity", "Waitlist Total", "Acad Group"])
 
-    # ------------------ rename columns to mirror schema ------------------
+    # drop columns not needed or can't use ourselves
     column_mapping = {
         "College": "college",
         "Acad Org": "department_code",
@@ -70,149 +97,186 @@ def transform_data(df):
     }
     df = df.rename(columns=column_mapping)
 
-    # ------------------ convert values to match database schema ------------------
+    # replace missing instructor names with TBA (BIG fix)
+    df["first_name"] = df["first_name"].fillna("TBA")       
+    df["last_name"]  = df["last_name"].fillna("TBA")                         # fix 1, null vals
+    df["first_name"] = df["first_name"].replace(r"^\s*$", "TBA", regex=True) # fix 2, empty/white space
+    df["last_name"]  = df["last_name"].replace(r"^\s*$", "TBA", regex=True)
+
+    # convert values to match database schema using helper functions
     df["start_time"] = df["start_time"].apply(float_to_time)
     df["end_time"] = df["end_time"].apply(float_to_time)
     df["combined"] = df["combined"].apply(string_to_bool)
+
+    # normalize strings for FK mapping
+    df["college"] = df["college"].str.strip().str.upper()
+    df["department_code"] = df["department_code"].str.strip().str.upper()
+    df["subject"] = df["subject"].str.strip().str.upper()
+    df["first_name"] = df["first_name"].str.strip().str.upper()
+    df["last_name"] = df["last_name"].str.strip().str.upper()
+    df["session_code"] = df["session_code"].astype(str).str.strip().str.upper()
+    df["catalog_num"] = df["catalog_num"].astype(str).str.strip().str.upper()
+    df["section_num"] = df["section_num"].astype(str).str.strip().str.upper()
 
     return df
 
 df = transform_data(df)
 
 # ------------------ Load ------------------
-load_dotenv()                               # read the .env file
-DATABASE_URL = os.getenv("DATABASE_URL")    # update connection string
-conn = psycopg2.connect(DATABASE_URL)       # conn is live db connection
-cursor = conn.cursor()                      # cursor allows for executing SQL
-
 def load_to_db(df):
-    # ---------- replace missing instructor names with TBA (BIG fix) ----------
-    df["first_name"] = df["first_name"].fillna("TBA")                       # fix 1, null vals
-    df["last_name"]  = df["last_name"].fillna("TBA")
-    df["first_name"] = df["first_name"].replace(r"^\s*$", "TBA", regex=True)# fix 2, empty/white space
-    df["last_name"]  = df["last_name"].replace(r"^\s*$", "TBA", regex=True)
-
-    # ---------- caches reduce time searching for id's to add foreign keys ----------
-    term_cache = {}
-    dept_cache = {}
-    course_cache = {}
-    instructor_cache = {}
-    section_cache = {}
-
     # ---------- TERMS ----------
     terms = df[["session_code", "year", "start_date", "end_date"]].drop_duplicates()
+    term_records = terms.to_dict("records")
 
-    execute_batch(cursor, """
-        INSERT INTO term (session_code, year, start_date, end_date)
-        VALUES (%s, %s, %s, %s)
-        ON CONFLICT (session_code, year) DO NOTHING;
-    """, list(terms.itertuples(index=False, name=None)))
+    stmt = insert(Term.__table__).on_conflict_do_nothing(
+        index_elements=["session_code", "year"]
+    )
 
-    cursor.execute("SELECT id, session_code, year FROM term;")
-    for term_id, session_code, year in cursor.fetchall():
-        term_cache[(session_code, year)] = term_id
+    with engine.begin() as conn:
+        exec_in_batches(conn, stmt, term_records, label="term")
+        rows = conn.execute(Term.__table__.select()).fetchall()
+
+    term_cache = {(r.session_code, r.year): r.id for r in rows}
 
     # ---------- DEPARTMENTS ----------
     departments = df[["college", "department_code"]].drop_duplicates()
+    department_records = departments.to_dict("records")
 
-    execute_batch(cursor, """
-        INSERT INTO department (college, department_code)
-        VALUES (%s, %s)
-        ON CONFLICT (department_code) DO NOTHING;
-    """, list(departments.itertuples(index=False, name=None)))
+    stmt = insert(Department.__table__).on_conflict_do_nothing(
+        index_elements=["college", "department_code"]
+    )
 
-    cursor.execute("SELECT id, department_code FROM department;")
-    for dept_id, dept_code in cursor.fetchall():
-        dept_cache[dept_code] = dept_id
+    with engine.begin() as conn:
+        exec_in_batches(conn, stmt, department_records, label="department")
+        rows = conn.execute(Department.__table__.select()).fetchall()
+
+    dept_cache = {(r.college, r.department_code): r.id for r in rows}
 
     # ---------- COURSES ----------
-    courses = df[["department_code", "subject", "catalog_num", "title", "units"]].drop_duplicates()
+    courses = df[
+        ["college", "department_code", "subject", "catalog_num", "title", "units"]
+    ].drop_duplicates()
 
-    course_params = []
-    for _, row in courses.iterrows():
-        course_params.append((
-            dept_cache[row.department_code],
-            row.subject,
-            row.catalog_num,
-            row.title,
-            row.units
-        ))
+    courses["department_id"] = list(
+        map(dept_cache.get, zip(courses["college"], courses["department_code"]))
+    )
 
-    execute_batch(cursor, """
-        INSERT INTO course (department_id, subject, catalog_num, title, units)
-        VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (subject, catalog_num) DO NOTHING;
-    """, course_params)
+    if courses["department_id"].isna().any():
+        raise ValueError("Course department FK failed")
 
-    cursor.execute("SELECT id, subject, catalog_num FROM course;")
-    for cid, subj, catalog in cursor.fetchall():
-        course_cache[(subj, catalog)] = cid
+    courses["catalog_num_int"] = pd.to_numeric(
+        courses["catalog_num"], errors="coerce"
+    ).astype("Int64")
+
+    courses = courses[
+        ["department_id", "subject", "catalog_num", "catalog_num_int", "title", "units"]
+    ]
+    course_records = courses.to_dict("records")
+
+    stmt = insert(Course.__table__).on_conflict_do_nothing(
+        index_elements=["department_id", "subject", "catalog_num"]
+    )
+
+    with engine.begin() as conn:
+        exec_in_batches(conn, stmt, course_records, label="course")
+        rows = conn.execute(Course.__table__.select()).fetchall()
+
+    course_cache = {(r.department_id, r.subject, r.catalog_num): r.id for r in rows}
 
     # ---------- INSTRUCTORS ----------
     instructors = df[["first_name", "last_name"]].drop_duplicates()
+    instructor_records = instructors.to_dict("records")
 
-    execute_batch(cursor, """
-        INSERT INTO instructor (first_name, last_name)
-        VALUES (%s, %s)
-        ON CONFLICT (first_name, last_name) DO NOTHING;
-    """, list(instructors.itertuples(index=False, name=None)))
+    stmt = insert(Instructor.__table__).on_conflict_do_nothing(
+        index_elements=["first_name", "last_name"]
+    )
 
-    cursor.execute("SELECT id, first_name, last_name FROM instructor;")
-    for iid, fn, ln in cursor.fetchall():
-        instructor_cache[(fn, ln)] = iid
+    with engine.begin() as conn:
+        exec_in_batches(conn, stmt, instructor_records, label="instructor")
+        rows = conn.execute(Instructor.__table__.select()).fetchall()
+
+    instructor_cache = {(r.first_name, r.last_name): r.id for r in rows}
 
     # ---------- SECTIONS ----------
-    sections = df[["subject", "catalog_num", "session_code", "year",
-                   "section_num", "component", "instruction_mode",
-                   "class_days", "start_time", "end_time", "combined",
-                   "class_status", "enrollment_capacity", "room_code"]]
+    sections = df[
+        ["college", "subject", "catalog_num", "session_code", "year",
+         "department_code", "section_num", "component", "instruction_mode",
+         "class_days", "start_time", "end_time", "combined",
+         "class_status", "enrollment_capacity", "room_code"
+        ]
+    ].drop_duplicates()
 
-    section_params = []
-    for _, row in sections.iterrows():
-        section_params.append((
-            course_cache[(row.subject, row.catalog_num)],
-            term_cache[(row.session_code, row.year)],
-            row.section_num,
-            row.component,
-            row.instruction_mode,
-            row.class_days,
-            row.start_time,
-            row.end_time,
-            row.combined,
-            row.class_status,
-            row.enrollment_capacity,
-            row.room_code
+    sections["department_id"] = list(
+        map(dept_cache.get, zip(sections["college"], sections["department_code"]))
+    )
+    sections["course_id"] = list(
+        map(course_cache.get, zip(
+            sections["department_id"], sections["subject"], sections["catalog_num"]
         ))
+    )
+    sections["term_id"] = list(
+        map(term_cache.get, zip(sections["session_code"], sections["year"]))
+    )
 
-    execute_batch(cursor, """
-        INSERT INTO section (course_id, term_id, section_num, component,
-                             instruction_mode, class_days, start_time, end_time,
-                             combined, class_status, enrollment_capacity, room_code)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (course_id, term_id, section_num) DO NOTHING;
-    """, section_params)
+    if sections[["course_id", "term_id"]].isna().any().any():
+        raise ValueError("Section FK lookup failed")
 
-    cursor.execute("SELECT id, course_id, term_id, section_num FROM section;")
-    for sid, cid, tid, snum in cursor.fetchall():
-        section_cache[(cid, tid, snum)] = sid
+    sections = sections[
+        [
+            "course_id", "term_id", "section_num", "component",
+            "instruction_mode", "class_days", "start_time", "end_time",
+            "combined", "class_status", "enrollment_capacity", "room_code",
+        ]
+    ]
+    section_records = sections.to_dict("records")
+
+    stmt = insert(Section.__table__).on_conflict_do_nothing(
+        index_elements=["course_id", "term_id", "section_num"]
+    )
+
+    with engine.begin() as conn:
+        exec_in_batches(conn, stmt, section_records, label="section")
+        rows = conn.execute(Section.__table__.select()).fetchall()
+
+    section_cache = {(r.course_id, r.term_id, r.section_num): r.id for r in rows}
 
     # ---------- SECTION_INSTRUCTOR ----------
-    sect_instructor_params = []
-    for _, row in df.iterrows():
-        term_id = term_cache[(row.session_code, row.year)]
-        course_id = course_cache[(row.subject, row.catalog_num)]
-        section_id = section_cache[(course_id, term_id, row.section_num)]
-        instructor_id = instructor_cache[(row.first_name, row.last_name)]
+    sect_inst = df[
+        [
+            "college", "department_code", "subject", "catalog_num",
+            "session_code", "year", "section_num", "first_name", "last_name",
+        ]
+    ].drop_duplicates()
 
-        sect_instructor_params.append((section_id, instructor_id))
+    sect_inst["department_id"] = list(
+        map(dept_cache.get, zip(sect_inst["college"], sect_inst["department_code"]))
+    )
+    sect_inst["course_id"] = list(
+        map(course_cache.get, zip(
+            sect_inst["department_id"], sect_inst["subject"], sect_inst["catalog_num"]
+        ))
+    )
+    sect_inst["term_id"] = list(
+        map(term_cache.get, zip(sect_inst["session_code"], sect_inst["year"]))
+    )
+    sect_inst["section_id"] = list(
+        map(section_cache.get, zip(
+            sect_inst["course_id"], sect_inst["term_id"], sect_inst["section_num"]
+        ))
+    )
+    sect_inst["instructor_id"] = list(
+        map(instructor_cache.get, zip(sect_inst["first_name"], sect_inst["last_name"]))
+    )
 
-    execute_batch(cursor, """
-        INSERT INTO section_instructor (section_id, instructor_id)
-        VALUES (%s, %s)
-        ON CONFLICT DO NOTHING;
-    """, sect_instructor_params)
+    if sect_inst[["section_id", "instructor_id"]].isna().any().any():
+        raise ValueError("Section Instructor FK lookup failed")
 
-    conn.commit()
+    sect_inst_records = sect_inst[["section_id", "instructor_id"]].to_dict("records")
+
+    stmt = insert(section_instructor).on_conflict_do_nothing()
+
+    with engine.begin() as conn:
+        exec_in_batches(conn, stmt, sect_inst_records, label="section_instructor")
 
 load_to_db(df)
 print("working...")
