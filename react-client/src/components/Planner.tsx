@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { CourseCard } from "./CourseCard";
-import { Calendar, Info } from "lucide-react";
+import { Calendar, Info, ChevronUp, ChevronDown } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -46,6 +46,7 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [courseToSwap, setCourseToSwap] = useState<Course | null>(null);
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
 
   useEffect(() => {
     fetch('/api/planner', {
@@ -370,12 +371,27 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
                   />
                 )}
               {/* Weekly schedule view */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-[#003366] px-4 py-3">
-                  <h2 className="text-white">Weekly Schedule</h2>
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
+                <div className="bg-[#003366] p-4 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-white">Weekly Schedule Calendar</h2>
+                    </div>
+                      <button
+                        onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                        className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                      >
+                        {isCalendarCollapsed ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronUp className="w-5 h-5" />
+                        )}
+                      </button>
+                  </div>
                 </div>
 
-                <div className="p-4">
+                {/* Show calendar content if not collapsed */}
+                {!isCalendarCollapsed && (<div className="p-4">
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
                     <FullCalendar
                       plugins={[timeGridPlugin]}
@@ -394,7 +410,7 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
                       eventContent={renderEventContent}
                     />
                   </div>
-                </div>
+                </div>)}
               </div>
             </div>
           ) : (
