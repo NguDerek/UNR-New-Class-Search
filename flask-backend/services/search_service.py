@@ -74,26 +74,30 @@ class SearchService:
             query = query.filter(Department.college == self.filters['college'])
         
         if 'search_query' in self.filters:
-            search_term = f"%{self.filters['search_query']}%"
+            search_term = self.filters['search_query']
+            like_term = f"%{search_term}%"
             split_search_term = self.filters['search_query'].split()
             if len(split_search_term) == 2:
                 query = query.filter( 
                     or_(
-                            Course.title.ilike(search_term),
+                            Course.title.ilike(like_term),
+                            func.similarity(func.concat(Instructor.first_name, ' ', Instructor.last_name), search_term) > 0.3,
                             and_(
                                 Instructor.first_name.ilike(f"%{split_search_term[0]}%"),
                                 Instructor.last_name.ilike(f"%{split_search_term[-1]}%"),
                             ),
-                            func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+                            func.concat(Course.subject, ' ', Course.catalog_num).ilike(like_term)
                         )
                 )
             else:  
                 query = query.filter(
                     or_(
-                        Course.title.ilike(search_term),
-                        Instructor.first_name.ilike(search_term),
-                        Instructor.last_name.ilike(search_term),
-                        func.concat(Course.subject, ' ', Course.catalog_num).ilike(search_term)
+                        Course.title.ilike(like_term),
+                        func.similarity(Instructor.first_name, search_term) > 0.4,
+                        func.similarity(Instructor.last_name, search_term) > 0.4,
+                        Instructor.first_name.ilike(like_term),
+                        Instructor.last_name.ilike(like_term),
+                        func.concat(Course.subject, ' ', Course.catalog_num).ilike(like_term)
                     )
                 )   
         if 'title' in self.filters:
