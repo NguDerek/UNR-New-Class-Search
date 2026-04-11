@@ -22,6 +22,8 @@ app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle': 3600} # 1 hour
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for debug
 
