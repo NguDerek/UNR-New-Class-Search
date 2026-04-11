@@ -7,8 +7,7 @@ from flask_wtf.csrf import generate_csrf
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
-import os
-import psycopg2
+import os, psycopg2, random
 from dbconnect.connection import DatabaseConnection
 
 import traceback
@@ -102,6 +101,8 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
     #return User.query.get(int(user_id)) #deprecated
     
+pending_verifications = {}
+    
 @app.route('/signup', methods=['POST'])
 def signup():
     try:
@@ -115,79 +116,101 @@ def signup():
         password = data.get('password')
     
         #Check DB for user existing
-        #existing_user = User.query.filter_by(email=email).first()
         existing_user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
         if existing_user:
             print("exists")
             return jsonify({'error': 'Email already exists'}), 400
-        else:
-            print("doesnt exist")
         
-        #add email and hashed password to DB
-        hashed_password = generate_password_hash(password)
-        new_user = User(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            password=hashed_password,
-            is_verified=False
-        )
+        code = str(random.randint(100000, 999999))
+        token = timedSerializer.dumps({'email': email, 'code': code}, salt='email-verify')
         
-        db.session.add(new_user)
-        db.session.commit() #DO NOT FORGET () DUMBO
+        pending_verifications[email] = {
+            'token': token,
+            'code': code,
+            'first_name': first_name,
+            'last_name': last_name,
+            'password': generate_password_hash(password),
+        }
         
-        token = timedSerializer.dumps(email, salt='email-verify')
-        verify_url = f"http://localhost:5000/verify-email/{token}"
-        msg = Message('Verify your NCS email', recipients=[email])
-        msg.body = f"Hi {first_name}, \n\nClick the link in order to verify your account:\n{verify_url}\n" #\nLink expires in 1 hour.
+        msg = Message('NCS Verification Code', recipients=[email])
+        msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
         mail.send(msg)
-        
-        return jsonify({'message': 'User created successfully'}), 201
+
+        return jsonify({'message': 'Verification code sent'}), 200
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error: {e}")
+        print(f"Signup Error: {e}")
         return jsonify({'error': str(e)}), 500
     
 @app.route('/verify-email/<token>')
 def verify_email(token):
     try:
-        # Token expires after 3600 seconds (1 hour) , max_age=3600 removed for now until reverification is added
-        email = timedSerializer.loads(token, salt='email-verify')
-    except Exception:
-        return jsonify({'error': 'Verification link is invalid or has expired'}), 400
-
-    user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
-
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    if user.is_verified:
-        return jsonify({'message': 'Account already verified'}), 200
-
-    user.is_verified = True
-    db.session.commit()
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+        
+        pending = pending_verifications.get(email)
+        if not pending:
+            return jsonify({'error': 'No pending verification for this email. Please sign up again.'}), 400
+        
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='email-verify',
+                max_age=300
+            )
+        except Exception:
+            del pending_verifications[email]
+            return jsonify({'error': 'Code expired. Please sign up again.'}), 400
+        
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+        
+        new_user = User(
+            first_name=pending['first_name'],
+            last_name=pending['last_name'],
+            email=email,
+            password=pending['password'],
+            is_verified=True
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        
+        del pending_verifications[email]
+        
+        return jsonify({'message': 'Email verified. Account created.'}), 201
     
-    #ADD PROPER PAGE ROUTING TO LOGIN VERIFIED IN THE FUTURE
-    return redirect("http://localhost:8080")
-    
-#WHEN RESEND GETS IMPLEMENTED
+    except Exception as e:
+        db.session.rollback()
+        print(f"Verify error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/resend-verification', methods=['POST'])
 def resend_verification():
-    data = request.get_json()
-    email = data.get('email')
-    user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+    try:
+        data = request.get_json()
+        email = data.get('email')
 
-    if not user or user.is_verified:
-        return jsonify({'error': 'Invalid request'}), 400
+        pending = pending_verifications.get(email)
+        if not pending:
+            return jsonify({'error': 'No pending verification. Please sign up again.'}), 400
 
-    token = timedSerializer.dumps(email, salt='email-verify')
-    verify_url = f"http://localhost:5000/verify-email/{token}"
-    msg = Message('Verify your NCS email', recipients=[email])
-    msg.body = f"New verification link:\n{verify_url}\n\nExpires in 1 hour."
-    mail.send(msg)
+        code = str(random.randint(100000, 999999))
+        token = timedSerializer.dumps({'email': email, 'code': code}, salt='email-verify')
 
-    return jsonify({'message': 'Verification email resent'}), 200
+        pending['code'] = code
+        pending['token'] = token
+
+        msg = Message('NCS Verification Code [Resend]', recipients=[email])
+        msg.body = f"Your new verification code is: {code}\n\nExpires in 5 minutes."
+        mail.send(msg)
+
+        return jsonify({'message': 'New code sent'}), 200
+
+    except Exception as e:
+        print(f"Resend error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
 def login():
