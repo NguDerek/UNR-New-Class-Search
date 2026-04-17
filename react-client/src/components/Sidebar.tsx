@@ -1,19 +1,17 @@
 import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut, LayoutDashboard} from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
-import { viewPermissions } from "../lib/permissions";
 import type { Role } from "../lib/permissions";
+import { NavLink } from "react-router-dom";
 
 interface NavItem {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin";
+  to: string;
   roles?: string[];
 }
 
 interface SidebarProps {
-  currentView: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin";
-  onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin") => void;
   onLogout: () => void;
   onToggle: () => void;
   isOpen: boolean;
@@ -27,20 +25,23 @@ interface SidebarProps {
   onNavigateToLogin: () => void;
 }
 
-export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, user, onNavigateToLogin }: SidebarProps) {
+export function Sidebar({ onLogout, onToggle, isOpen, user, onNavigateToLogin }: SidebarProps) {
   const role: Role = (user?.role as Role) ?? "Guest";
 
   const allNavItems: NavItem[] = [
-    { name: "Home", icon: Home, view: "home" },
-    { name: "Search", icon: Search, view: "search" },
-    { name: "Planner", icon: Calendar, view: "planner", roles: ["Student"] },
-    { name: "Programs", icon: GraduationCap, view: "programs" },
-    { name: "Settings", icon: Settings, view: "settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
-    { name: "Dashboard", icon: LayoutDashboard, view: "admin"},
+    { name: "Home", icon: Home, to: "/" },
+    { name: "Search", icon: Search, to: "/search" },
+    { name: "Planner", icon: Calendar, to: "/planner", roles: ["Student"] },
+    { name: "Programs", icon: GraduationCap, to: "/programs" },
+    { name: "Settings", icon: Settings, to: "/settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
+    { name: "Dashboard", icon: LayoutDashboard, to: "/admin", roles: ["Admin"]},
+    { name: "About", icon: LayoutDashboard, to: "/about"},
   ];
 
-  const navItems = allNavItems.filter(item => viewPermissions[item.view].includes(role));
-
+  const navItems = allNavItems.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.includes(role);
+  });
 
   if (!isOpen) return null;
 
@@ -85,21 +86,23 @@ export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, u
         <ul className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.view === currentView;
             return (
               <li key={item.name}>
-                <button
-                  onClick={() => item.view && onNavigate(item.view)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
-                    isActive
-                      ? "bg-[#003366] text-white shadow-md"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
+                <NavLink
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    cn(
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                      isActive
+                        ? "bg-[#003366] text-white shadow-md"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    )
+                  }
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
-                </button>
+                </NavLink>
               </li>
             );
           })}
