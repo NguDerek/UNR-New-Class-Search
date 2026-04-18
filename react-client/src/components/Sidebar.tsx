@@ -1,4 +1,4 @@
-import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut, LayoutDashboard} from "lucide-react";
+import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut, LayoutDashboard, BookUser} from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
 import type { Role } from "../lib/permissions";
@@ -35,7 +35,7 @@ export function Sidebar({ onLogout, onToggle, isOpen, user, onNavigateToLogin }:
     { name: "Programs", icon: GraduationCap, to: "/programs" },
     { name: "Settings", icon: Settings, to: "/settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
     { name: "Dashboard", icon: LayoutDashboard, to: "/admin", roles: ["Admin"]},
-    { name: "About", icon: LayoutDashboard, to: "/about"},
+    { name: "About", icon: BookUser, to: "/about"},
   ];
 
   const navItems = allNavItems.filter((item) => {
@@ -53,7 +53,6 @@ export function Sidebar({ onLogout, onToggle, isOpen, user, onNavigateToLogin }:
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center shadow-md shrink-0">
-            {/* REPLACE WITH ACTUAL UNR LOGO HERE */}
             <img 
                 src={UNR_Logo} 
                 alt="UNR Logo" 
@@ -64,7 +63,6 @@ export function Sidebar({ onLogout, onToggle, isOpen, user, onNavigateToLogin }:
             <User className="w-4 h-4 text-slate-600" />
           </button>
           <div className="flex-1 min-w-0">
-            {/* TO BE REPLACED WITH USER'S NAME */}
             <p className="text-slate-900 truncate text-sm">
               {user ? `${user.first_name} ${user.last_name}` : 'Guest'}
             </p>
