@@ -347,9 +347,9 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
                     location={section.room || 'TBA'}
                     department={section.course.subject}
                     component={section.component}
-                    section={section.section_num}
-                    level={getCourseLevel(section.course.catalog_num)}
-                    courseCareer={getCourseCareer(section.course.catalog_num)}
+                    section={section.section_num.toString()} //MIGHT NEED FIX
+                    level={getCourseLevel(section.course.catalog_num.toString())} //MIGHT NEED FIX
+                    courseCareer={getCourseCareer(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
