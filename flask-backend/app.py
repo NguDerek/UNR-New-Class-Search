@@ -22,6 +22,10 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 #app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for debug
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 
 app.config['SESSION_PROTECTION'] = 'strong'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
