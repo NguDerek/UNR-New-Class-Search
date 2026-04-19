@@ -248,17 +248,6 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-
-      {/* Disclaimer */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-blue-900 text-sm">
-            <span className="font-medium">Note:</span> Your planner is saved to your account and persists across sessions.
-          </p>
-        </div>
-      </div>
-
       {/* Page Title */}
       <div className="mb-8 lg:mb-12">
         <div className="flex items-center gap-3 mb-2">
