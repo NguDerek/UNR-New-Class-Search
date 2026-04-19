@@ -11,6 +11,7 @@ import type { Role } from "./lib/permissions";
 import { AdminDashboard } from "./components/AdminDashboard.tsx";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Search } from "./components/Search.tsx"
+import { AboutPage } from "./components/AboutPage.tsx";
 
 interface User {
   id: number;
@@ -299,7 +300,7 @@ export default function App() {
             element={role === "Admin" ? <AdminDashboard /> : <Navigate to="/" replace />}
           />
 
-          <Route path="/about" element={<iframe src="/docs/index.html" className="w-full h-screen border-0" />} />
+          <Route path="/about" element={<AboutPage />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
