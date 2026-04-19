@@ -9,6 +9,7 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  role: string;
 }
 
 interface LoginProps {
@@ -23,7 +24,7 @@ export function Login({ onLogin, onNavigateToSignUp }: LoginProps) {
   const [csrfToken, setCsrfToken] = useState("");
 
   useEffect(() => {
-    fetch('http://localhost:5000/csrf-token', {
+    fetch('/api/csrf-token', {
       credentials: 'include',
     })
       .then(response => response.json())
@@ -46,7 +47,7 @@ export function Login({ onLogin, onNavigateToSignUp }: LoginProps) {
       return;
     }
 
-    fetch('http://localhost:5000/login', {
+    fetch('/api/login', {
       method: 'POST',
       credentials: 'include',
       headers: {

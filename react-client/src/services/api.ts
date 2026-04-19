@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'api';
 
 export interface SearchParams {
   subject?: string;
@@ -15,6 +15,7 @@ export interface SearchParams {
   status?: string;
   department?: string;
   search_query?: string;
+  //search_query_type?: string;
   course_career?: string;
   level?: string;
 }
@@ -23,7 +24,7 @@ export interface Section {
   section_id: number;
   course_code: string;
   course_title: string;
-  section_num: number;
+  section_num: string;
   days: string | null;
   start_time: string | null;
   end_time: string | null;
@@ -33,14 +34,15 @@ export interface Section {
   room: string | null;
   component: string;
   instruction_mode: string;
-  catalog_num: number;
+  catalog_num: string;
   //department: string;
+  enrollment_cap: number;
 }
 
 export interface SectionDetails {
   section_info: {
     section_id: number;
-    section_num: number;
+    section_num: string;
     component: string;
     instruction_mode: string;
     days: string;
@@ -54,7 +56,7 @@ export interface SectionDetails {
   course_info: {
     course_id: number;
     subject: string;
-    catalog_num: number;
+    catalog_num: string;
     title: string;
     description: string;
     units: number;
@@ -110,12 +112,14 @@ class CourseAPI {
     const response = await fetch(
       `${API_BASE_URL}/courses/search?${queryParams.toString()}`
     );
+
+    const data = await response.json().catch(() => null);
     
     if (!response.ok) {
-      throw new Error('Failed to fetch courses');
+      throw new Error(data?.message || data?.error || 'Failed to fetch courses');
     }
     
-    return response.json();
+    return data;
   }
 
   /**

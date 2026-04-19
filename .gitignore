@@ -225,3 +225,10 @@ __marimo__/
 .streamlit/secrets.toml
 
 .DS_Store
+
+# Docker
+nginx
+flask-backend/Dockerfile
+react-client/Dockerfile
+docker-compose.yml
+get-docker.sh

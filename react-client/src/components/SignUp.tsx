@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select";
 import UNR_Logo from "../assets/UNR_Logo.svg"
 
 interface User {
@@ -10,24 +10,26 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
+  role: string;
 }
 
 interface SignUpProps {
-  onSignUp: (userData: User) => void;
   onNavigateToLogin: () => void;
 }
 
-export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
+export function SignUp({onNavigateToLogin }: SignUpProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("")
   const [error, setError] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5000/csrf-token', {
+    fetch('/api/csrf-token', {
       credentials: 'include',
     })
       .then(response => response.json())
@@ -61,7 +63,7 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
       return;
     }
 
-    fetch('http://localhost:5000/signup', {
+    fetch('/api/signup', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -72,7 +74,8 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
         first_name: firstName,
         last_name: lastName,
         email: email,
-        password: password
+        password: password,
+        role: role
       }),
     })
       .then(response => {
@@ -83,13 +86,37 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
         }
         return response.json();
       })
-      .then((data) => {
-        onSignUp(data.user);
+      .then(() => {
+        setSubmitted(true);
       })
       .catch((error: Error) => {
         setError(error.message || 'Signup failed');
       });
   };
+
+  if (submitted) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center space-y-4">
+        <div className="text-5xl">✉</div>
+        <h2 className="text-[#003366]">Check your email</h2>
+        <p className="text-slate-600">
+          We sent a verification link to <strong>{email}</strong>
+        </p>
+        <p className="text-sm text-slate-400">
+          Click the link in the email to activate your account.
+        </p>
+
+        <button
+          onClick={onNavigateToLogin}
+          className="w-full h-11 border-2 border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white rounded-lg transition-colors text-sm font-medium"
+        >
+          Back to Login
+        </button>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4 py-8">
@@ -184,6 +211,24 @@ export function SignUp({ onSignUp, onNavigateToLogin }: SignUpProps) {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-slate-700">
+                Role
+              </Label>
+
+              <Select onValueChange={(value) => setRole(value)}>
+                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Student">Student</SelectItem>
+                  <SelectItem value="Instructor">Instructor</SelectItem>
+                  <SelectItem value="Advisor">Advisor</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 <p className="text-sm">{error}</p>

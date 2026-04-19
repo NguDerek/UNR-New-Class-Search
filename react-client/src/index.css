@@ -190,6 +190,10 @@ html {
   font-size: var(--font-size);
 }
 
+/* Remove highlight of what day it is in the calendar display*/
+.fc-day-today {
+  background-color: white !important;
+}
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
