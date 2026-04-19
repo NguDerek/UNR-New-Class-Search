@@ -11,7 +11,7 @@ export function AboutPage() {
       {/* Main Content */}
       <div className="space-y-6">
         {/* Mission Section */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-blue-100 rounded-xl border border-slate-400 p-6 shadow-sm">
           <h2 className="text-[#003366] mb-3">New Class Search</h2>
           <p className="text-slate-600 leading-relaxed">
             CS 426 Senior Project in Computer Science | Team 25 <br></br>
@@ -21,7 +21,7 @@ export function AboutPage() {
         </div>
 
         {/* Team information */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-blue-100 rounded-xl border border-slate-400 p-6 shadow-sm">
           <h2 className="text-[#003366] mb-3">Our Team</h2>
           <p className="text-slate-600 leading-relaxed">
             This project was developed by Gisselle Cruz-Robinson, John Michael Libed, Derek Ngu, and Dominic Valdez. <br></br> 
@@ -31,7 +31,7 @@ export function AboutPage() {
         </div>
 
         {/* Project Overview */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-blue-100 rounded-xl border border-slate-400 p-6 shadow-sm">
           <h2 className="text-[#003366] mb-3">Our Mission</h2>
             <p className="text-slate-600 leading-relaxed">
                 The New Class Search aims to be an application that redesigns the University of Nevada, Reno’s 
@@ -60,7 +60,7 @@ export function AboutPage() {
         </div>
 
         {/* Resources and References */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div className="bg-blue-100 rounded-xl border border-slate-400 p-6 shadow-sm">
           <h2 className="text-[#003366] mb-3">Resources and References</h2>
           <h3 className="text-[#003366] mb-3">Problem Domain Book</h3>
             <p className="text-slate-600 leading-relaxed">
