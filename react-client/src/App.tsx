@@ -232,7 +232,7 @@ export default function App() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} onNavigateToLogin={() => navigate("/login")} />
 
-      <title>Nevada Class Search</title>
+      <title>New Class Search</title>
       
       <div className="flex-1">
 
