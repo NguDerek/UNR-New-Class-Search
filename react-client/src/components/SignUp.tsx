@@ -314,24 +314,6 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-slate-700">
-                Role
-              </Label>
-
-              <Select onValueChange={(value) => setRole(value)}>
-                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  <SelectItem value="Student">Student</SelectItem>
-                  <SelectItem value="Instructor">Instructor</SelectItem>
-                  <SelectItem value="Advisor">Advisor</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 <p className="text-sm">{error}</p>
