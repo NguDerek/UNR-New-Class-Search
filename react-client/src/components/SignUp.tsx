@@ -27,6 +27,8 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
   const [error, setError] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     fetch('/api/csrf-token', {
@@ -94,29 +96,130 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
       });
   };
 
-  if (submitted) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center space-y-4">
-        <div className="text-5xl">✉</div>
-        <h2 className="text-[#003366]">Check your email</h2>
-        <p className="text-slate-600">
-          We sent a verification link to <strong>{email}</strong>
-        </p>
-        <p className="text-sm text-slate-400">
-          Click the link in the email to activate your account.
-        </p>
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-        <button
-          onClick={onNavigateToLogin}
-          className="w-full h-11 border-2 border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white rounded-lg transition-colors text-sm font-medium"
-        >
-          Back to Login
-        </button>
+    if (!verifyCode || verifyCode.length !== 6) {
+      setError("Enter the 6-digit code from your email");
+      return;
+    }
+
+    setIsVerifying(true);
+
+    fetch("/api/verify-email", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({
+        email,
+        code: verifyCode,
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Verification failed");
+        return data;
+      })
+      .then(() => {
+        alert("Your account has been verified!");
+        onNavigateToLogin();
+      })
+      .catch((err: Error) => {
+        setError(err.message || "Verification failed");
+      })
+      .finally(() => {
+        setIsVerifying(false);
+      });
+  };
+
+  const handleResend = () => {
+    setError("");
+
+    fetch("/api/resend-verification", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ email }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        alert("Verification Code resent!");
+        if (!response.ok) throw new Error(data.error || "Resend failed");
+        return data;
+      })
+      .catch((err: Error) => {
+        setError(err.message || "Resend failed");
+      });
+  };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center space-y-4">
+          <div className="text-5xl">✉</div>
+          <h2 className="text-[#003366]">Check your email</h2>
+          <p className="text-slate-600">
+            We sent a verification code to <strong>{email}</strong>
+          </p>
+
+          <form onSubmit={handleVerify} className="space-y-4 text-left">
+            <div className="space-y-2">
+              <Label htmlFor="verifyCode" className="text-slate-700">
+                Verification Code
+              </Label>
+              <Input
+                id="verifyCode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="123456"
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value)}
+                className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full h-11 bg-[#003366] hover:bg-[#004080] text-white rounded-lg transition-colors"
+              disabled={isVerifying}
+            >
+              {isVerifying ? "Verifying..." : "Verify Email"}
+            </Button>
+          </form>
+
+          <button
+            onClick={handleResend}
+            className="text-sm text-[#003366] underline"
+            type="button"
+          >
+            Resend code
+          </button>
+
+          <button
+            onClick={onNavigateToLogin}
+            className="w-full h-11 border-2 border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white rounded-lg transition-colors text-sm font-medium"
+            type="button"
+          >
+            Back to Login
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4 py-8">
