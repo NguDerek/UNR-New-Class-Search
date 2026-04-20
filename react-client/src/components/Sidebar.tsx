@@ -1,16 +1,17 @@
-import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut } from "lucide-react";
+import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut, LayoutDashboard, BookUser} from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
+import type { Role } from "../lib/permissions";
+import { NavLink } from "react-router-dom";
 
 interface NavItem {
   name: string;
   icon: React.ComponentType<{ className?: string }>;
-  view?: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
+  to: string;
+  roles?: string[];
 }
 
 interface SidebarProps {
-  currentView: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup";
-  onNavigate: (view: "home" | "search" | "planner" | "programs" | "settings" | "login" | "signup") => void;
   onLogout: () => void;
   onToggle: () => void;
   isOpen: boolean;
@@ -19,23 +20,28 @@ interface SidebarProps {
     email: string;
     first_name: string;
     last_name: string;
+    role: string;
   } | null;
   onNavigateToLogin: () => void;
 }
 
-export function Sidebar({ currentView, onNavigate, onLogout, onToggle, isOpen, user, onNavigateToLogin }: SidebarProps) {
+export function Sidebar({ onLogout, onToggle, isOpen, user, onNavigateToLogin }: SidebarProps) {
+  const role: Role = (user?.role as Role) ?? "Guest";
+
   const allNavItems: NavItem[] = [
-    { name: "Home", icon: Home, view: "home" },
-    { name: "Search", icon: Search, view: "search" },
-    { name: "Planner", icon: Calendar, view: "planner" },
-    { name: "Programs", icon: GraduationCap, view: "programs" },
-    { name: "Settings", icon: Settings, view: "settings" },
+    { name: "Home", icon: Home, to: "/" },
+    { name: "Search", icon: Search, to: "/search" },
+    { name: "Planner", icon: Calendar, to: "/planner", roles: ["Student"] },
+    { name: "Programs", icon: GraduationCap, to: "/programs" },
+    { name: "Settings", icon: Settings, to: "/settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
+    { name: "Dashboard", icon: LayoutDashboard, to: "/admin", roles: ["Admin"]},
+    { name: "About", icon: BookUser, to: "/about"},
   ];
 
-const navItems = user
-  ? allNavItems
-  : allNavItems.filter(item => item.view === "home" || item.view === "search" || item.view === "planner" || item.view === "programs");
-
+  const navItems = allNavItems.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.includes(role);
+  });
 
   if (!isOpen) return null;
 
@@ -47,7 +53,6 @@ const navItems = user
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 bg-[#003366] rounded-lg flex items-center justify-center shadow-md shrink-0">
-            {/* REPLACE WITH ACTUAL UNR LOGO HERE */}
             <img 
                 src={UNR_Logo} 
                 alt="UNR Logo" 
@@ -58,12 +63,11 @@ const navItems = user
             <User className="w-4 h-4 text-slate-600" />
           </button>
           <div className="flex-1 min-w-0">
-            {/* TO BE REPLACED WITH USER'S NAME */}
             <p className="text-slate-900 truncate text-sm">
               {user ? `${user.first_name} ${user.last_name}` : 'Guest'}
             </p>
             <p className="text-xs text-slate-500 truncate">
-              {user ? 'Student' : ''}
+              {user ? user.role : ''}
             </p>
           </div>
           <button
@@ -80,21 +84,23 @@ const navItems = user
         <ul className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.view === currentView;
             return (
               <li key={item.name}>
-                <button
-                  onClick={() => item.view && onNavigate(item.view)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
-                    isActive
-                      ? "bg-[#003366] text-white shadow-md"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
+                <NavLink
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    cn(
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                      isActive
+                        ? "bg-[#003366] text-white shadow-md"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    )
+                  }
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
-                </button>
+                </NavLink>
               </li>
             );
           })}

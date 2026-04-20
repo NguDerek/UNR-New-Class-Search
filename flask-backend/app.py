@@ -1,20 +1,18 @@
-from flask import Flask, redirect, request, jsonify
-from flask_cors import CORS
-from dotenv import load_dotenv
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_wtf import CSRFProtect
-from flask_wtf.csrf import generate_csrf
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from flask_mail import Mail, Message
-from itsdangerous import URLSafeTimedSerializer
-import os, psycopg2, random
-from dbconnect.connection import DatabaseConnection
-
+import os
+import psycopg2
 import traceback
-
 from database import db
-
+from flask_cors import CORS
 from models.user import User
+from dotenv import load_dotenv
+from flask_wtf import CSRFProtect
+from flask_mail import Mail, Message
+from flask_wtf.csrf import generate_csrf
+from itsdangerous import URLSafeTimedSerializer
+from flask import Flask, redirect, request, jsonify
+from dbconnect.connection import DatabaseConnection
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 load_dotenv()  # load variables from .env
 
@@ -25,7 +23,11 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle': 3600} # 1 hour
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for debug
+#app.config['SQLALCHEMY_ECHO'] = True #Remove later after done converting for debug
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 
 app.config['SESSION_PROTECTION'] = 'strong'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -116,6 +118,7 @@ def signup():
         last_name = data.get('last_name')
         email = data.get('email')
         password = data.get('password')
+        role = data.get('role')
     
         #Check DB for user existing
         existing_user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
@@ -251,7 +254,8 @@ def login():
                 'id': user.id, 
                 'email': user.email,
                 'first_name': user.first_name,
-                'last_name': user.last_name
+                'last_name': user.last_name,
+                'role': user.role
             }
         }), 200
         
@@ -275,7 +279,8 @@ def auth_status():
                 'id': current_user.id,
                 'email': current_user.email,
                 'first_name': current_user.first_name,
-                'last_name': current_user.last_name
+                'last_name': current_user.last_name,
+                'role': current_user.role
             }
         }), 200
     return jsonify({'authenticated': False}), 200
@@ -450,6 +455,116 @@ def get_planner():
         }), 200
     except Exception as e:
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+# helpers for adding section
+def empty_to_none(value):
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+    return value
+    
+from models.section import section_instructor
+@app.route('/admin/sections', methods=['POST'])
+@login_required
+def create_section():
+    try:
+        data = request.get_json()
+        print("Received section payload:", data)
+
+        course_id = data.get('course_id')
+        term_id = data.get('term_id')
+        section_num = data.get('section_num')
+
+        component = empty_to_none(data.get('component'))
+        instruction_mode = empty_to_none(data.get('instruction_mode'))
+        class_days = empty_to_none(data.get('days'))
+        start_time = empty_to_none(data.get('start_time'))
+        end_time = empty_to_none(data.get('end_time'))
+        combined = data.get('combined')
+        class_status = empty_to_none(data.get('status'))
+        enrollment_capacity = data.get('capacity')
+        room_code = empty_to_none(data.get('room'))
+        instructor_names = data.get('instructors', [])
+
+        if (
+            not course_id or
+            not term_id or
+            not section_num or
+            not component or
+            not instruction_mode or
+            not class_days or
+            not start_time or
+            not end_time or
+            combined is None or
+            not class_status or
+            enrollment_capacity is None or
+            not room_code or
+            not instructor_names or
+            any(not name.strip() for name in instructor_names)
+        ):
+            return jsonify({'error': 'All fields are required'}), 400
+
+        course = db.session.get(Course, course_id)
+        if not course:
+            return jsonify({'error': 'Course not found'}), 404
+
+        term = db.session.get(Term, term_id)
+        if not term:
+            return jsonify({'error': 'Term not found'}), 404
+
+        new_section = Section(
+            course_id=course_id,
+            term_id=term_id,
+            section_num=section_num,
+            component=component,
+            instruction_mode=instruction_mode,
+            class_days=class_days,
+            start_time=start_time,
+            end_time=end_time,
+            combined=combined,
+            class_status=class_status,
+            enrollment_capacity=enrollment_capacity,
+            room_code=room_code,
+        )
+
+        db.session.add(new_section)
+        db.session.flush()
+
+        for full_name in instructor_names:
+            full_name = full_name.strip()
+
+            parts = full_name.split(maxsplit=1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else "TBA"
+
+            instructor = db.session.execute(
+                db.select(Instructor).filter_by(
+                    first_name=first_name,
+                    last_name=last_name
+                )
+            ).scalar_one_or_none()
+
+            if not instructor:
+                instructor = Instructor(first_name=first_name, last_name=last_name)
+                db.session.add(instructor)
+                db.session.flush()
+
+            if instructor not in new_section.instructors:
+                new_section.instructors.append(instructor)
+
+        db.session.commit()
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Section created successfully',
+            'section': new_section.format()
+        }), 201
+
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
      
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2 } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft } from "lucide-react";
+import type { Role } from "../lib/permissions";
 
 interface CourseCardProps {
   id: string;
@@ -15,17 +16,22 @@ interface CourseCardProps {
   location: string;
   department: string;
   component: string;
-  section: number;
+  section: string;
   level: string;
   courseCareer: string;
   modeOfInstruction: string;
+  role?: Role;
   isInPlanner?: boolean;
   onAddToPlanner?: (courseId: string) => void;
   showPlannerButton?: boolean;
   onRemoveFromPlanner?: (courseId: string) => void;
   showRemoveButton?: boolean
-  isGuest?: boolean;
   onLoginPrompt?: () => void;
+  showSwapButton?: boolean;
+  onSwapPrompt?: (courseId: string) => void;
+  showSearchSwapButton?: boolean;
+  onSwapWithCourse?: (courseId: string) => void;
+  isConflict?: boolean;
 }
 
 export function CourseCard({
@@ -44,13 +50,18 @@ export function CourseCard({
   // level,
   courseCareer,
   modeOfInstruction,
+  role,
   isInPlanner = false,
   onAddToPlanner,
   showPlannerButton = false,
   onRemoveFromPlanner,
   showRemoveButton = false,
-  isGuest = false,
   onLoginPrompt,
+  showSwapButton = false,
+  onSwapPrompt,
+  showSearchSwapButton = false,
+  onSwapWithCourse,
+  isConflict = false,
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -61,7 +72,9 @@ export function CourseCard({
       : "open";
 
   return (
-    <Card className="p-6 hover:shadow-xl transition-all duration-200 border-slate-200 bg-white hover:border-indigo-200">
+    <Card className={`p-6 hover:shadow-xl transition-all duration-200 border rounded-xl 
+      ${isConflict ? "border-red-600 bg-red-50 hover:bg-red-100" 
+      : "border-slate-200 bg-white hover:border-indigo-200"}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -93,7 +106,7 @@ export function CourseCard({
                 : "bg-red-100 text-red-700 border-red-200"
             }
           >
-            {enrolled}/{capacity} Enrolled
+            {capacity} Total Seats
           </Badge>
           <Badge variant="outline" className="border-slate-300 text-slate-600">
             Section {section}
@@ -127,7 +140,7 @@ export function CourseCard({
       </div>
 
       {/* Guest: show login prompt button */}
-      {isGuest && (
+      {role === "Guest" && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={onLoginPrompt}
@@ -139,7 +152,7 @@ export function CourseCard({
       )}
 
       {/* Authenticated: show add button */}
-      {!isGuest && showPlannerButton && onAddToPlanner && (
+      {role === "Student" && showPlannerButton && onAddToPlanner && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={() => onAddToPlanner(id)}
@@ -174,6 +187,71 @@ export function CourseCard({
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Remove from Planner
+          </Button>
+        </div>
+      )}
+
+      {/* Instructor upload button */}
+      {role === "Instructor" && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <label className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+            <GraduationCap className="w-4 h-4" />
+            Upload Course Info
+            <input
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  console.log(`Instructor uploaded file for ${code}:`, file);
+                  // Later this could send to backend
+                }
+              }}
+            />
+          </label>
+        </div>
+      )}
+
+      {/* Planner Swap Button */}
+      {showSwapButton && onSwapPrompt &&(
+        <div className="mt-4">
+          <Button
+            onClick={() => onSwapPrompt(id)}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+          >
+            <ArrowRightLeft className="w-4 h-4 mr-2" />
+            Swap Course
+          </Button>
+        </div>
+      )}
+      {showSearchSwapButton && onSwapWithCourse &&(
+        <div className="mt-4">
+          {/* <Button
+            // onClick={() => onSwapWithCourse(id)}
+            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Switch
+          </Button> */}
+          <Button
+            disabled={isInPlanner}
+            className={
+              isInPlanner
+                ? "w-full bg-slate-100 text-slate-600 cursor-not-allowed hover:bg-slate-100"
+                : "w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
+            }
+          >
+            {isInPlanner ? (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Already added to Planner
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Switch
+              </>
+            )}
           </Button>
         </div>
       )}

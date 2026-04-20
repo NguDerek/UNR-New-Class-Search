@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { CourseCard } from "./CourseCard";
-import { Calendar, Info } from "lucide-react";
+import { Calendar, Info, ChevronUp, ChevronDown } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventContentArg } from "@fullcalendar/core";
+import { SwapModal } from "./SwapModal.tsx";
 
 interface Course {
   section_id: number;
@@ -37,12 +38,15 @@ interface Course {
 
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
+  onSwapPrompt: (courseId: string) => void;
 }
 
-export function Planner({ onRemoveFromPlanner }: PlannerProps) {
+export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
   const [plannedCourses, setPlannedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [courseToSwap, setCourseToSwap] = useState<Course | null>(null);
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
 
   useEffect(() => {
     fetch('/api/planner', {
@@ -66,6 +70,15 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
   const handleRemove = (courseId: string) => {
     setPlannedCourses(prev => prev.filter(s => s.section_id.toString() !== courseId));
     onRemoveFromPlanner(courseId);
+  };
+
+  const handleSwap = (newCourse: Course): void => {
+    if (!courseToSwap) return;
+    const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
+    const updated = [...plannedCourses];
+    updated[index] = newCourse;
+    setPlannedCourses(updated);
+    setCourseToSwap(null); // closes modal
   };
 
   const totalCredits = plannedCourses.reduce((sum, s) => sum + s.course.units, 0);
@@ -103,11 +116,11 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
         border: "#4ADE80",
         text: "#166534",
       },
-      {
-        background: "#FEE2E2",
-        border: "#F87171",
-        text: "#991B1B",
-      },
+      //{
+        //background: "#FEE2E2",
+        //border: "#F87171",
+        //text: "#991B1B",
+      //},
       {
         background: "#FEF3C7",
         border: "#FBBF24",
@@ -135,12 +148,59 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
     return colors[Math.abs(hash) % colors.length];
   }
 
+  const conflicts = useMemo(() => {
+    const results: { a: Course; b: Course }[] = [];
+
+    const timesOverlap = (
+      startA: string,
+      endA: string,
+      startB: string,
+      endB: string
+    ) => startA < endB && startB < endA;
+
+    for (let i = 0; i < plannedCourses.length; i++) {
+      const a = plannedCourses[i];
+      if (!a.days || !a.start_time || !a.end_time) continue;
+
+      const daysA = parseMeetingDays(a.days);
+
+      for (let j = i + 1; j < plannedCourses.length; j++) {
+        const b = plannedCourses[j];
+        if (!b.days || !b.start_time || !b.end_time) continue;
+
+        const daysB = parseMeetingDays(b.days);
+        const shareDay = daysA.some(d => daysB.includes(d));
+
+        if (
+          shareDay &&
+          timesOverlap(a.start_time, a.end_time, b.start_time, b.end_time)
+        ) {
+          results.push({ a, b });
+        }
+      }
+    }
+
+    return results;
+  }, [plannedCourses]);
+
+  const conflictIds = useMemo(() => {
+    const ids = new Set<number>();
+
+    conflicts.forEach(c => {
+      ids.add(c.a.section_id);
+      ids.add(c.b.section_id);
+    });
+
+    return ids;
+  }, [conflicts]);
+
   const calendarEvents = useMemo(() => {
     return plannedCourses
       .filter((section) => section.days && section.start_time && section.end_time)
       .map((section) => {
         const courseCode = `${section.course.subject}-${section.course.catalog_num}`;
         const colors = getCourseColors(courseCode);
+        const isConflict = conflictIds.has(section.section_id);
 
         return {
           id: section.section_id.toString(),
@@ -148,31 +208,34 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
           daysOfWeek: parseMeetingDays(section.days),
           startTime: section.start_time,
           endTime: section.end_time,
-          backgroundColor: colors.background,
-          borderColor: colors.border,
+          backgroundColor: isConflict ? "#FEE2E2" : colors.background,
+          borderColor: isConflict ? "#DC2626" : colors.border,
           textColor: colors.text,
           extendedProps: {
             courseCode,
             instructor:
               section.instructors.length > 0
-                ? section.instructors[0].full_name
+                ? section.instructors.map(i => i.full_name).join(", ")
                 : "TBA",
             room: section.room || "TBA",
             borderColor: colors.border,
             textColor: colors.text,
+            isConflict
           },
         };
       });
-  }, [plannedCourses]);
+  }, [plannedCourses, conflictIds]);
 
   const renderEventContent = (eventInfo: EventContentArg) => {
     const props = eventInfo.event.extendedProps;
 
     return (
       <div
-        className="h-full w-full rounded-md px-2 py-1 text-[11px] leading-tight overflow-hidden border-l-4"
+        className={`h-full w-full rounded-md px-2 py-1 text-[11px] leading-tight overflow-hidden ${
+          props.isConflict ? "border-l-4 border-red-600 bg-red-100" : ""
+      }`}
         style={{
-          borderLeftColor: props.borderColor,
+          borderLeftColor: props.isConflict ? "#DC2626" : props.borderColor,
           color: props.textColor,
         }}
       >
@@ -218,6 +281,27 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
 
       ) : (
         <>
+          {/* Conflict Message */}
+          {conflicts.length > 0 && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+              <Info className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-900 text-sm font-medium mb-1">
+                  Scheduling Conflicts Detected
+                </p>
+
+                <ul className="text-red-800 text-sm list-disc ml-5">
+                  {conflicts.map((c, i) => (
+                    <li key={i}>
+                      {c.a.course.subject} {c.a.course.catalog_num} conflicts with{" "}
+                      {c.b.course.subject} {c.b.course.catalog_num}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* Summary Card */}
           {plannedCourses.length > 0 && (
             <div className="mb-8 bg-linear-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-6">
@@ -253,7 +337,7 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                     title={section.course.title}
                     instructor={
                       section.instructors.length > 0
-                        ? section.instructors[0].full_name
+                        ? section.instructors.map(i => i.full_name).join(", ")
                         : "TBA"
                     }
                     schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
@@ -263,23 +347,51 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                     location={section.room || 'TBA'}
                     department={section.course.subject}
                     component={section.component}
-                    section={section.section_num}
-                    level={getCourseLevel(section.course.catalog_num)}
-                    courseCareer={getCourseCareer(section.course.catalog_num)}
+                    section={section.section_num.toString()} //MIGHT NEED FIX
+                    level={getCourseLevel(section.course.catalog_num.toString())} //MIGHT NEED FIX
+                    courseCareer={getCourseCareer(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
+                    showSwapButton={true}
+                    onSwapPrompt={(id) => {
+                      const course = plannedCourses.find((c) => c.section_id.toString() === id);
+                      if (course) setCourseToSwap(course);
+                    }}
+                    isConflict={conflictIds.has(section.section_id)}
                   />
                 ))}
               </div>
-
+                {courseToSwap && (
+                  <SwapModal
+                    courseToSwap={courseToSwap}
+                    plannedCourseIds={plannedCourses.map((c) => c.section_id.toString())}
+                    onSwap={handleSwap}
+                    onClose={() => setCourseToSwap(null)}
+                  />
+                )}
               {/* Weekly schedule view */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-[#003366] px-4 py-3">
-                  <h2 className="text-white">Weekly Schedule</h2>
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
+                <div className="bg-[#003366] p-4 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-white">Weekly Schedule Calendar</h2>
+                    </div>
+                      <button
+                        onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                        className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                      >
+                        {isCalendarCollapsed ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronUp className="w-5 h-5" />
+                        )}
+                      </button>
+                  </div>
                 </div>
 
-                <div className="p-4">
+                {/* Show calendar content if not collapsed */}
+                {!isCalendarCollapsed && (<div className="p-4">
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
                     <FullCalendar
                       plugins={[timeGridPlugin]}
@@ -298,7 +410,7 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                       eventContent={renderEventContent}
                     />
                   </div>
-                </div>
+                </div>)}
               </div>
             </div>
           ) : (

@@ -1,6 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { CourseCard } from "./components/CourseCard";
-import { SearchFilters } from "./components/SearchFilters";
 import { Sidebar } from "./components/Sidebar";
 import { Home } from "./components/Home";
 import { Settings } from "./components/Settings";
@@ -8,16 +6,19 @@ import { Programs } from "./components/Programs";
 import { Planner } from "./components/Planner";
 import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp"
-import { courseAPI } from './services/api';
-import type { Section as APISection, SearchParams } from './services/api'
 import { Menu } from "lucide-react";
-import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "./utils/courseHelpers.ts"
+import type { Role } from "./lib/permissions";
+import { AdminDashboard } from "./components/AdminDashboard.tsx";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Search } from "./components/Search.tsx"
+import { AboutPage } from "./components/AboutPage.tsx";
 
 interface User {
   id: number;
   email: string;
   first_name: string;
   last_name: string;
+  role: string;
 }
 
 interface Course {
@@ -33,7 +34,7 @@ interface Course {
   location: string;
   department: string;
   component: string;
-  section: number;
+  section: string;
   level: string;
   days: string[];
   courseCareer: string;
@@ -41,8 +42,8 @@ interface Course {
 }
 
 export default function App() {
-// Authentication state
-  console.log("App component rendering"); // ADD THIS
+  const navigate = useNavigate();
+  console.log("App component rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -51,9 +52,6 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const toggleSidebar = () => { setIsSidebarOpen(!isSidebarOpen); };
 
-  const [searchResults, setSearchResults] = useState<APISection[]>([]);//useState<Section[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   useEffect(() => {
     fetch('/api/csrf-token', {
       credentials: 'include',
@@ -102,211 +100,24 @@ export default function App() {
   }, [isAuthenticated]);
 
 
-  const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup">("home");
-  const [term, setTerm] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [department, setDepartment] = useState("all");
-  const [roomSearch, setRoomSearch] = useState("");
-  const [courseCareer, setCourseCareer] = useState("all");
-  const [showOpenOnly, setShowOpenOnly] = useState(false);
-  const [modeOfInstruction, setModeOfInstruction] = useState("all");
-  const [level, setLevel] = useState("all");
-  const [credits, setCredits] = useState("all");
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  //const [currentView, setCurrentView] = useState<"home" | "search" | "planner" | "programs" | "settings" | "login" | "signup" | "admin">("home");
   
-  // Applied filters - only updated when user clicks "Search Courses"
-  const [hasSearched, setHasSearched] = useState(false);
-  const [appliedFilters, setAppliedFilters] = useState({
-    term: "Spring 2025",
-    searchQuery: "",
-    department: "all",
-    roomSearch: "",
-    courseCareer: "all",
-    showOpenOnly: false,
-    modeOfInstruction: "all",
-    level: "all",
-    credits: "all",
-    selectedDays: [] as string[],
-  });
+  const role: Role = (user?.role as Role) ?? "Guest";
 
+  /*const publicViews: typeof currentView[] = ["login", "signup"];
+
+  if (!publicViews.includes(currentView) && !viewPermissions[currentView].includes(role)) {
+    return (
+      <div className="flex-1 p-6 text-center text-red-600">
+        You are not authorized to view this page.
+      </div>
+    );
+  }
+*/
+  
   // Planner state
   const [plannedCourseIds, setPlannedCourseIds] = useState<Set<string>>(new Set());
 
-  const handleSearch = async () => {
-    setIsSearching(true);
-    setSearchError(null);
-    setHasSearched(true);
-    
-    try {
-      const searchParams: SearchParams = {};
-      
-      // === SEARCH BAR ===
-      if (searchQuery && searchQuery.trim() !== '') {
-        // Check if it's a course code pattern (e.g., "CS 101", "MATH 181")
-        const courseCodePattern = /^([A-Z]+)\s*(\d+)$/i;
-        const match = searchQuery.match(courseCodePattern);
-        
-        if (match) {
-          // Exact course code - use subject and catalog_num
-          searchParams.subject = match[1].toUpperCase();
-          searchParams.catalog_num = match[2];
-        } else {
-          // Everything else - use general search_query
-          // This will search title, instructor name, and course code
-          searchParams.search_query = searchQuery;
-  }
-}
-        
-      // === DEPARTMENT DROPDOWN ===
-      if (department && department !== 'all') {
-        searchParams.department = department;
-      }
-      
-      // === COURSE NUMBER INPUT ===
-      if (roomSearch && roomSearch.trim() !== '') {
-        searchParams.room = roomSearch;
-      }
-      
-      // === DAYS BUTTONS ===
-      if (selectedDays.length > 0) {
-        // Convert ["Mon", "Tue", "Wed"] to "MTW"
-        const daysMap: Record<string, string> = {
-          'Mon': 'M',
-          'Tue': 'T',
-          'Wed': 'W',
-          'Thu': 'R',  // Thursday is 'R' to avoid confusion with Tuesday
-          'Fri': 'F',
-          'Sat': 'S',
-          'Sun': 'U'
-        };
-        const daysString = selectedDays.map(d => daysMap[d] || '').join('');
-        searchParams.days = daysString;
-      }
-      
-      // === TERM DROPDOWN ===
-      if (term && term !== 'all') {
-        // Map frontend term names to backend session codes
-        const termMap: Record<string, string> = {
-          'Spring 2025': '2025',
-          'Summer 2025': '202505',
-          'Fall 2025': '1',
-          'Winter 2026': '202601'
-        };
-        searchParams.term = termMap[term] || term;
-      }
-      
-      // === COURSE CAREER DROPDOWN ===
-      if (courseCareer && courseCareer !== 'all') {
-        searchParams.course_career = courseCareer
-      }
-      
-      // === CREDITS DROPDOWN ===
-      if (credits && credits !== 'all') {
-        if (credits === '5+') {
-          searchParams.units = '5';
-          searchParams.units_operator = 'greater_equal';
-        } else {
-          searchParams.units = credits;
-          searchParams.units_operator = 'exact';
-        }
-      }
-      
-      // === MODE OF INSTRUCTION DROPDOWN ===
-      if (modeOfInstruction && modeOfInstruction !== 'all') {
-        const modeMap: Record<string, string> = {
-          'In Person': 'P',
-          'Hybrid': 'HY',
-          'Asynchronous Online': 'WA',
-          'Synchronous Online': 'WL'
-        };
-        searchParams.instruction_mode = modeMap[modeOfInstruction] || modeOfInstruction;
-      }
-      
-      // === LEVEL DROPDOWN ===
-      if (level && level !== 'all') {
-        // Map level to catalog_num ranges
-        if (level === '100') {
-          searchParams.level = '1';
-        } else if (level === '200') {
-          searchParams.level = '2';
-        } else if (level === '300') {
-          searchParams.level = '3';;
-        } else if (level === '400') {
-          searchParams.level = '4';
-        } else if (level === '500+') {
-          searchParams.level = '5';
-        }
-      }
-      
-      // === SHOW OPEN ONLY TOGGLE ===
-      if (showOpenOnly) {
-        //searchParams.status = 'Open';
-        //To be implemented later
-      }
-      
-      console.log('Search params:', searchParams); // Debug - see what's being sent
-      
-      // Make API call
-      const response = await courseAPI.searchCourses(searchParams);
-      
-      if (response.status === 'success') {
-        setSearchResults(response.sections);
-      } else {
-        setSearchError('Search failed');
-        setSearchResults([]);
-      }
-      
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchError('Failed to search courses. Please try again.');
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-/*
-  const handleSearch = () => {
-    setAppliedFilters({
-      term,
-      searchQuery,
-      subject,
-      courseNumber,
-      courseCareer,
-      showOpenOnly,
-      modeOfInstruction,
-      level,
-      credits,
-      selectedDays,
-    });
-    setHasSearched(true);
-  };
-*/
-  const handleReset = () => {
-    setTerm("all");
-    setSearchQuery("");
-    setDepartment("all");
-    setRoomSearch("");
-    setCourseCareer("all");
-    setShowOpenOnly(false);
-    setModeOfInstruction("all");
-    setLevel("all");
-    setCredits("all");
-    setSelectedDays([]);
-    setHasSearched(false);
-    setAppliedFilters({
-      term: "all",
-      searchQuery: "",
-      department: "all",
-      roomSearch: "",
-      courseCareer: "all",
-      showOpenOnly: false,
-      modeOfInstruction: "all",
-      level: "all",
-      credits: "all",
-      selectedDays: [],
-    });
-  };
 
   const handleAddToPlanner = async (courseId: string) => {
     //setPlannedCourseIds((prev) => new Set(prev).add(courseId));
@@ -336,13 +147,6 @@ export default function App() {
   };
 
   const handleRemoveFromPlanner = async (courseId: string) => {
-    /*
-    setPlannedCourseIds((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(courseId);
-      return newSet;
-    });
-    */
     try {
       const response = await fetch(`/api/planner/section/${courseId}`, {
         method: 'DELETE',
@@ -374,7 +178,7 @@ export default function App() {
   const handleLogin = (userData: User) => {
     setIsAuthenticated(true);
     setUser(userData);
-    setCurrentView("home");
+    navigate("/");
   };
 
   const handleSignUp = (userData: User) => {
@@ -382,7 +186,7 @@ export default function App() {
     //setUser(userData);
     //setCurrentView("home");
     //setAuthView("login");
-    setCurrentView("login");
+    navigate("/login");
   };
 
   const handleLogout = () => {
@@ -404,7 +208,7 @@ export default function App() {
         setIsAuthenticated(false);
         setUser(null);
         //setAuthView("login");
-        setCurrentView("home");
+        navigate("/");
       })
       .catch((error: Error) => {
         console.error('Logout error:', error);
@@ -412,7 +216,7 @@ export default function App() {
         //Still log out on frontend even if backend fails
         setIsAuthenticated(false);
         setUser(null);
-        setCurrentView("home");
+        navigate("/");
       });
   };
 
@@ -424,29 +228,11 @@ export default function App() {
     );
   }
 
-  // Show login/signup pages if not authenticated
-  /*
-  if (!isAuthenticated) {
-    if (authView === "signup") {
-      return (
-        <SignUp 
-          onSignUp={handleSignUp}
-          onNavigateToLogin={() => setAuthView("login")}
-        />
-      );
-    }
-    return (
-      <Login 
-        onLogin={handleLogin}
-        onNavigateToSignUp={() => setAuthView("signup")}
-      />
-    );
-  }
-    */
-
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} onNavigateToLogin={() => setCurrentView("login")} />
+      <Sidebar onLogout={handleLogout} onToggle={toggleSidebar} isOpen={isSidebarOpen} user={user} onNavigateToLogin={() => navigate("/login")} />
+
+      <title>New Class Search</title>
       
       <div className="flex-1">
 
@@ -460,146 +246,64 @@ export default function App() {
         )}
 
 
-        {currentView === "login" ? (
-          <Login
-            onLogin={handleLogin}
-            onNavigateToSignUp={() => setCurrentView("signup")}
+        <Routes>
+          <Route path="/" element={<Home onGetStarted={() => navigate("/search")} />} />
+
+          <Route
+            path="/login"
+            element={
+              <Login
+                onLogin={handleLogin}
+                onNavigateToSignUp={() => navigate("/signup")}
+              />
+            }
           />
-        ) : currentView === "signup" ? (
-          <SignUp
-            onNavigateToLogin={() => setCurrentView("login")}
+
+          <Route
+            path="/signup"
+            element={
+              <SignUp
+                onNavigateToLogin={() => navigate("/login")}
+              />
+            }
           />
-        ) : currentView === "planner" && !isAuthenticated ? (
-          <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-            <p className="text-slate-600 text-lg">You must be logged in to view your planner.</p>
-            <button
-              onClick={() => setCurrentView("login")}
-              className="px-6 py-2 bg-[#003366] text-white rounded-lg hover:bg-[#002244]"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => setCurrentView("search")}
-              className="text-sm text-slate-500 underline"
-            >
-              Continue as Guest
-            </button>
-          </div>
-        ) : currentView === "home" ? (
-          <Home onGetStarted={() => setCurrentView("search")} />
-        ) : currentView === "settings" ? (
-          <Settings />
-        ) : currentView === "programs" ? (
-          <Programs />
-        ) : currentView === "planner" ? (
-          <Planner onRemoveFromPlanner={handleRemoveFromPlanner} />
-        ) : (
-          <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-            {/* Page Title Section */}
-            <div className="mb-8 lg:mb-12">
-              <h1 className="text-[#003366] mb-2">University of Nevada, Reno</h1>
-              <p className="text-slate-600">Class Search</p>
-            </div>
 
-            {/* Filters - Full Width */}
-            <SearchFilters
-              term={term}
-              setTerm={setTerm}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              department={department}
-              setDepartment={setDepartment}
-              roomSearch={roomSearch}
-              setRoomSearch={setRoomSearch}
-              courseCareer={courseCareer}
-              setCourseCareer={setCourseCareer}
-              showOpenOnly={showOpenOnly}
-              setShowOpenOnly={setShowOpenOnly}
-              modeOfInstruction={modeOfInstruction}
-              setModeOfInstruction={setModeOfInstruction}
-              level={level}
-              setLevel={setLevel}
-              credits={credits}
-              setCredits={setCredits}
-              selectedDays={selectedDays}
-              setSelectedDays={setSelectedDays}
-              onSearch={handleSearch}
-              onReset={handleReset}
-            />
+          <Route
+            path="/planner"
+            element={
+              isAuthenticated ? (
+                <Planner onRemoveFromPlanner={handleRemoveFromPlanner} onSwapPrompt={() => {}} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
 
-            {/* Course Results */}
-            {hasSearched && (
-              <>
-                <div className="mb-6 flex items-center justify-between bg-white px-6 py-4 rounded-xl shadow-sm border border-slate-200">
-                  <p className="text-slate-700">
-                    <span className="text-[#003366]">{searchResults.length}</span> sections found
-                  </p>
-                  {!isAuthenticated && (
-                    <p className="text-sm text-slate-500">
-                      <button
-                      onClick={() => setCurrentView("login")}
-                      className="text-[#003366] underline hover:text-[#002244]"
-                      >
-                        Log in
-                        </button>{" "}
-                        to save sections to your planner
-                        </p>
-                      )}
-                </div>
+          <Route
+            path="/search"
+            element={
+              <Search 
+                isAuthenticated={isAuthenticated}
+                role={role}
+                plannedCourseIds={plannedCourseIds}
+                handleAddToPlanner={handleAddToPlanner}
+                onLoginPrompt={() => navigate("/login")}
+              />
+            }
+          />
 
-                {isSearching ? (
-                  <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-slate-600">Searching...</p>
-                  </div>
-                ) : searchError ? (
-                  <div className="text-center py-16 bg-white rounded-xl border border-red-200 shadow-sm bg-red-50">
-                    <p className="text-red-600">{searchError}</p>
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  <div className="grid gap-5">
-                    {searchResults.map((section) => (
-                      <CourseCard
-                        key={section.section_id}
-                        id={section.section_id.toString()}
-                        code={section.course_code}
-                        title={section.course_title}
-                        instructor={section.instructor}
-                        schedule={`${section.days || 'TBA'} ${formatTime(section.start_time)} - ${formatTime(section.end_time)}`}
-                        credits={section.units}
-                        enrolled={0}
-                        capacity={100}
-                        location={section.room || 'TBA'}
-                        department={section.course_code.split(' ')[0]}//{section.department}
-                        component={section.component}
-                        section={section.section_num}
-                        level={getCourseLevel(section.catalog_num)}
-                        courseCareer={getCourseCareer(section.catalog_num)}
-                        modeOfInstruction={formatInstructionMode(section.instruction_mode)}
-                        isInPlanner={plannedCourseIds.has(section.section_id.toString())}
-                        onAddToPlanner={handleAddToPlanner}
-                        showPlannerButton={isAuthenticated}       // hide for guests
-                        isGuest={!isAuthenticated}
-                        onLoginPrompt={() => setCurrentView("login")}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <div className="text-slate-300 mb-4">
-                      <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <p className="text-slate-600 mb-2">No courses found</p>
-                    <p className="text-sm text-slate-400">
-                      Try adjusting your filters or search query
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
+          <Route path="/programs" element={<Programs role={role} />} />
+          <Route path="/settings" element={<Settings />} />
+
+          <Route
+            path="/admin"
+            element={role === "Admin" ? <AdminDashboard /> : <Navigate to="/" replace />}
+          />
+
+          <Route path="/about" element={<AboutPage />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </div>
   );
