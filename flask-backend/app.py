@@ -145,8 +145,8 @@ def signup():
         print(f"Signup Error: {e}")
         return jsonify({'error': str(e)}), 500
     
-@app.route('/verify-email/<token>')
-def verify_email(token):
+@app.route('/verify-email', methods=['POST'])
+def verify_email():
     try:
         data = request.get_json()
         email = data.get('email')
