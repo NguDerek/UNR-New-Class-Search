@@ -224,7 +224,6 @@ def login():
     try:
         #Check if we are actually getting the data from react to flask
         data = request.get_json()
-        print(f"Login attempt: {data}")
         
         email = data.get('email')
         password = data.get('password')
