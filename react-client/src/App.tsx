@@ -174,14 +174,6 @@ export default function App() {
     }
   };
 
-  const handleSwap = async (courseId: string) =>{
-    try {
-      const response = await fetch()
-    } catch (error) {
-
-    }
-  };
-
   // Handle authentication
   const handleLogin = (userData: User) => {
     setIsAuthenticated(true);
@@ -280,7 +272,8 @@ export default function App() {
             path="/planner"
             element={
               isAuthenticated ? (
-                <Planner onRemoveFromPlanner={handleRemoveFromPlanner} onSwapPrompt={() => {}} />
+                <Planner onRemoveFromPlanner={handleRemoveFromPlanner} 
+                         csrfToken = {csrfToken} />
               ) : (
                 <Navigate to="/login" replace />
               )

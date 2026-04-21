@@ -4,6 +4,7 @@ import traceback
 from database import db
 from flask_cors import CORS
 from models.user import User
+from models.user import user_planned_section
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
@@ -427,7 +428,7 @@ def swap_courses():
         old_section_id = data.get('old_section_id')
         new_section_id = data.get('new_section_id')
 
-        new_section = db.session.get(Section, 'new_section_id')
+        new_section = db.session.get(Section, new_section_id)
         #Error checking for finding the new section
         if not new_section:
             return jsonify({'error': 'Section not found'}), 404
@@ -443,7 +444,7 @@ def swap_courses():
         if old_section not in current_user.planned_sections:
             return jsonify({'error': 'Section not in planner'}), 400
         
-        #Changing the db records directly
+        #Changing the db records directly to maintain order
         db.session.execute(
             user_planned_section.update()
             .where(
@@ -453,9 +454,10 @@ def swap_courses():
             .values(section_id=new_section_id)
         )
 
-        #Changing the planned courses list
-        index = current_user.planned_sections.index(old_section)
-        current_user.planned_sections[index] = new_section
+        #ORM update - using both results in an error
+        # index = current_user.planned_sections.index(old_section)
+        # current_user.planned_sections[index] = new_section
+        
         db.session.commit()
         return jsonify({'message': 'Section swapped'}), 200
 
