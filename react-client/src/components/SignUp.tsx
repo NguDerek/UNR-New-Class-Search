@@ -2,8 +2,16 @@ import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Label } from "./ui/Label";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select";
 import UNR_Logo from "../assets/UNR_Logo.svg"
+
+interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
 
 interface SignUpProps {
   onNavigateToLogin: () => void;
@@ -15,6 +23,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("")
   const [error, setError] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -65,7 +74,8 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
         first_name: firstName,
         last_name: lastName,
         email: email,
-        password: password
+        password: password,
+        role: role
       }),
     })
       .then(response => {
@@ -201,6 +211,24 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-slate-700">
+                Role
+              </Label>
+
+              <Select onValueChange={(value) => setRole(value)}>
+                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Student">Student</SelectItem>
+                  <SelectItem value="Instructor">Instructor</SelectItem>
+                  <SelectItem value="Advisor">Advisor</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 <p className="text-sm">{error}</p>

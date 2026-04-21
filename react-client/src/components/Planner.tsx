@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { CourseCard } from "./CourseCard";
-import { Calendar, Info } from "lucide-react";
+import { Calendar, Info, ChevronUp, ChevronDown } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -45,6 +45,7 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [courseToSwap, setCourseToSwap] = useState<Course | null>(null);
+  const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
 
   useEffect(() => {
     fetch('/api/planner', {
@@ -247,17 +248,6 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-
-      {/* Disclaimer */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-blue-900 text-sm">
-            <span className="font-medium">Note:</span> Your planner is saved to your account and persists across sessions.
-          </p>
-        </div>
-      </div>
-
       {/* Page Title */}
       <div className="mb-8 lg:mb-12">
         <div className="flex items-center gap-3 mb-2">
@@ -346,9 +336,9 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                     location={section.room || 'TBA'}
                     department={section.course.subject}
                     component={section.component}
-                    section={section.section_num}
-                    level={getCourseLevel(section.course.catalog_num)}
-                    courseCareer={getCourseCareer(section.course.catalog_num)}
+                    section={section.section_num.toString()} //MIGHT NEED FIX
+                    level={getCourseLevel(section.course.catalog_num.toString())} //MIGHT NEED FIX
+                    courseCareer={getCourseCareer(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
@@ -370,12 +360,27 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                   />
                 )}
               {/* Weekly schedule view */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-[#003366] px-4 py-3">
-                  <h2 className="text-white">Weekly Schedule</h2>
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
+                <div className="bg-[#003366] p-4 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-white">Weekly Schedule Calendar</h2>
+                    </div>
+                      <button
+                        onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                        className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                      >
+                        {isCalendarCollapsed ? (
+                          <ChevronDown className="w-5 h-5" />
+                        ) : (
+                          <ChevronUp className="w-5 h-5" />
+                        )}
+                      </button>
+                  </div>
                 </div>
 
-                <div className="p-4">
+                {/* Show calendar content if not collapsed */}
+                {!isCalendarCollapsed && (<div className="p-4">
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
                     <FullCalendar
                       plugins={[timeGridPlugin]}
@@ -394,7 +399,7 @@ export function Planner({ onRemoveFromPlanner }: PlannerProps) {
                       eventContent={renderEventContent}
                     />
                   </div>
-                </div>
+                </div>)}
               </div>
             </div>
           ) : (

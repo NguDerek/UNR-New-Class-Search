@@ -15,18 +15,24 @@ export function formatTime(timeString: string | null): string {
 }
 
 // Helper function to determine course level from catalog number
-export function getCourseLevel(catalogNum: number): string {
-  if (catalogNum >= 500) return '600+ Level';
-  if (catalogNum >= 400) return '400 Level';
-  if (catalogNum >= 300) return '300 Level';
-  if (catalogNum >= 200) return '200 Level';
-  if (catalogNum >= 100) return '100 Level';
+export function getCourseLevel(catalogNum: string): string {
+  const num = parseInt(catalogNum, 10);
+  
+  if(Number.isNaN(num)) return 'Other';
+  if (num >= 500) return '600+ Level';
+  if (num >= 400) return '400 Level';
+  if (num >= 300) return '300 Level';
+  if (num >= 200) return '200 Level';
+  if (num >= 100) return '100 Level';
   return 'Other';
 }
 
 // Helper function to determine course career from catalog number
-export function getCourseCareer(catalogNum: number): string {
-  if (catalogNum >= 600) return 'Graduate';  // If your school uses 600+ for med
+export function getCourseCareer(catalogNum: string): string {
+  const num = parseInt(catalogNum, 10);
+
+  if (Number.isNaN(num)) return 'Undergraduate';
+  if (num >= 600) return 'Graduate';  // If your school uses 600+ for med
   return 'Undergraduate';
 }
 

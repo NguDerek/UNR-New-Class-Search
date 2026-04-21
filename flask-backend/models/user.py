@@ -18,13 +18,14 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(UTC), nullable=False)
+    role = db.Column(db.String(20), default = 'Student')
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
     
     planned_sections = db.relationship(
         'Section',
         secondary=user_planned_section,
         backref='planned_by_users',
-        lazy='select'
+        lazy='select',
     )
     
     def __repr__(self):

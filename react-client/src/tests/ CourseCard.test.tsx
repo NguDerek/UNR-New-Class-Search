@@ -15,7 +15,7 @@ const mockCourse = {
     location: "WPEB 130",
     department: "CS",
     component: "LEC",
-    section: 1001,
+    section: "1001",
     level: "200",
     courseCareer: "Undergraduate",
     modeOfInstruction: "In Person",

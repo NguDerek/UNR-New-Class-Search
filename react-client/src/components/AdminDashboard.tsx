@@ -9,6 +9,8 @@ import { ShieldUser, PlusCircle, Trash2, Search, Hash, Monitor, Calendar, Clock3
 
 export function AdminDashboard() {
   const [openPanel, setOpenPanel] = useState<"add" | "delete" | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(""); 
   const [instructors, setInstructors] = useState([""]);
   const [courses, setCourses] = useState<any[]>([]);
   const [terms, setTerms] = useState<any[]>([]);
@@ -61,11 +63,35 @@ export function AdminDashboard() {
   };
 
   const handleSubmitSection = async () => {
+    const hasEmptyInstructor = instructors.some((name) => name.trim() === "");
+
+    if (
+      !formData.course_id ||
+      !formData.term_id ||
+      !formData.section_num ||
+      !formData.component ||
+      !formData.instruction_mode ||
+      !formData.days ||
+      !formData.start_time ||
+      !formData.end_time ||
+      !formData.combined ||
+      !formData.status ||
+      !formData.capacity ||
+      !formData.room ||
+      hasEmptyInstructor
+    ) {
+      setErrorMessage("Please fill in all fields before submitting.");
+      setSuccessMessage("");
+      return;
+    }
+
     try {
+      setErrorMessage("");
+      setSuccessMessage("");
+
       const csrfRes = await fetch("/api/csrf-token", {
         credentials: "include",
       });
-
       const csrfData = await csrfRes.json();
 
       const payload = {
@@ -75,7 +101,7 @@ export function AdminDashboard() {
         section_num: Number(formData.section_num),
         capacity: Number(formData.capacity),
         combined: formData.combined === "true",
-        instructors: instructors.filter(i => i.trim() !== "")
+        instructors: instructors.filter((i) => i.trim() !== ""),
       };
 
       const res = await fetch("/api/admin/sections", {
@@ -85,16 +111,37 @@ export function AdminDashboard() {
           "X-CSRFToken": csrfData.csrf_token,
         },
         credentials: "include",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Failed to create section");
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create section");
+      }
 
-      console.log("Section created:", data);
+      setSuccessMessage("Section created successfully.");
+      setErrorMessage("");
 
+      setFormData({
+        course_id: "",
+        term_id: "",
+        section_num: "",
+        component: "",
+        instruction_mode: "",
+        days: "",
+        start_time: "",
+        end_time: "",
+        combined: "",
+        status: "",
+        capacity: "",
+        room: "",
+      });
+
+      setInstructors([""]);
     } catch (err) {
+      setSuccessMessage("");
+      setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
       console.error("Submit error:", err);
     }
   };
@@ -124,8 +171,6 @@ export function AdminDashboard() {
 
     loadDropdownData();
   }, []);
-
-  console.log(formData);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
@@ -459,6 +504,14 @@ export function AdminDashboard() {
                 </div>
               </div>
 
+              {successMessage && (
+                <p className="pt-4 text-green-600 font-medium">{successMessage}</p>
+              )}
+
+              {errorMessage && (
+                <p className="pt-4 text-red-600 font-medium">{errorMessage}</p>
+              )}
+
               <div className="pt-6 flex justify-end">
                 <Button 
                   onClick={handleSubmitSection}
@@ -495,64 +548,6 @@ export function AdminDashboard() {
                     placeholder="Search by course code or title"
                     className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
                   />
-                </div>
-
-                <div className="flex items-end">
-                  <Button className="w-full bg-[#003366] hover:bg-[#002244] text-white h-10">
-                    <Search className="w-4 h-4 mr-2" />
-                    Search
-                  </Button>
-                </div>
-              </div>
-
-              {/* Placeholder Results */}
-              <div className="pt-6 space-y-4">
-                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                      <h3 className="text-[#003366] font-medium">
-                        CS 135 - Computer Science I
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Section 1001 • MWF • 10:00 AM - 10:50 AM • DMSC 110
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        Instructor: Jane Doe
-                      </p>
-                    </div>
-
-                    <Button
-                      variant="destructive"
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Section
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                      <h3 className="text-[#003366] font-medium">
-                        MATH 181 - Calculus I
-                      </h3>
-                      <p className="text-sm text-slate-600">
-                        Section 2001 • TR • 1:00 PM - 2:15 PM • AB 101
-                      </p>
-                      <p className="text-sm text-slate-500">
-                        Instructor: John Smith
-                      </p>
-                    </div>
-
-                    <Button
-                      variant="destructive"
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Section
-                    </Button>
-                  </div>
                 </div>
               </div>
             </CardHeader>
