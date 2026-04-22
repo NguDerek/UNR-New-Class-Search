@@ -71,18 +71,48 @@ export function CourseCard({
       ? "limited"
       : "open";
 
+  {/* Color themeing for when classes conflict */}
+  const theme = isConflict
+  ? {
+      card: "border-red-600 bg-red-50",
+      code: "from-red-600 to-rose-600",
+      department: "border-red-300",
+      courseCareer: "bg-red-100 text-red-700 border-red-200",
+      component: "border-red-300",
+      credits: "text-red-700 bg-red-100",
+      section: "border-red-300",
+      schedule: "text-red-500",
+      location: "text-red-500",
+      modeOfInstruction: "text-red-500",
+      availability: "text-red-500",
+      removeBtn: "bg-red-200 hover:bg-red-300"
+    }
+  : {
+      card: "border-slate-200 bg-white",
+      code: "from-indigo-600 to-blue-600",
+      department: "border-slate-300",
+      courseCareer: "bg-indigo-100 text-indigo-700 border-indigo-200",
+      component: "border-slate-300",
+      credits: "text-slate-500 bg-slate-100",
+      section: "border-slate-300",
+      schedule: "text-indigo-500",
+      location: "text-indigo-500",
+      modeOfInstruction: "text-indigo-500",
+      availability: "text-indigo-500",
+      removeBtn: "bg-red-100 hover:bg-red-200"
+    }
+
   return (
     <Card className={`p-6 hover:shadow-xl transition-all duration-200 border rounded-xl 
-      ${isConflict ? "border-red-600 bg-red-50 hover:bg-red-100" 
-      : "border-slate-200 bg-white hover:border-indigo-200"}`}>
+      ${theme.card}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">{code}</span>
-            <Badge variant="outline" className="border-slate-300 text-slate-600">{department}</Badge>
-            <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 border-indigo-200">{courseCareer}</Badge>
-            <Badge variant="outline" className="border-slate-300 text-slate-600"> {component}</Badge>
-            <div className="flex items-center gap-1.5 text-slate-500 text-sm bg-slate-50 px-3 py-1 rounded-full">
+            <span className={`bg-linear-to-r ${theme.code} bg-clip-text text-transparent`}>{code}</span>
+            <Badge variant="outline" className={`border-slate-300 ${theme.department}`}>{department}</Badge>
+            <Badge variant="secondary" className={`${theme.courseCareer}`}>{courseCareer}</Badge>
+            <Badge variant="outline" className={`border-slate-300 ${theme.component}`}> {component}</Badge>
+            <div className={`flex items-center gap-1.5 text-sm ${theme.credits} px-3 py-1 rounded-full`}>
             <GraduationCap className="w-3.5 h-3.5" />{credits} Credits
             </div>
           </div>
@@ -108,7 +138,7 @@ export function CourseCard({
           >
             {capacity} Total Seats
           </Badge>
-          <Badge variant="outline" className="border-slate-300 text-slate-600">
+          <Badge variant="outline" className={`${theme.section} text-slate-600`}>
             Section {section}
           </Badge>
         </div>
@@ -116,19 +146,19 @@ export function CourseCard({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Clock className="w-4 h-4 text-indigo-500 shrink-0" />
+          <Clock className={`w-4 h-4 ${theme.schedule} shrink-0`} />
           <span>{schedule}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
+          <MapPin className={`w-4 h-4 ${theme.location} shrink-0`} />
           <span>{location}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Video className="w-4 h-4 text-indigo-500 shrink-0" />
+          <Video className={`w-4 h-4 ${theme.modeOfInstruction} shrink-0`} />
           <span>{modeOfInstruction}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Users className="w-4 h-4 text-indigo-500 shrink-0" />
+          <Users className={`w-4 h-4 ${theme.availability} shrink-0`} />
           <span>
             {availabilityStatus === "open"
               ? "Seats Available"
@@ -183,7 +213,7 @@ export function CourseCard({
         <div className="mt-4 pt-4 border-t border-slate-200">
           <Button
             onClick={() => onRemoveFromPlanner(id)}
-            className="w-full bg-red-100 hover:bg-red-200 text-red-700"
+            className={`w-full ${theme.removeBtn} text-red-700`}
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Remove from Planner
