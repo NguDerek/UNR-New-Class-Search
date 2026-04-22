@@ -5,6 +5,7 @@ import random
 from database import db
 from flask_cors import CORS
 from models.user import User
+from models.user import user_planned_section
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
@@ -447,6 +448,53 @@ def remove_from_planner(section_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@app.route('/planner/swap', methods=['PATCH'])
+@login_required
+def swap_courses():
+    try:
+        data = request.get_json()
+        #Grabs old and new sections as specified by the frontend
+        old_section_id = data.get('old_section_id')
+        new_section_id = data.get('new_section_id')
+
+        new_section = db.session.get(Section, new_section_id)
+        #Error checking for finding the new section
+        if not new_section:
+            return jsonify({'error': 'Section not found'}), 404
+        
+        if new_section in current_user.planned_sections:
+            return jsonify({'error': 'Section already in planner'}), 400
+        
+        old_section = db.session.get(Section, old_section_id)
+         #Error checking for finding the old section
+        if not old_section:
+            return jsonify({'error': 'Section not found'}), 404
+        
+        if old_section not in current_user.planned_sections:
+            return jsonify({'error': 'Section not in planner'}), 400
+        
+        #Changing the db records directly to maintain order
+        db.session.execute(
+            user_planned_section.update()
+            .where(
+                (user_planned_section.c.user_id == current_user.id) &
+                (user_planned_section.c.section_id == old_section_id)
+            )
+            .values(section_id=new_section_id)
+        )
+
+        #ORM update - using both results in an error
+        # index = current_user.planned_sections.index(old_section)
+        # current_user.planned_sections[index] = new_section
+        
+        db.session.commit()
+        return jsonify({'message': 'Section swapped'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/planner', methods=['GET'])
 @login_required

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { X, ArrowRightLeft } from "lucide-react";
-import { Button } from "./ui/Button";
 import { SearchFilters } from "./SearchFilters";
 import { CourseCard } from "./CourseCard";
 import { executeCourseSearch } from "@/utils/searchUtils";
@@ -221,7 +220,32 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                             courseCareer={getCourseCareer(section.catalog_num)}
                             modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                             isInPlanner={isAlreadyPlanned || isCurrentCourse}
-                            onSwapWithCourse={() => onSwap(section)}
+                            // In SwapModal, in your onSwapWithCourse handler:
+                            onSwapWithCourse={() => {
+                            const normalized: Course = {
+                                section_id: section.section_id,
+                                course_id: section.course_id,
+                                term_id: section.term_id,
+                                section_num: section.section_num,
+                                component: section.component,
+                                instruction_mode: section.instruction_mode,
+                                days: section.days,
+                                start_time: section.start_time,
+                                end_time: section.end_time,
+                                room: section.room,
+                                capacity: section.enrollment_cap,
+                                status: section.status,
+                                combined: section.combined,
+                                instructors: section.instructors ?? [],
+                                course: {
+                                subject: section.course_code.split(' ')[0],
+                                catalog_num: parseInt(section.catalog_num),
+                                title: section.course_title,
+                                units: section.units,
+                                },
+                            };
+                            onSwap(normalized);
+                            }}
                             showSearchSwapButton={true}
                             showRemoveButton={false}
                             showSwapButton={false}

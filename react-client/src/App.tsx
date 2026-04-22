@@ -272,7 +272,8 @@ export default function App() {
             path="/planner"
             element={
               isAuthenticated ? (
-                <Planner onRemoveFromPlanner={handleRemoveFromPlanner} onSwapPrompt={() => {}} />
+                <Planner onRemoveFromPlanner={handleRemoveFromPlanner} 
+                         csrfToken = {csrfToken} />
               ) : (
                 <Navigate to="/login" replace />
               )
