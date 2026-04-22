@@ -35,13 +35,13 @@ interface Course {
   };
 }
 
-
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
-  onSwapPrompt: (courseId: string) => void;
+  // onSwapPrompt: (courseId: string) => void;
+  csrfToken: string;
 }
 
-export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
+export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
   const [plannedCourses, setPlannedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +72,48 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
     onRemoveFromPlanner(courseId);
   };
 
-  const handleSwap = (newCourse: Course): void => {
+  //Opens swap modal and uses information of course you're trying to swap out
+  // const handleSwap = (newCourse: Course): void => {
+  //   if (!courseToSwap) return;
+  //   const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
+  //   const updated = [...plannedCourses];
+  //   updated[index] = newCourse;
+  //   setPlannedCourses(updated);
+  //   setCourseToSwap(null);
+  // };
+
+  const handleSwap = async (newCourse: Course) =>{
     if (!courseToSwap) return;
-    const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
-    const updated = [...plannedCourses];
-    updated[index] = newCourse;
-    setPlannedCourses(updated);
-    setCourseToSwap(null); // closes modal
+    try {
+      const response = await fetch('api/planner/swap', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ old_section_id: courseToSwap.section_id,
+                               new_section_id: newCourse.section_id,
+          }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to swap course:', data.error);
+        return;
+      }
+
+      setPlannedCourses(prev =>{
+          const updated = [...prev];
+          const index = updated.findIndex(c => c.section_id.toString() === courseToSwap.section_id.toString());
+          if (index !== -1) updated[index] = newCourse;
+          return updated;
+      });
+
+      setCourseToSwap(null);
+    } catch (error) {
+      console.error('Error swapping course:', error);
+    }
   };
 
   const totalCredits = plannedCourses.reduce((sum, s) => sum + s.course.units, 0);

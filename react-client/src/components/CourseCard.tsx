@@ -254,16 +254,11 @@ export function CourseCard({
           </Button>
         </div>
       )}
+      {/* Swap button inside swap modal */}
       {showSearchSwapButton && onSwapWithCourse &&(
         <div className="mt-4">
-          {/* <Button
-            // onClick={() => onSwapWithCourse(id)}
-            className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Switch
-          </Button> */}
           <Button
+            onClick={() => onSwapWithCourse(id)}
             disabled={isInPlanner}
             className={
               isInPlanner
