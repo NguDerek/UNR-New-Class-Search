@@ -114,7 +114,11 @@ def signup():
     try:
         #Check if we are actually getting the data from react to flask
         data = request.get_json()
-        print(f"Received data: {data}")
+        print(f"Received data")
+        print(f"First Name: " + data.get('first_name'))
+        print(f"Last Name: " + data.get('last_name'))
+        print(f"Email: " + data.get('email'))
+        print(f"Role: " + data.get('role'))
         
         first_name = data.get('first_name')
         last_name = data.get('last_name')
