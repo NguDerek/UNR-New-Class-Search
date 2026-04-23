@@ -537,6 +537,12 @@ def create_section():
         traceback.print_exc()
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-     
+
+import scraper as sc
+@app.route('/recommendation/<int:program_catalog_number>')
+def course_recommendations(program_catalog_number):
+    recommendation_map = sc.general_program_scraper(program_catalog_number)
+    return jsonify(recommendation_map)
+
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
