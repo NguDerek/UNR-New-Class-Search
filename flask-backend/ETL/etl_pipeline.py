@@ -46,7 +46,7 @@ def extract_excel(file_name):
     return df
 
 # replace with Non-copy version to get full master schedule
-df = extract_excel("Fall 2025 Master Schedule - Copy.xlsx")
+df = extract_excel("Fall 2025 Master Schedule.xlsx")
 
 # ------------------ Transform ------------------
 def float_to_time(value):
