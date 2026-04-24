@@ -35,13 +35,13 @@ interface Course {
   };
 }
 
-
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
-  onSwapPrompt: (courseId: string) => void;
+  // onSwapPrompt: (courseId: string) => void;
+  csrfToken: string;
 }
 
-export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
+export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
   const [plannedCourses, setPlannedCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +72,48 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
     onRemoveFromPlanner(courseId);
   };
 
-  const handleSwap = (newCourse: Course): void => {
+  //Opens swap modal and uses information of course you're trying to swap out
+  // const handleSwap = (newCourse: Course): void => {
+  //   if (!courseToSwap) return;
+  //   const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
+  //   const updated = [...plannedCourses];
+  //   updated[index] = newCourse;
+  //   setPlannedCourses(updated);
+  //   setCourseToSwap(null);
+  // };
+
+  const handleSwap = async (newCourse: Course) =>{
     if (!courseToSwap) return;
-    const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
-    const updated = [...plannedCourses];
-    updated[index] = newCourse;
-    setPlannedCourses(updated);
-    setCourseToSwap(null); // closes modal
+    try {
+      const response = await fetch('api/planner/swap', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ old_section_id: courseToSwap.section_id,
+                               new_section_id: newCourse.section_id,
+          }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to swap course:', data.error);
+        return;
+      }
+
+      setPlannedCourses(prev =>{
+          const updated = [...prev];
+          const index = updated.findIndex(c => c.section_id.toString() === courseToSwap.section_id.toString());
+          if (index !== -1) updated[index] = newCourse;
+          return updated;
+      });
+
+      setCourseToSwap(null);
+    } catch (error) {
+      console.error('Error swapping course:', error);
+    }
   };
 
   const totalCredits = plannedCourses.reduce((sum, s) => sum + s.course.units, 0);
@@ -248,17 +283,6 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
-
-      {/* Disclaimer */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-        <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-blue-900 text-sm">
-            <span className="font-medium">Note:</span> Your planner is saved to your account and persists across sessions.
-          </p>
-        </div>
-      </div>
-
       {/* Page Title */}
       <div className="mb-8 lg:mb-12">
         <div className="flex items-center gap-3 mb-2">
@@ -347,9 +371,9 @@ export function Planner({ onRemoveFromPlanner, onSwapPrompt }: PlannerProps) {
                     location={section.room || 'TBA'}
                     department={section.course.subject}
                     component={section.component}
-                    section={section.section_num}
-                    level={getCourseLevel(section.course.catalog_num)}
-                    courseCareer={getCourseCareer(section.course.catalog_num)}
+                    section={section.section_num.toString()} //MIGHT NEED FIX
+                    level={getCourseLevel(section.course.catalog_num.toString())} //MIGHT NEED FIX
+                    courseCareer={getCourseCareer(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
