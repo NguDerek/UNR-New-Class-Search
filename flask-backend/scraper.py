@@ -31,7 +31,8 @@ def general_program_scraper(poid):
                 temp_course_list = course_list.copy()
                 temp_course_list.remove(course)
                 #Recommended courses are courses that are often taken in the same semester for a major
-                recommendation_map[course] = temp_course_list 
+                if temp_course_list:
+                    recommendation_map[course] = temp_course_list 
     #print(recommendation_map)
     return recommendation_map
 
