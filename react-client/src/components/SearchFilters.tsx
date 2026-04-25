@@ -17,6 +17,7 @@ import { Search, Calendar, BookOpen, MapPin, GraduationCap, Monitor, Filter, Rot
 import { useState } from "react";
 import { useEffect } from "react";
 import { courseAPI } from "../services/api";
+import type { Role } from "../lib/permissions";
 
 interface SearchFiltersProps {
   term: string;
@@ -41,6 +42,7 @@ interface SearchFiltersProps {
   setCredits: (credits: string) => void;
   selectedDays: string[];
   setSelectedDays: (days: string[]) => void;
+  role: Role;
   onSearch: () => void;
   onReset: () => void;
   onSearchRecommendations: () => void;
@@ -69,6 +71,7 @@ export function SearchFilters({
   setCredits,
   selectedDays,
   setSelectedDays,
+  role,
   onSearch,
   onReset,
   onSearchRecommendations,
@@ -458,33 +461,35 @@ export function SearchFilters({
                 </div>
                 
                 {/* Button for generating Course Recommendations */}
-                <div className="md:col-span-2 lg:col-span-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label className="text-slate-700 flex items-center gap-2">
-                      <SearchCheck className="w-4 h-4 text-[#003366]" />
-                      Recommendations
-                    </Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="text-slate-400 hover:text-[#003366] transition-colors">
-                          <HelpCircle className="w-4 h-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>
-                          Generate recommended courses based on your selected major and courses already in your planner
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
+                {role === 'Student' && (
+                  <div className="md:col-span-2 lg:col-span-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="text-slate-700 flex items-center gap-2">
+                        <SearchCheck className="w-4 h-4 text-[#003366]" />
+                        Recommendations
+                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="text-slate-400 hover:text-[#003366] transition-colors">
+                            <HelpCircle className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>
+                            Generate recommended courses based on your selected major and courses already in your planner
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Button
+                      onClick={onSearchRecommendations}
+                      className="w-full bg-[#003366] hover:bg-[#002244] text-white h-10"
+                    >
+                      <SearchCheck className="w-4 h-4 mr-2" />
+                      Search Recommendations
+                    </Button>
                   </div>
-                  <Button
-                    onClick={onSearchRecommendations}
-                    className="w-full bg-[#003366] hover:bg-[#002244] text-white h-10"
-                  >
-                    <SearchCheck className="w-4 h-4 mr-2" />
-                    Search Recommendations
-                  </Button>
-                </div>
+                )}
               </div>
             )}
 

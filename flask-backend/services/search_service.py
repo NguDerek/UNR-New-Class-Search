@@ -3,7 +3,7 @@ from models.course import Course
 from models.instructor import Instructor
 from models.department import Department
 from models.term import Term
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, tuple_
 from database import db
 from sqlalchemy.orm import joinedload
 
@@ -191,6 +191,21 @@ class SearchService:
         if 'room' in self.filters:
             room_search = self.filters['room']
             query = query.filter(Section.room_code.ilike(f"%{room_search}%"))
+
+        # Extra filter for just search recommendations
+        if 'recommendations' in self.filters:
+            course_codes = self.filters['recommendations']
+
+            parsed_codes = []
+            for code in course_codes:
+                parts = code.split()
+                if len(parts) == 2:
+                    parsed_codes.append((parts[0].upper(), parts[1]))
+
+            if parsed_codes:
+                query = query.filter(
+                    tuple_(Course.subject, Course.catalog_num).in_(parsed_codes)
+                )
 
         # # Order results
         # query = query.order_by(Course.subject, Course.catalog_num, Section.section_num)

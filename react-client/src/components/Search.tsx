@@ -33,6 +33,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     const [searchError, setSearchError] = useState<string | null>(null);
 
     const [hasSearched, setHasSearched] = useState(false);
+    const [searchMode, setSearchMode] = useState<'search' | 'recommendations' | null>(null);
     const [appliedFilters, setAppliedFilters] = useState({
         term: "Spring 2025",
         searchQuery: "",
@@ -48,6 +49,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     });
 
     const handleSearch = async () => {
+        setSearchMode('search');
         setIsSearching(true);
         setSearchError(null);
         setHasSearched(true);
@@ -76,6 +78,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     };
 
     const handleRecommendations = async () => {
+        setSearchMode('recommendations');
         setIsSearching(true);
         setSearchError(null);
         setHasSearched(true);
@@ -160,6 +163,7 @@ return (
                 setCredits={setCredits}
                 selectedDays={selectedDays}
                 setSelectedDays={setSelectedDays}
+                role={role}
                 onSearch={handleSearch}
                 onReset={handleReset}
                 onSearchRecommendations={handleRecommendations}
@@ -228,9 +232,15 @@ return (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <p className="text-slate-600 mb-2">No courses found</p>
+                            <p className="text-slate-600 mb-2">
+                                {searchMode === 'recommendations'
+                                    ? 'No recommendations available'
+                                    : 'No courses found'}
+                            </p>
                             <p className="text-sm text-slate-400">
-                                Try adjusting your filters or search query
+                                {searchMode === 'recommendations'
+                                    ? 'Make sure a course is added to your planner'
+                                    : 'Try adjusting your filters or search query'}
                             </p>
                         </div>
                     )}

@@ -632,6 +632,7 @@ def create_section():
         return jsonify({'error': str(e)}), 500
 
 import scraper as sc
+from services.search_service import SearchService
 @app.route('/recommendation/<int:program_catalog_number>')
 @login_required
 def course_recommendations(program_catalog_number):
@@ -650,8 +651,19 @@ def course_recommendations(program_catalog_number):
         for code in course_codes:
             if code in recommended_courses:
                 recommended_courses.remove(code)
-        print(recommended_courses) 
-        return jsonify(recommendation_map)
+        print(recommended_courses)
+        search = SearchService()
+        if recommended_courses:
+            search.add_filter('recommendations', recommended_courses)
+            search.execute_search()
+        
+        return {
+            "status": "success",
+            "sections": search.get_results_as_dict(),
+            "count": search.get_result_count(),
+            "filters_used": search.filters
+        }
+         
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
