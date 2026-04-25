@@ -147,6 +147,18 @@ class CourseAPI {
     
     return response.json();
   }
+
+  async getRecommendations(programId: string) {
+    const response = await fetch(
+      `${API_BASE_URL}/recommendation/${programId}`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch recommendations');
+    }
+
+    return response.json();
+  }
 }
 
 export const courseAPI = new CourseAPI();

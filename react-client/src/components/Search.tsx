@@ -5,6 +5,7 @@ import type { Role } from "../lib/permissions";
 import { SearchFilters } from "../components/SearchFilters";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import { executeCourseSearch } from "../utils/searchUtils.ts";
+import { courseAPI } from "../services/api";
 
 interface SearchProps {
     isAuthenticated: boolean;
@@ -74,6 +75,30 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
         }
     };
 
+    const handleRecommendations = async () => {
+        setIsSearching(true);
+        setSearchError(null);
+        setHasSearched(true);
+
+        try {
+            const response = await courseAPI.getRecommendations("243351");
+
+            if (response.status === 'success') {
+            setSearchResults(response.sections);
+            } else {
+            setSearchError('Recommendation request failed');
+            setSearchResults([]);
+            }
+
+        } catch (error) {
+            console.error('Recommendation error:', error);
+            setSearchError('Failed to fetch recommendations.');
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+        };
+
     const handleReset = () => {
         setTerm("all");
         setSearchQuery("");
@@ -137,6 +162,7 @@ return (
                 setSelectedDays={setSelectedDays}
                 onSearch={handleSearch}
                 onReset={handleReset}
+                onSearchRecommendations={handleRecommendations}
             />
 
             {/* Course Results */}
