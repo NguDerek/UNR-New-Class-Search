@@ -242,7 +242,11 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                                 combined: section.combined,
                                 start_date: section.start_date,
                                 end_date: section.end_date,
-                                instructors: section.instructors ?? [],
+                                instructors: section.instructors ?? (
+                                    section.instructor && section.instructor !== "TBA"
+                                        ? [{ id: 0, first_name: "", last_name: "", full_name: section.instructor }]
+                                        : []
+                                ),
                                 course: {
                                 subject: section.course_code.split(' ')[0],
                                 catalog_num: parseInt(section.catalog_num),
