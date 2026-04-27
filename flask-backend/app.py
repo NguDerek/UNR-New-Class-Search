@@ -2,18 +2,21 @@ import os
 import psycopg2
 import traceback
 import random
+import uuid
 from database import db
 from flask_cors import CORS
 from models.user import User
 from models.user import user_planned_section
+from models.section_attachments import SectionAttachment
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_wtf.csrf import generate_csrf
 from itsdangerous import URLSafeTimedSerializer
-from flask import Flask, redirect, request, jsonify
+from flask import Flask, redirect, request, jsonify, send_from_directory
 from dbconnect.connection import DatabaseConnection
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 load_dotenv()  # load variables from .env
@@ -290,6 +293,63 @@ def auth_status():
             }
         }), 200
     return jsonify({'authenticated': False}), 200
+
+@app.route("/attachments/upload", methods=["POST"])
+@login_required
+def upload_attachment():
+    try:
+        section_id = request.form.get("section_id")
+        file = request.files.get("file")
+
+        if not section_id or not file:
+            return jsonify({"error": "Missing section_id or file"}), 400
+
+        section = db.session.get(Section, int(section_id))
+        if not section:
+            return jsonify({"error": "Course not found"}), 404
+
+        upload_dir = os.path.join(app.instance_path, "uploads", "section_attachments")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        safe_name = secure_filename(file.filename)
+        stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+        file_path = os.path.join(upload_dir, stored_name)
+        file.save(file_path)
+
+        attachment = SectionAttachment(
+            section_id=section.id,
+            filename=stored_name,
+            original_name=file.filename,
+            mime_type=file.mimetype,
+            file_path=file_path,
+        )
+        db.session.add(attachment)
+        db.session.commit()
+
+        return jsonify({
+            "message": "File uploaded",
+            "attachment": {
+                "id": attachment.id,
+                "section_id": section.id,
+                "original_name": attachment.original_name,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/attachments/<int:att_id>/download")
+def download_attachment(att_id):
+    att = SectionAttachment.query.get_or_404(att_id)
+    
+    return send_from_directory(
+        os.path.dirname(att.file_path),
+        os.path.basename(att.file_path),
+        as_attachment=True,
+        download_name=att.original_name,
+        mimetype=att.mime_type
+    )
 
 from models.department import Department
 @app.route("/departments")

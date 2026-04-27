@@ -1,8 +1,9 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft, File } from "lucide-react";
 import type { Role } from "../lib/permissions";
+import { useState, useEffect } from "react";
 
 interface CourseCardProps {
   id: string;
@@ -32,6 +33,12 @@ interface CourseCardProps {
   showSearchSwapButton?: boolean;
   onSwapWithCourse?: (courseId: string) => void;
   isConflict?: boolean;
+  attachments?: Array<{
+    id: number;
+    original_name: string;
+    mime_type: string;
+    download_url: string;
+  }>;
 }
 
 export function CourseCard({
@@ -62,6 +69,8 @@ export function CourseCard({
   showSearchSwapButton = false,
   onSwapWithCourse,
   isConflict = false,
+  attachments,
+  
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -70,6 +79,49 @@ export function CourseCard({
       : availabilityPercent >= 70
       ? "limited"
       : "open";
+  const [csrfToken, setCsrfToken] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState("");
+
+  useEffect(() => {
+      fetch('/api/csrf-token', {
+        credentials: 'include',
+      })
+        .then(response => response.json())
+        .then(data => setCsrfToken(data.csrf_token))
+        .catch(error => console.error('Failed to fetch CSRF token:', error));
+    }, []);
+
+  const handleFileUpload = async (file: File) => {
+  try {
+    setUploading(true);
+    setUploadError("");
+    setUploadSuccess("");
+
+    const formData = new FormData();
+    formData.append("section_id", id);
+    formData.append("file", file);
+
+    const res = await fetch("/api/attachments/upload", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        'X-CSRFToken' : csrfToken,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+
+    setUploadSuccess("File uploaded successfully");
+  } catch (err: any) {
+    setUploadError(err.message || "Upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
 
   {/* Color themeing for when classes conflict */}
   const theme = isConflict
@@ -169,6 +221,37 @@ export function CourseCard({
         </div>
       </div>
 
+      {/* Section Files */}
+      {attachments && attachments.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <h4 className="font-medium mb-3 text-slate-900 flex items-center gap-2">
+            Section Files ({attachments.length})
+          </h4>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {attachments.map((att) => (
+              <a
+                key={att.id}
+                href={att.download_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors text-sm border border-slate-200"
+              >
+                <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                  {att.mime_type?.startsWith("image/") ? "IMG" :
+                    att.mime_type?.includes("pdf") ? "PDF" : "DOC"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-medium text-slate-900">{att.original_name}</p>
+                  <p className="text-xs text-slate-500">
+                    {att.mime_type?.split("/")[1]?.replace("pdf", "PDF") || "File"}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Guest: show login prompt button */}
       {role === "Guest" && (
         <div className="mt-4 pt-4 border-t border-slate-200">
@@ -224,21 +307,21 @@ export function CourseCard({
       {/* Instructor upload button */}
       {role === "Instructor" && (
         <div className="mt-4 pt-4 border-t border-slate-200">
-          <label className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors">
-            <GraduationCap className="w-4 h-4" />
-            Upload Course Info
+          <label className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#003366] text-white rounded-lg hover:bg-[#002244]">
+            <File className="w-4 h-4" />
+            {uploading ? "Uploading..." : "Upload Course File"}
             <input
               type="file"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                  console.log(`Instructor uploaded file for ${code}:`, file);
-                  // Later this could send to backend
-                }
+                if (file) handleFileUpload(file);
               }}
             />
           </label>
+
+          {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
+          {uploadSuccess && <p className="text-sm text-green-600">{uploadSuccess}</p>}
         </div>
       )}
 
