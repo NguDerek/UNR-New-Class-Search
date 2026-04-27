@@ -5,7 +5,6 @@ import type { Role } from "../lib/permissions";
 import { SearchFilters } from "../components/SearchFilters";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import { executeCourseSearch } from "../utils/searchUtils.ts";
-import { courseAPI } from "../services/api";
 
 interface SearchProps {
     isAuthenticated: boolean;
@@ -58,8 +57,8 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
             const response = await executeCourseSearch({
                 searchQuery, searchQueryType, department, roomSearch, selectedDays,
                 term, courseCareer, credits, modeOfInstruction,
-                level, showOpenOnly,
-            });
+                level, showOpenOnly}, true, '0'
+            );
 
             if (response.status === 'success') {
                 setSearchResults(response.sections);
@@ -84,7 +83,11 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
         setHasSearched(true);
 
         try {
-            const response = await courseAPI.getRecommendations("243351");
+            const response = await executeCourseSearch({
+                searchQuery, searchQueryType, department, roomSearch, selectedDays,
+                term, courseCareer, credits, modeOfInstruction,
+                level, showOpenOnly}, false, '243351'
+            );
 
             if (response.status === 'success') {
             setSearchResults(response.sections);

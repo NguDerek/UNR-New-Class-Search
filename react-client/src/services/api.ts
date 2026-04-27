@@ -148,10 +148,26 @@ class CourseAPI {
     return response.json();
   }
 
-  async getRecommendations(programId: string) {
-    const response = await fetch(
-      `${API_BASE_URL}/recommendation/${programId}`
-    );
+  async getRecommendations(
+    programId: string,
+    params: SearchParams = {}
+  ) {
+    const queryParams = new URLSearchParams();
+
+    // Add all non-empty parameters
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value.toString());
+      }
+    });
+
+    const queryString = queryParams.toString();
+
+    const url = queryString
+      ? `${API_BASE_URL}/recommendation/${programId}?${queryString}`
+      : `${API_BASE_URL}/recommendation/${programId}`;
+
+    const response = await fetch(url);
 
     if (!response.ok) {
       throw new Error('Failed to fetch recommendations');

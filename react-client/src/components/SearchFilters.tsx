@@ -78,6 +78,7 @@ export function SearchFilters({
 }: SearchFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [useRecommendations, setUseRecommendations] = useState(false);
   // Inside the component:
   const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
 
@@ -152,8 +153,15 @@ export function SearchFilters({
               </div>
               <div className="flex gap-2">
                 {/* Search Type Dropdown */}
-                <Select value={searchQueryType} onValueChange={setSearchQueryType}>
-                  <SelectTrigger id="searchQueryType" className="w-[180px] border-slate-300">
+                <Select
+                  value={searchQueryType}
+                  onValueChange={setSearchQueryType}
+                  disabled={useRecommendations}
+                >
+                  <SelectTrigger
+                    id="searchQueryType"
+                    className="w-[180px] border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
+                  >
                     <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
@@ -171,10 +179,15 @@ export function SearchFilters({
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     id="search"
-                    placeholder={placeholders[searchQueryType]}
-                    value={searchQuery}
+                    placeholder={
+                      useRecommendations
+                        ? "Recommendations mode enabled"
+                        : placeholders[searchQueryType]
+                    }
+                    value={useRecommendations ? "" : searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
+                    disabled={useRecommendations}
+                    className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366] disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -481,13 +494,17 @@ export function SearchFilters({
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <Button
-                      onClick={onSearchRecommendations}
-                      className="w-full bg-[#003366] hover:bg-[#002244] text-white h-10"
-                    >
-                      <SearchCheck className="w-4 h-4 mr-2" />
-                      Search Recommendations
-                    </Button>
+                    <div className="flex items-center justify-between border border-slate-300 rounded-lg p-3 bg-slate-50">
+                      <span className="text-sm text-slate-700">
+                        Use Recommendations
+                      </span>
+
+                      <Switch
+                        checked={useRecommendations}
+                        onCheckedChange={setUseRecommendations}
+                        className="data-[state=checked]:bg-[#003366] data-[state=unchecked]:bg-slate-300"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -496,11 +513,26 @@ export function SearchFilters({
             {/* Action Buttons */}
             <div className="border-t border-slate-200 pt-6 flex gap-3">
               <Button
-                onClick={onSearch}
+                onClick={() => {
+                  if (useRecommendations) {
+                    onSearchRecommendations();
+                  } else {
+                    onSearch();
+                  }
+                }}
                 className="flex-1 bg-[#003366] hover:bg-[#002244] text-white h-12"
               >
-                <Search className="w-4 h-4 mr-2" />
-                Search Courses
+                {useRecommendations ? (
+                  <>
+                    <SearchCheck className="w-4 h-4 mr-2" />
+                    Get Recommendations
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Search Courses
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"

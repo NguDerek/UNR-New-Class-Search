@@ -651,12 +651,23 @@ def course_recommendations(program_catalog_number):
         for code in course_codes:
             if code in recommended_courses:
                 recommended_courses.remove(code)
-        print(recommended_courses)
+        #print(recommended_courses)
         search = SearchService()
         if recommended_courses:
             search.add_filter('recommendations', recommended_courses)
+            search.add_filter('days', request.args.get('days'))
+            search.add_filter('term', request.args.get('term'))
+            search.add_filter('units', request.args.get('units'))
+            search.add_filter('min_units', request.args.get('min_units'))
+            search.add_filter('max_units', request.args.get('max_units'))
+            search.add_filter('instruction_mode', request.args.get('instruction_mode'))
+            search.add_filter('component', request.args.get('component'))
+            search.add_filter('status', request.args.get('status'))
+            search.add_filter('course_career', request.args.get('course_career'))
+            search.add_filter('level', request.args.get('level'))
+            search.add_filter('room', request.args.get('room'))
             search.execute_search()
-        
+
         return {
             "status": "success",
             "sections": search.get_results_as_dict(),
