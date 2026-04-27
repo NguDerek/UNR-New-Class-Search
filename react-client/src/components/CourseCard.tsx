@@ -75,8 +75,23 @@ export function CourseCard({
       ? "limited"
       : "open";
   
-  const startDateObj = new Date(start_date);
-  const endDateObj = new Date(end_date);
+  let startDateObj = new Date(start_date)
+
+  //Get date from string
+  let year = startDateObj.getUTCFullYear();
+  let month = startDateObj.getUTCMonth();
+  let day = startDateObj.getUTCDate();
+
+  //Update start_date to show proper date
+  startDateObj = new Date(year, month, day);
+
+  let  endDateObj = new Date(end_date);
+
+  year = endDateObj.getUTCFullYear();
+  month = endDateObj.getUTCMonth();
+  day = endDateObj.getUTCDate();
+
+  endDateObj = new Date(year, month, day);
 
   {/* Color themeing for when classes conflict */}
   const theme = isConflict
@@ -166,9 +181,7 @@ export function CourseCard({
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
           <CalendarFold className={`w-4 h-4 ${theme.dates} shrink-0`} />
-          <span>
-            {startDateObj.toLocaleDateString()} - {endDateObj.toLocaleDateString()}
-          </span>
+          <span>{startDateObj.toLocaleDateString()} - {endDateObj.toLocaleDateString()}</span>
         </div>
       </div>
 
