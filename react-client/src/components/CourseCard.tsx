@@ -232,6 +232,7 @@ export function CourseCard({
               <a
                 key={att.id}
                 href={att.download_url}
+                download={att.original_name}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-md transition-colors text-sm border border-slate-200"

@@ -234,7 +234,7 @@ class SearchService:
                 "id": att.id, 
                 "original_name": att.original_name,
                 "mime_type": att.mime_type,
-                "download_url": url_for('download_attachment', att_id=att.id, _external=True)
+                "download_url": f"/api/attachments/{att.id}/download"
                 } 
                 for att in s.section_attachments      
             ]
