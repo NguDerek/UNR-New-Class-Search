@@ -83,6 +83,7 @@ export function CourseCard({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
       fetch('/api/csrf-token', {
@@ -94,34 +95,55 @@ export function CourseCard({
     }, []);
 
   const handleFileUpload = async (file: File) => {
-  try {
-    setUploading(true);
-    setUploadError("");
-    setUploadSuccess("");
+    try {
+      setUploading(true);
+      setUploadError("");
+      setUploadSuccess("");
 
-    const formData = new FormData();
-    formData.append("section_id", id);
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("section_id", id);
+      formData.append("file", file);
 
-    const res = await fetch("/api/attachments/upload", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        'X-CSRFToken' : csrfToken,
-      },
-      body: formData,
-    });
+      const res = await fetch("/api/attachments/upload", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+        body: formData,
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Upload failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
 
-    setUploadSuccess("File uploaded successfully");
-  } catch (err: any) {
-    setUploadError(err.message || "Upload failed");
-  } finally {
-    setUploading(false);
-  }
-};
+      setUploadSuccess("File uploaded successfully");
+    } catch (err: any) {
+      setUploadError(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (attId: number, filename: string) => {
+    if (!confirm(`Delete "${filename}"?`)) return;
+
+    try {
+      setDeletingId(attId);
+
+      const res = await fetch(`/api/attachments/${attId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': csrfToken }
+      });
+
+      if (!res.ok) throw new Error('Delete failed');
+
+    } catch (err: any) {
+      alert('Delete failed: ' + err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   {/* Color themeing for when classes conflict */}
   const theme = isConflict
@@ -229,8 +251,8 @@ export function CourseCard({
           </h4>
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {attachments.map((att) => (
+              <div key={att.id} className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-md border border-slate-200">
               <a
-                key={att.id}
                 href={att.download_url}
                 download={att.original_name}
                 target="_blank"
@@ -248,6 +270,22 @@ export function CourseCard({
                   </p>
                 </div>
               </a>
+              {/* Instructor: Delete button */}
+                {role === "Instructor" && (
+                  <button
+                    onClick={() => handleDelete(att.id, att.original_name)}
+                    disabled={deletingId === att.id}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+                    title="Delete file"
+                  >
+                    {deletingId === att.id ? (
+                      <span className="text-xs">Deleting...</span>
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </div>

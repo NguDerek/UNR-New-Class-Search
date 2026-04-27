@@ -351,6 +351,21 @@ def download_attachment(att_id):
         mimetype=att.mime_type
     )
 
+@app.route("/attachments/<int:att_id>", methods=["DELETE"])
+@login_required
+def delete_attachment(att_id):
+    att = SectionAttachment.query.get_or_404(att_id)
+    
+    try:
+        os.remove(att.file_path)
+        db.session.delete(att)
+        db.session.commit()
+        return jsonify({"message": "File deleted"}), 200
+    except OSError:
+        db.session.rollback()
+        return jsonify({"error": "File delete failed"}), 500
+    
+
 from models.department import Department
 @app.route("/departments")
 def get_departments():
