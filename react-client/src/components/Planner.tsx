@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { CourseCard } from "./CourseCard";
-import { Calendar, Info, ChevronUp, ChevronDown } from "lucide-react";
+import { Calendar, Info, ChevronUp, ChevronDown, CalendarPlus } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -395,16 +395,24 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
                     <div className="flex items-center gap-2">
                       <h2 className="text-white">Weekly Schedule Calendar</h2>
                     </div>
-                      <button
-                        onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-                        className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
-                      >
-                        {isCalendarCollapsed ? (
-                          <ChevronDown className="w-5 h-5" />
-                        ) : (
-                          <ChevronUp className="w-5 h-5" />
-                        )}
-                      </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setIsCalendarModalOpen(true)}
+                          className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                          >
+                          <CalendarPlus className="w-5 h-5"/>
+                        </button>
+                        <button
+                          onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                          className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                        >
+                          {isCalendarCollapsed ? (
+                            <ChevronDown className="w-5 h-5" />
+                          ) : (
+                            <ChevronUp className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                   </div>
                 </div>
 
