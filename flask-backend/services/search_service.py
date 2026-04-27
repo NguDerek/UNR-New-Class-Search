@@ -7,6 +7,7 @@ from models.term import Term
 from sqlalchemy import and_, or_, func
 from database import db
 from sqlalchemy.orm import joinedload
+from flask import url_for
 
 class SearchService:
     """Handles complex search operations with multiple criteria"""
@@ -233,7 +234,7 @@ class SearchService:
                 "id": att.id, 
                 "original_name": att.original_name,
                 "mime_type": att.mime_type,
-                "download_url": f"/attachments/{att.id}/download"
+                "download_url": url_for('download_attachment', att_id=att.id, _external=True)
                 } 
                 for att in s.section_attachments      
             ]
