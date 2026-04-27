@@ -37,6 +37,8 @@ export interface Section {
   catalog_num: string;
   //department: string;
   enrollment_cap: number;
+  start_date: string;
+  end_date: string;
 }
 
 export interface SectionDetails {

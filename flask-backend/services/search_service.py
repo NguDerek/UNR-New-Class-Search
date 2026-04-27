@@ -241,7 +241,9 @@ class SearchService:
                 "instruction_mode": s.instruction_mode,
                 "catalog_num": s.course.catalog_num,
                 #"department": s.get_course().get_department().college
-                "enrollment_cap": s.enrollment_capacity
+                "enrollment_cap": s.enrollment_capacity,
+                "start_date": s.term.start_date,
+                "end_date": s.term.end_date
             })
 
         return results

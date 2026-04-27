@@ -6,6 +6,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventContentArg } from "@fullcalendar/core";
 import { SwapModal } from "./SwapModal.tsx";
+// import { createEvents } from "ics";
 
 interface Course {
   section_id: number;
@@ -33,11 +34,12 @@ interface Course {
     title: string;
     units: number;
   };
+  start_date: string;
+  end_date: string;
 }
 
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
-  // onSwapPrompt: (courseId: string) => void;
   csrfToken: string;
 }
 
@@ -375,6 +377,8 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
                     level={getCourseLevel(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     courseCareer={getCourseCareer(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                    start_date={section.start_date}
+                    end_date={section.end_date}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
                     showSwapButton={true}

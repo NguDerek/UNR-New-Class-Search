@@ -55,6 +55,8 @@ class Section(db.Model):
             "capacity": self.enrollment_capacity,
             "status": self.class_status,
             "combined": self.combined,
+            "start_date": self.term.start_date,
+            "end_date": self.term.end_date
         }
         
         # Optionally include related objects

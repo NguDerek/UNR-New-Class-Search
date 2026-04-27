@@ -31,6 +31,8 @@ interface Course {
     title: string;
     units: number;
   };
+  start_date: string;
+  end_date: string;
 }
 
 interface SwapModalProps{
@@ -219,6 +221,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                             level={getCourseLevel(section.catalog_num)}
                             courseCareer={getCourseCareer(section.catalog_num)}
                             modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                            start_date={section.start_date}
+                            end_date={section.end_date}
                             isInPlanner={isAlreadyPlanned || isCurrentCourse}
                             // In SwapModal, in your onSwapWithCourse handler:
                             onSwapWithCourse={() => {
@@ -236,6 +240,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                                 capacity: section.enrollment_cap,
                                 status: section.status,
                                 combined: section.combined,
+                                start_date: section.start_date,
+                                end_date: section.end_date,
                                 instructors: section.instructors ?? [],
                                 course: {
                                 subject: section.course_code.split(' ')[0],

@@ -187,6 +187,8 @@ return (
                                     level={getCourseLevel(section.catalog_num)}
                                     courseCareer={getCourseCareer(section.catalog_num)}
                                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                                    start_date={section.start_date}
+                                    end_date={section.end_date}
                                     role={role}
                                     isInPlanner={plannedCourseIds.has(section.section_id.toString())}
                                     onAddToPlanner={handleAddToPlanner}

@@ -1,7 +1,7 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft, CalendarFold } from "lucide-react";
 import type { Role } from "../lib/permissions";
 
 interface CourseCardProps {
@@ -20,6 +20,8 @@ interface CourseCardProps {
   level: string;
   courseCareer: string;
   modeOfInstruction: string;
+  start_date: string;
+  end_date: string;
   role?: Role;
   isInPlanner?: boolean;
   onAddToPlanner?: (courseId: string) => void;
@@ -34,6 +36,7 @@ interface CourseCardProps {
   isConflict?: boolean;
 }
 
+
 export function CourseCard({
   id,
   code,
@@ -47,9 +50,10 @@ export function CourseCard({
   department,
   component,
   section,
-  // level,
   courseCareer,
   modeOfInstruction,
+  start_date,
+  end_date,
   role,
   isInPlanner = false,
   onAddToPlanner,
@@ -70,6 +74,9 @@ export function CourseCard({
       : availabilityPercent >= 70
       ? "limited"
       : "open";
+  
+  const startDateObj = new Date(start_date);
+  const endDateObj = new Date(end_date);
 
   {/* Color themeing for when classes conflict */}
   const theme = isConflict
@@ -84,7 +91,7 @@ export function CourseCard({
       schedule: "text-red-500",
       location: "text-red-500",
       modeOfInstruction: "text-red-500",
-      availability: "text-red-500",
+      dates: "text-red-500",
       removeBtn: "bg-red-200 hover:bg-red-300"
     }
   : {
@@ -98,7 +105,7 @@ export function CourseCard({
       schedule: "text-indigo-500",
       location: "text-indigo-500",
       modeOfInstruction: "text-indigo-500",
-      availability: "text-indigo-500",
+      dates: "text-indigo-500",
       removeBtn: "bg-red-100 hover:bg-red-200"
     }
 
@@ -158,13 +165,9 @@ export function CourseCard({
           <span>{modeOfInstruction}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
-          <Users className={`w-4 h-4 ${theme.availability} shrink-0`} />
+          <CalendarFold className={`w-4 h-4 ${theme.dates} shrink-0`} />
           <span>
-            {availabilityStatus === "open"
-              ? "Seats Available"
-              : availabilityStatus === "limited"
-              ? "Limited Seats"
-              : "Class Full"}
+            {startDateObj.toLocaleDateString()} - {endDateObj.toLocaleDateString()}
           </span>
         </div>
       </div>
