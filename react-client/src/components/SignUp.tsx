@@ -46,7 +46,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
     setError("");
 
     // Validation
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !role) {
       setError("Please fill in all fields");
       return;
     }
@@ -363,10 +363,6 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
                 </SelectContent>
               </Select>
             </div>
-
-            {role === "" && error && (
-              <p className="text-sm text-red-600">Please select a role</p>
-            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
