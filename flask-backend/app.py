@@ -138,10 +138,34 @@ def signup():
             'first_name': first_name,
             'last_name': last_name,
             'password': generate_password_hash(password),
+            'role': role
         }
         
-        msg = Message('NCS Verification Code', recipients=[email])
-        msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        if role == 'Student':
+            #User
+            recipients = [email]
+            msg = Message('NCS Verification Code', recipients=recipients)
+            msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        else:
+            #Emails from .env
+            #Format=admin@unr.edu,staff@unr.edu
+            staff_emails_raw = os.environ.get('STAFF_EMAILS', '')
+            staff_emails = [e.strip() for e in staff_emails_raw.split(',') if e.strip()]
+
+            if not staff_emails:
+                return jsonify({'error': 'No emails available in .env.'}), 500
+
+            recipients = staff_emails
+            msg = Message('NCS Staff Verification Code', recipients=recipients)
+            msg.body = (
+                f"A new {role} account is pending verification.\n\n"
+                f"Name: {first_name} {last_name}\n"
+                f"Email: {email}\n"
+                f"Role: {role}\n\n"
+                f"Verification code: {code}\n\n"
+                f"This code expires in 5 minutes.\n"
+                f"Please share this code with the registrant."
+            )
         mail.send(msg)
 
         return jsonify({'message': 'Verification code sent'}), 200
@@ -180,6 +204,7 @@ def verify_email():
             last_name=pending['last_name'],
             email=email,
             password=pending['password'],
+            role=pending['role'],
             is_verified=True
         )
         db.session.add(new_user)

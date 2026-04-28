@@ -29,6 +29,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
   const [submitted, setSubmitted] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [submittedRole, setSubmittedRole] = useState("");
 
   useEffect(() => {
     fetch('/api/csrf-token', {
@@ -89,6 +90,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
         return response.json();
       })
       .then(() => {
+        setSubmittedRole(role);
         setSubmitted(true);
       })
       .catch((error: Error) => {
@@ -182,7 +184,14 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
             <div className="text-5xl">✉</div>
             <h2 className="text-[#003366]">Check your email</h2>
             <p className="text-slate-600">
-              We sent a verification code to <strong>{email}</strong>
+              {submittedRole === "Student" ? (
+                <>We sent a verification code to <strong>{email}</strong></>
+              ) : (
+                <>
+                  A verification code was sent to an admin.
+                  Ask your administrator for the code to complete registration.
+                </>
+              )}
             </p>
 
             <form onSubmit={handleVerify} className="space-y-4 text-left">
@@ -334,6 +343,25 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-slate-700">
+                Role
+              </Label>
+
+              <Select onValueChange={(value) => setRole(value)}>
+                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Student">Student</SelectItem>
+                  <SelectItem value="Instructor">Instructor</SelectItem>
+                  <SelectItem value="Advisor">Advisor</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {error && (
