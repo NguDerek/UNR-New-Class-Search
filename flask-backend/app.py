@@ -108,6 +108,7 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
     #return User.query.get(int(user_id)) #deprecated
     
+#Emails
 pending_verifications = {}
     
 @app.route('/signup', methods=['POST'])
@@ -142,10 +143,34 @@ def signup():
             'first_name': first_name,
             'last_name': last_name,
             'password': generate_password_hash(password),
+            'role': role
         }
         
-        msg = Message('NCS Verification Code', recipients=[email])
-        msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        if role == 'Student':
+            #User
+            recipients = [email]
+            msg = Message('NCS Verification Code', recipients=recipients)
+            msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        else:
+            #Emails from .env
+            #Format=admin@unr.edu,staff@unr.edu
+            staff_emails_raw = os.environ.get('STAFF_EMAILS', '')
+            staff_emails = [e.strip() for e in staff_emails_raw.split(',') if e.strip()]
+
+            if not staff_emails:
+                return jsonify({'error': 'No emails available in .env.'}), 500
+
+            recipients = staff_emails
+            msg = Message('NCS Staff Verification Code', recipients=recipients)
+            msg.body = (
+                f"A new {role} account is pending verification.\n\n"
+                f"Name: {first_name} {last_name}\n"
+                f"Email: {email}\n"
+                f"Role: {role}\n\n"
+                f"Verification code: {code}\n\n"
+                f"This code expires in 5 minutes.\n"
+                f"Please share this code with the registrant."
+            )
         mail.send(msg)
 
         return jsonify({'message': 'Verification code sent'}), 200
@@ -184,6 +209,7 @@ def verify_email():
             last_name=pending['last_name'],
             email=email,
             password=pending['password'],
+            role=pending['role'],
             is_verified=True
         )
         db.session.add(new_user)
@@ -222,6 +248,117 @@ def resend_verification():
 
     except Exception as e:
         print(f"Resend error: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+# Passwords
+pending_resets = {}
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+
+        # Check user exists
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if not user:
+            return jsonify({'message': 'If that email exists, a code was sent'}), 200
+
+        code = str(random.randint(100000, 999999))
+        token = timedSerializer.dumps({'email': email, 'code': code}, salt='password-reset')
+
+        pending_resets[email] = {
+            'token': token,
+            'code': code,
+        }
+
+        msg = Message('NCS Password Reset Code', recipients=[email])
+        msg.body = (
+            f"Hi {user.first_name},\n\n"
+            f"Your password reset code is: {code}\n\n"
+            f"This code expires in 5 minutes.\n\n"
+            f"If you didn't request this, ignore this email."
+        )
+        mail.send(msg)
+
+        return jsonify({'message': 'Reset code sent'}), 200
+
+    except Exception as e:
+        print(f"Forgot password error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/verify-reset-code', methods=['POST'])
+def verify_reset_code():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+
+        pending = pending_resets.get(email)
+        if not pending:
+            return jsonify({'error': 'No reset request found. Please try again.'}), 400
+
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='password-reset',
+                max_age=300
+            )
+        except Exception:
+            del pending_resets[email]
+            return jsonify({'error': 'Code expired. Please request a new one.'}), 400
+
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+
+        return jsonify({'message': 'Code verified'}), 200
+
+    except Exception as e:
+        print(f"Verify reset code error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+        new_password = data.get('new_password')
+
+        pending = pending_resets.get(email)
+        if not pending:
+            return jsonify({'error': 'No reset request found. Please try again.'}), 400
+
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='password-reset',
+                max_age=300
+            )
+        except Exception:
+            del pending_resets[email]
+            return jsonify({'error': 'Code expired. Please request a new one.'}), 400
+
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+
+        # Password Update
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+
+        del pending_resets[email]
+
+        return jsonify({'message': 'Password reset successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Reset password error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
