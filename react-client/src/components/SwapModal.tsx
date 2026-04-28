@@ -85,8 +85,6 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                 term, courseCareer, credits, modeOfInstruction,
                 level, showOpenOnly,
             });
-
-            // ← response is used inside try, not outside it
             if (response.status === "success") {
             setResults(response.sections);
             } 
@@ -132,7 +130,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="absolute inset-0 bg-black/50" 
+        onClick={onClose} />
 
         {/* Modal */}
         <div className="relative z-10 bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col mx-4">

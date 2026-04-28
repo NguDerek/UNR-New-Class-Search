@@ -6,6 +6,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventContentArg } from "@fullcalendar/core";
 import { SwapModal } from "./SwapModal.tsx";
+import { CalendarModal } from "./CalendarModal.tsx"
 // import { createEvents } from "ics";
 
 interface Course {
@@ -49,6 +50,7 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [courseToSwap, setCourseToSwap] = useState<Course | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
+  const [isCalenderModalOpen, setIsCalendarModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/planner', {
@@ -415,7 +417,13 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
                       </div>
                   </div>
                 </div>
-
+                {isCalenderModalOpen && (
+                  <CalendarModal
+                    plannedCourses={plannedCourses}
+                    conflictIds={conflictIds}
+                    onClose={() => setIsCalendarModalOpen(false)}
+                  />
+                )}
                 {/* Show calendar content if not collapsed */}
                 {!isCalendarCollapsed && (<div className="p-4">
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
