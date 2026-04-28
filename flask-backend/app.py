@@ -212,7 +212,7 @@ def verify_email():
             last_name=pending['last_name'],
             email=email,
             password=pending['password'],
-            role=pending['role'],
+            role=pending.get('role', 'Student'),
             is_verified=True
         )
         db.session.add(new_user)
