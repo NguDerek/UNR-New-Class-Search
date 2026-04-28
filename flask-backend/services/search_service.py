@@ -1,11 +1,13 @@
 from models.section import Section, section_instructor
 from models.course import Course
+from models.section_attachments import SectionAttachment
 from models.instructor import Instructor
 from models.department import Department
 from models.term import Term
 from sqlalchemy import and_, or_, func
 from database import db
 from sqlalchemy.orm import joinedload
+from flask import url_for
 
 class SearchService:
     """Handles complex search operations with multiple criteria"""
@@ -42,9 +44,11 @@ class SearchService:
             .join(Department, Course.department_id == Department.id)
             .join(Term, Section.term_id == Term.id)
             # added eager loading to prevent extra querries
+            .outerjoin(SectionAttachment, Section.id == SectionAttachment.section_id)
             .options(
                 joinedload(Section.course),
-                joinedload(Section.instructors)
+                joinedload(Section.instructors),
+                joinedload(Section.section_attachments)
             )
         )
 
@@ -224,6 +228,16 @@ class SearchService:
             instructor_names = ", ".join(
                 f"{i.first_name} {i.last_name}" for i in s.instructors
             )
+            
+            attachments = [
+                {
+                "id": att.id, 
+                "original_name": att.original_name,
+                "mime_type": att.mime_type,
+                "download_url": f"/api/attachments/{att.id}/download"
+                } 
+                for att in s.section_attachments      
+            ]
 
             results.append({
                 "section_id": s.id,
@@ -241,7 +255,9 @@ class SearchService:
                 "instruction_mode": s.instruction_mode,
                 "catalog_num": s.course.catalog_num,
                 #"department": s.get_course().get_department().college
-                "enrollment_cap": s.enrollment_capacity
+                "enrollment_cap": s.enrollment_capacity,
+                "attachments": attachments,
+                "section_id": s.id
             })
 
         return results
