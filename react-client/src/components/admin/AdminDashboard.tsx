@@ -6,7 +6,7 @@ import { AdminAddCourse } from "./AdminAddCourse";
 import { AdminRemoveSection } from "./AdminRemoveSection";
 import { AdminRemoveCourse } from "./AdminRemoveCourse";
 import { AdminModifyCourse } from "./AdminModifyCourse";
-//import { AdminHistory } from "./AdminHistory";
+import { AdminHistory } from "./AdminHistory";
 
 type AdminView = "add-course" | "add-section" | "remove-course" | "remove-section" 
                   | "history" | "modify-course" | null;
@@ -55,14 +55,14 @@ export function AdminDashboard() {
       cardBg: "bg-slate-50",
       ring: "ring-slate-400",
     },
-    // {
-    //   key: "history" as const,
-    //   title: "View History",
-    //   description: "See admin activity and changes",
-    //   icon: Clock,
-    //   cardBg: "bg-slate-50",
-    //   ring: "ring-slate-400",
-    // },
+    {
+      key: "history" as const,
+      title: "View History",
+      description: "See admin activity and changes",
+      icon: Clock,
+      cardBg: "bg-slate-50",
+      ring: "ring-slate-400",
+    },
   ];
 
   return (
@@ -136,7 +136,7 @@ export function AdminDashboard() {
         {activeView === "remove-section" && <AdminRemoveSection/>}
 
         {/* View History */}
-        {/*activeView === "history" && <AdminHistory />*/}
+        {activeView === "history" && <AdminHistory />}
 
         {/* Modify Course */}
         {activeView === "modify-course" && <AdminModifyCourse />}

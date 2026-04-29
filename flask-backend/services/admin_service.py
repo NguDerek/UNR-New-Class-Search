@@ -6,6 +6,17 @@ from models.instructor import Instructor
 from models.section import Section
 from models.term import Term
 
+from models.admin_logs import AdminLogs
+
+def log_admin_action(user, action, summary):
+    log = AdminLogs(
+        user_id=user.id,
+        user_email=user.email,
+        action=action,
+        summary=summary,
+    )
+    db.session.add(log)
+
 def err(message, code):
     return message, code
 
@@ -69,7 +80,7 @@ def find_or_create_instructor(first_name, last_name):
 
     return instructor
 
-def create_section_service(data):
+def create_section_service(data, user=None):
     course_id = data.get("course_id")
     term_id = data.get("term_id")
     instructors = data.get("instructors", [])
@@ -130,10 +141,16 @@ def create_section_service(data):
         if instructor not in section.instructors:
             section.instructors.append(instructor)
 
+    log_admin_action(
+        user,
+        "CREATE_SECTION",
+        f"Created section {section.section_num} for {course.subject} {course.catalog_num}"
+    )
+
     db.session.commit()
     return section, None
 
-def create_course_service(data):
+def create_course_service(data, user=None):
     department_id = data.get("department_id")
     subject = empty_to_none(data.get("subject"))
     catalog_num = empty_to_none(data.get("catalog_num"))
@@ -177,27 +194,47 @@ def create_course_service(data):
     )
 
     db.session.add(course)
+
+    log_admin_action(
+        user,
+        "CREATE_COURSE",
+        f"Created course {course.subject} {course.catalog_num} - {course.title}"
+    )
+
     db.session.commit()
     return course, None
 
-def delete_section_service(section_id):
+def delete_section_service(section_id, user=None):
     section = db.session.get(Section, section_id)
 
     if not section:
         return err("Section not found", 404)
+    
+    summary = f"Deleted section {section.section_num}"
+
+    if section.course:
+        summary += f" for {section.course.subject} {section.course.catalog_num}"
+
+    log_admin_action(user, "DELETE_SECTION", summary)
 
     db.session.delete(section)
     db.session.commit()
+
     return None
 
-def delete_course_service(course_id):
+def delete_course_service(course_id, user=None):
     course = db.session.get(Course, course_id)
 
     if not course:
         return err("Course not found", 404)
 
+    summary = f"Deleted course {course.subject} {course.catalog_num} - {course.title}"
+
+    log_admin_action(user, "DELETE_COURSE", summary)
+
     db.session.delete(course)
     db.session.commit()
+
     return None
 
 def get_course_sections_service(course_id, term_id):
@@ -217,7 +254,7 @@ def get_course_sections_service(course_id, term_id):
 
     return sections, None
 
-def delete_course_sections_by_term_service(course_id, term_id):
+def delete_course_sections_by_term_service(course_id, term_id, user=None):
     sections = db.session.execute(
         db.select(Section).where(
             Section.course_id == course_id,
@@ -227,12 +264,21 @@ def delete_course_sections_by_term_service(course_id, term_id):
 
     if not sections:
         return err("No sections found for this course and term", 404)
+    
+    course = db.session.get(Course, course_id)
+
+    summary = f"Deleted {len(sections)} section(s) for course ID {course_id}"
+    if course:
+        summary = f"Deleted {len(sections)} section(s) for {course.subject} {course.catalog_num}"
+
+    log_admin_action(user, "DELETE_COURSE_SECTIONS_BY_TERM", summary)
 
     for section in sections:
         db.session.delete(section)
 
     db.session.commit()
     return None
+
 
 def get_admin_departments_service():
     return db.session.execute(
