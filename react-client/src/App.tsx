@@ -8,7 +8,7 @@ import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp"
 import { Menu } from "lucide-react";
 import type { Role } from "./lib/permissions";
-import { AdminDashboard } from "./components/AdminDashboard.tsx";
+import { AdminDashboard } from "./components/admin/AdminDashboard.tsx";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Search } from "./components/Search.tsx"
 import { AboutPage } from "./components/AboutPage.tsx";

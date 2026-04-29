@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Label } from "../ui/Label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select";
 import { PlusCircle, BookOpen, Building2, Hash, FileText } from "lucide-react";
+
+const isValidSubject = (value: string) => /^[A-Z]{2,6}$/.test(value.trim().toUpperCase());
+
+const isValidCatalogNum = (value: string) =>
+  /^[0-9]{3,4}[A-Z]?$/.test(value.trim().toUpperCase());
+
+const isValidTitle = (value: string) =>
+  value.trim().length >= 3 && value.trim().length <= 120;
 
 const UNIT_OPTIONS = ["1", "2", "3", "4"];
 
@@ -66,6 +74,24 @@ export function AdminAddCourse() {
       setSuccessMessage("");
       return;
     }
+    
+    if (!isValidSubject(formData.subject)) {
+      setErrorMessage("Subject must be 2–6 letters, like CPE, MATH, or ENG.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidCatalogNum(formData.catalog_num)) {
+      setErrorMessage("Catalog number must look like 101, 301, 1001, or 301L.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidTitle(formData.title)) {
+      setErrorMessage("Course title must be between 3 and 120 characters.");
+      setSuccessMessage("");
+      return;
+    }
 
     try {
       setErrorMessage("");
@@ -77,6 +103,7 @@ export function AdminAddCourse() {
       const csrfData = await csrfRes.json();
 
       const payload = {
+        ...formData,
         department_id: Number(formData.department_id),
         subject: formData.subject.trim().toUpperCase(),
         catalog_num: formData.catalog_num.trim().toUpperCase(),
@@ -162,7 +189,7 @@ export function AdminAddCourse() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-37 overflow-y-auto">
                   {departments.map((dept) => (
                     <SelectItem
                       key={dept.id}
@@ -218,7 +245,7 @@ export function AdminAddCourse() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select units" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-37 overflow-y-auto">
                   {UNIT_OPTIONS.map((u) => (
                     <SelectItem key={u} value={u}>
                       {u}

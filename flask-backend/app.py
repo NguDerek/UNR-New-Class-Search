@@ -2,19 +2,27 @@ import os
 import psycopg2
 import traceback
 import random
+import uuid
 from database import db
 from flask_cors import CORS
 from models.user import User
+from models.admin_logs import AdminLogs
+from services.admin_service import log_admin_action
 from models.user import user_planned_section
+from models.section_attachments import SectionAttachment
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_wtf.csrf import generate_csrf
 from itsdangerous import URLSafeTimedSerializer
-from flask import Flask, redirect, request, jsonify
+from flask import Flask, redirect, request, jsonify, send_from_directory
 from dbconnect.connection import DatabaseConnection
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from services.admin_service import (empty_to_none, lookup_course_service, lookup_instructor_service, create_section_service, 
+                                    create_course_service, delete_section_service, delete_course_service, get_course_sections_service, 
+                                    delete_course_sections_by_term_service, get_admin_departments_service)
 
 load_dotenv()  # load variables from .env
 
@@ -108,6 +116,7 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
     #return User.query.get(int(user_id)) #deprecated
     
+#Emails
 pending_verifications = {}
     
 @app.route('/signup', methods=['POST'])
@@ -142,10 +151,34 @@ def signup():
             'first_name': first_name,
             'last_name': last_name,
             'password': generate_password_hash(password),
+            'role': role
         }
         
-        msg = Message('NCS Verification Code', recipients=[email])
-        msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        if role == 'Student':
+            #User
+            recipients = [email]
+            msg = Message('NCS Verification Code', recipients=recipients)
+            msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        else:
+            #Emails from .env
+            #Format=admin@unr.edu,staff@unr.edu
+            staff_emails_raw = os.environ.get('STAFF_EMAILS', '')
+            staff_emails = [e.strip() for e in staff_emails_raw.split(',') if e.strip()]
+
+            if not staff_emails:
+                return jsonify({'error': 'No emails available in .env.'}), 500
+
+            recipients = staff_emails
+            msg = Message('NCS Staff Verification Code', recipients=recipients)
+            msg.body = (
+                f"A new {role} account is pending verification.\n\n"
+                f"Name: {first_name} {last_name}\n"
+                f"Email: {email}\n"
+                f"Role: {role}\n\n"
+                f"Verification code: {code}\n\n"
+                f"This code expires in 5 minutes.\n"
+                f"Please share this code with the registrant."
+            )
         mail.send(msg)
 
         return jsonify({'message': 'Verification code sent'}), 200
@@ -184,6 +217,7 @@ def verify_email():
             last_name=pending['last_name'],
             email=email,
             password=pending['password'],
+            role=pending.get('role', 'Student'),
             is_verified=True
         )
         db.session.add(new_user)
@@ -222,6 +256,117 @@ def resend_verification():
 
     except Exception as e:
         print(f"Resend error: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+# Passwords
+pending_resets = {}
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+
+        # Check user exists
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if not user:
+            return jsonify({'message': 'If that email exists, a code was sent'}), 200
+
+        code = str(random.randint(100000, 999999))
+        token = timedSerializer.dumps({'email': email, 'code': code}, salt='password-reset')
+
+        pending_resets[email] = {
+            'token': token,
+            'code': code,
+        }
+
+        msg = Message('NCS Password Reset Code', recipients=[email])
+        msg.body = (
+            f"Hi {user.first_name},\n\n"
+            f"Your password reset code is: {code}\n\n"
+            f"This code expires in 5 minutes.\n\n"
+            f"If you didn't request this, ignore this email."
+        )
+        mail.send(msg)
+
+        return jsonify({'message': 'Reset code sent'}), 200
+
+    except Exception as e:
+        print(f"Forgot password error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/verify-reset-code', methods=['POST'])
+def verify_reset_code():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+
+        pending = pending_resets.get(email)
+        if not pending:
+            return jsonify({'error': 'No reset request found. Please try again.'}), 400
+
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='password-reset',
+                max_age=300
+            )
+        except Exception:
+            del pending_resets[email]
+            return jsonify({'error': 'Code expired. Please request a new one.'}), 400
+
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+
+        return jsonify({'message': 'Code verified'}), 200
+
+    except Exception as e:
+        print(f"Verify reset code error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+        new_password = data.get('new_password')
+
+        pending = pending_resets.get(email)
+        if not pending:
+            return jsonify({'error': 'No reset request found. Please try again.'}), 400
+
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='password-reset',
+                max_age=300
+            )
+        except Exception:
+            del pending_resets[email]
+            return jsonify({'error': 'Code expired. Please request a new one.'}), 400
+
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+
+        # Password Update
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+
+        del pending_resets[email]
+
+        return jsonify({'message': 'Password reset successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Reset password error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
@@ -290,6 +435,78 @@ def auth_status():
             }
         }), 200
     return jsonify({'authenticated': False}), 200
+
+@app.route("/attachments/upload", methods=["POST"])
+@login_required
+def upload_attachment():
+    try:
+        section_id = request.form.get("section_id")
+        file = request.files.get("file")
+
+        if not section_id or not file:
+            return jsonify({"error": "Missing section_id or file"}), 400
+
+        section = db.session.get(Section, int(section_id))
+        if not section:
+            return jsonify({"error": "Course not found"}), 404
+
+        upload_dir = os.path.join(app.instance_path, "uploads", "section_attachments")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        safe_name = secure_filename(file.filename)
+        stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+        file_path = os.path.join(upload_dir, stored_name)
+        file.save(file_path)
+
+        attachment = SectionAttachment(
+            section_id=section.id,
+            filename=stored_name,
+            original_name=file.filename,
+            mime_type=file.mimetype,
+            file_path=file_path,
+        )
+        db.session.add(attachment)
+        db.session.commit()
+
+        return jsonify({
+            "message": "File uploaded",
+            "attachment": {
+                "id": attachment.id,
+                "section_id": section.id,
+                "original_name": attachment.original_name,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/attachments/<int:att_id>/download")
+def download_attachment(att_id):
+    att = SectionAttachment.query.get_or_404(att_id)
+    
+    return send_from_directory(
+        os.path.dirname(att.file_path),
+        os.path.basename(att.file_path),
+        as_attachment=True,
+        download_name=att.original_name,
+        mimetype=att.mime_type
+    )
+
+@app.route("/attachments/<int:att_id>", methods=["DELETE"])
+@login_required
+def delete_attachment(att_id):
+    att = SectionAttachment.query.get_or_404(att_id)
+    
+    try:
+        os.remove(att.file_path)
+        db.session.delete(att)
+        db.session.commit()
+        return jsonify({"message": "File deleted"}), 200
+    except OSError:
+        db.session.rollback()
+        return jsonify({"error": "File delete failed"}), 500
+    
 
 from models.department import Department
 @app.route("/departments")
@@ -510,14 +727,6 @@ def get_planner():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-# helpers for adding section
-def empty_to_none(value):
-    if value is None:
-        return None
-    if isinstance(value, str) and value.strip() == "":
-        return None
-    return value
-
 # admin helper for role auth
 def require_admin():
     if not current_user.is_authenticated:
@@ -529,101 +738,21 @@ def require_admin():
 
     return None
 
-from models.section import section_instructor
 @app.route('/admin/sections', methods=['POST'])
 @login_required
 def create_section():
     try:
         data = request.get_json()
-        print("Received section payload:", data)
 
-        course_id = data.get('course_id')
-        term_id = data.get('term_id')
-        section_num = data.get('section_num')
+        section, error = create_section_service(data, current_user)
 
-        component = empty_to_none(data.get('component'))
-        instruction_mode = empty_to_none(data.get('instruction_mode'))
-        class_days = empty_to_none(data.get('days'))
-        start_time = empty_to_none(data.get('start_time'))
-        end_time = empty_to_none(data.get('end_time'))
-        combined = data.get('combined')
-        class_status = empty_to_none(data.get('status'))
-        enrollment_capacity = data.get('capacity')
-        room_code = empty_to_none(data.get('room'))
-        instructor_names = data.get('instructors', [])
-
-        if (
-            not course_id or
-            not term_id or
-            not section_num or
-            not component or
-            not instruction_mode or
-            not class_days or
-            not start_time or
-            not end_time or
-            combined is None or
-            not class_status or
-            enrollment_capacity is None or
-            not room_code or
-            not instructor_names or
-            any(not name.strip() for name in instructor_names)
-        ):
-            return jsonify({'error': 'All fields are required'}), 400
-
-        course = db.session.get(Course, course_id)
-        if not course:
-            return jsonify({'error': 'Course not found'}), 404
-
-        term = db.session.get(Term, term_id)
-        if not term:
-            return jsonify({'error': 'Term not found'}), 404
-
-        new_section = Section(
-            course_id=course_id,
-            term_id=term_id,
-            section_num=section_num,
-            component=component,
-            instruction_mode=instruction_mode,
-            class_days=class_days,
-            start_time=start_time,
-            end_time=end_time,
-            combined=combined,
-            class_status=class_status,
-            enrollment_capacity=enrollment_capacity,
-            room_code=room_code,
-        )
-
-        db.session.add(new_section)
-        db.session.flush()
-
-        for full_name in instructor_names:
-            full_name = full_name.strip()
-
-            parts = full_name.split(maxsplit=1)
-            first_name = parts[0]
-            last_name = parts[1] if len(parts) > 1 else "TBA"
-
-            instructor = db.session.execute(
-                db.select(Instructor).filter_by(
-                    first_name=first_name,
-                    last_name=last_name
-                )
-            ).scalar_one_or_none()
-
-            if not instructor:
-                instructor = Instructor(first_name=first_name, last_name=last_name)
-                db.session.add(instructor)
-                db.session.flush()
-
-            if instructor not in new_section.instructors:
-                new_section.instructors.append(instructor)
-
-        db.session.commit()
+        if error:
+            return jsonify({'error': error[0]}), error[1]
 
         return jsonify({
             'status': 'success',
             'message': 'Section created successfully',
-            'section': new_section.format()
+            'section': section.format()
         }), 201
 
     except Exception as e:
@@ -684,9 +813,7 @@ def course_recommendations(program_catalog_number):
 @login_required
 def get_admin_departments():
     try:
-        departments = db.session.execute(
-            db.select(Department).order_by(Department.college, Department.department_code)
-        ).scalars().all()
+        departments = get_admin_departments_service()
 
         return jsonify({
             'status': 'success',
@@ -695,36 +822,10 @@ def get_admin_departments():
                     'id': dept.id,
                     'college': dept.college,
                     'department_code': dept.department_code,
-                    'label': f"{dept.college} - {dept.department_code}"
+                    'label': f"{dept.college} Department ({dept.department_code})"
                 }
                 for dept in departments
             ]
-        }), 200
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/admin/departments/<int:department_id>/subjects', methods=['GET'])
-@login_required
-def get_department_subjects(department_id):
-    try:
-        department = db.session.get(Department, department_id)
-        if not department:
-            return jsonify({'error': 'Department not found'}), 404
-
-        rows = db.session.execute(
-            db.select(Course.subject)
-            .where(Course.department_id == department_id)
-            .distinct()
-            .order_by(Course.subject)
-        ).all()
-
-        subjects = [row[0] for row in rows]
-
-        return jsonify({
-            'status': 'success',
-            'subjects': subjects
         }), 200
 
     except Exception as e:
@@ -736,73 +837,26 @@ def get_department_subjects(department_id):
 def create_course():
     try:
         data = request.get_json()
-        print("Received course payload:", data)
 
-        department_id = data.get('department_id')
-        subject = empty_to_none(data.get('subject'))
-        catalog_num = empty_to_none(data.get('catalog_num'))
-        title = empty_to_none(data.get('title'))
-        units = data.get('units')
+        course, error = create_course_service(data, current_user)
 
-        if (
-            not department_id or
-            not subject or
-            not catalog_num or
-            not title or
-            units is None
-        ):
-            return jsonify({'error': 'All fields are required'}), 400
+        if error:
+            return jsonify({'error': error[0]}), error[1]
 
-        department = db.session.get(Department, department_id)
-        if not department:
-            return jsonify({'error': 'Department not found'}), 404
-
-        subject = subject.strip().upper()
-        catalog_num = str(catalog_num).strip().upper()
-        title = title.strip()
-
-        try:
-            units = int(units)
-        except (TypeError, ValueError):
-            return jsonify({'error': 'Units must be a valid number'}), 400
-
-        catalog_num_int = int(catalog_num) if catalog_num.isdigit() else None
-
-        existing_course = db.session.execute(
-            db.select(Course).filter_by(
-                department_id=department_id,
-                subject=subject,
-                catalog_num=catalog_num
-            )
-        ).scalar_one_or_none()
-
-        if existing_course:
-            return jsonify({'error': 'Course already exists'}), 409
-
-        new_course = Course(
-            department_id=department_id,
-            subject=subject,
-            catalog_num=catalog_num,
-            catalog_num_int=catalog_num_int,
-            title=title,
-            units=units
-        )
-
-        db.session.add(new_course)
-        db.session.commit()
+        department = course.department
 
         return jsonify({
             'status': 'success',
             'message': 'Course created successfully',
             'course': {
-                'id': new_course.id,
+                'id': course.id,
                 'department_id': department.id,
                 'college': department.college,
                 'department_code': department.department_code,
-                'subject': new_course.subject,
-                'catalog_num': new_course.catalog_num,
-                'title': new_course.title,
-                'units': new_course.units,
+                'subject': course.subject,
+                'catalog_num': course.catalog_num,
+                'title': course.title,
+                'units': course.units,
             }
         }), 201
 
@@ -819,12 +873,10 @@ def delete_section(section_id):
         return admin_error
 
     try:
-        section = db.session.get(Section, section_id)
-        if not section:
-            return jsonify({'error': 'Section not found'}), 404
+        error = delete_section_service(section_id, current_user)
 
-        db.session.delete(section)
-        db.session.commit()
+        if error:
+            return jsonify({'error': error[0]}), error[1]
 
         return jsonify({
             'status': 'success',
@@ -844,12 +896,10 @@ def delete_course(course_id):
         return admin_error
 
     try:
-        course = db.session.get(Course, course_id)
-        if not course:
-            return jsonify({'error': 'Course not found'}), 404
+        error = delete_course_service(course_id, current_user)
 
-        db.session.delete(course)
-        db.session.commit()
+        if error:
+            return jsonify({'error': error[0]}), error[1]
 
         return jsonify({
             'status': 'success',
@@ -874,18 +924,10 @@ def get_course_sections_for_admin(course_id):
         if not term_id:
             return jsonify({'error': 'term_id is required'}), 400
 
-        course = db.session.get(Course, course_id)
-        if not course:
-            return jsonify({'error': 'Course not found'}), 404
+        sections, error = get_course_sections_service(course_id, term_id)
 
-        sections = db.session.execute(
-            db.select(Section)
-            .where(
-                Section.course_id == course_id,
-                Section.term_id == term_id
-            )
-            .order_by(Section.section_num)
-        ).scalars().all()
+        if error:
+            return jsonify({'error': error[0]}), error[1]
 
         return jsonify({
             'status': 'success',
@@ -909,6 +951,165 @@ def get_course_sections_for_admin(course_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/courses/<int:course_id>/sections-by-term', methods=['DELETE'])
+@login_required
+def delete_course_sections_by_term(course_id):
+    admin_error = require_admin()
+    if admin_error:
+        return admin_error
+
+    try:
+        term_id = request.args.get('term_id', type=int)
+
+        if not term_id:
+            return jsonify({'error': 'term_id is required'}), 400
+
+        error = delete_course_sections_by_term_service(course_id, term_id, current_user)
+
+        if error:
+            return jsonify({'error': error[0]}), error[1]
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Course sections for selected term deleted successfully'
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/courses/lookup', methods=['GET'])
+@login_required
+def lookup_admin_course():
+    admin_error = require_admin()
+    if admin_error:
+        return admin_error
+
+    subject = empty_to_none(request.args.get('subject'))
+    catalog_num = empty_to_none(request.args.get('catalog_num'))
+
+    if not subject or not catalog_num:
+        return jsonify({'error': 'subject and catalog_num are required'}), 400
+
+    course, error = lookup_course_service(subject, catalog_num)
+
+    if error:
+        return jsonify({'error': error[0]}), error[1]
+
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+
+    return jsonify({
+        'status': 'success',
+        'course': {
+            'id': course.id,
+            'department_id': course.department_id,
+            'subject': course.subject,
+            'catalog_num': course.catalog_num,
+            'title': course.title,
+            'units': course.units,
+        }
+    }), 200
+
+@app.route('/admin/instructors/lookup', methods=['GET'])
+@login_required
+def lookup_admin_instructor():
+    admin_error = require_admin()
+    if admin_error:
+        return admin_error
+
+    first_name = empty_to_none(request.args.get('first_name'))
+    last_name = empty_to_none(request.args.get('last_name'))
+
+    if not first_name or not last_name:
+        return jsonify({'error': 'first_name and last_name are required'}), 400
+
+    instructor, error = lookup_instructor_service(first_name, last_name)
+
+    if error:
+        return jsonify({'error': error[0]}), error[1]
+
+    if not instructor:
+        return jsonify({'error': 'Instructor not found'}), 404
+
+    return jsonify({
+        'status': 'success',
+        'instructor': {
+            'id': instructor.id,
+            'first_name': instructor.first_name,
+            'last_name': instructor.last_name,
+        }
+    }), 200
+
+@app.route('/admin/courses/<int:course_id>', methods=['PATCH'])
+@login_required
+def update_course(course_id):
+    admin_error = require_admin()
+    if admin_error:
+        return admin_error
+
+    try:
+        data = request.get_json()
+
+        course = db.session.get(Course, course_id)
+        if not course:
+            return jsonify({'error': 'Course not found'}), 404
+
+        # Update fields
+        course.department_id = data.get('department_id', course.department_id)
+        course.subject = data.get('subject', course.subject).strip().upper()
+        course.catalog_num = data.get('catalog_num', course.catalog_num).strip().upper()
+        course.title = data.get('title', course.title).strip()
+        course.units = int(data.get('units', course.units))
+
+        # Update numeric helper
+        course.catalog_num_int = (
+            int(course.catalog_num) if course.catalog_num.isdigit() else None
+        )
+
+        log_admin_action(
+            current_user,
+            "UPDATE_COURSE",
+            f"Updated course {course.subject} {course.catalog_num} - {course.title}"
+        )
+
+        db.session.commit()
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Course updated successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+from models.admin_logs import AdminLogs
+
+@app.route('/admin/history', methods=['GET'])
+@login_required
+def get_admin_history():
+    admin_error = require_admin()
+    if admin_error:
+        return admin_error
+
+    try:
+        logs = db.session.execute(
+            db.select(AdminLogs)
+            .order_by(AdminLogs.created_at.desc())
+            .limit(50)
+        ).scalars().all()
+
+        return jsonify({
+            "status": "success",
+            "logs": [log.format() for log in logs]
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
      
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

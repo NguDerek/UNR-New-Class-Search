@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Card, CardDescription, CardHeader, CardTitle } from "./ui/Card";
-import { ShieldUser, PlusCircle, Trash2 } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "../ui/Card";
+import { ShieldUser, PlusCircle, Trash2, Clock , RefreshCcw} from "lucide-react";
 import { AdminAddSection } from "./AdminAddSection";
 import { AdminAddCourse } from "./AdminAddCourse";
 import { AdminRemoveSection } from "./AdminRemoveSection";
 import { AdminRemoveCourse } from "./AdminRemoveCourse";
+import { AdminModifyCourse } from "./AdminModifyCourse";
+import { AdminHistory } from "./AdminHistory";
 
-type AdminView = "add-course" | "add-section" | "remove-course" | "remove-section" | null;
+type AdminView = "add-course" | "add-section" | "remove-course" | "remove-section" 
+                  | "history" | "modify-course" | null;
 
 export function AdminDashboard() {
   const [activeView, setActiveView] = useState<AdminView>(null);
@@ -43,6 +46,22 @@ export function AdminDashboard() {
       icon: Trash2,
       cardBg: "bg-red-50",
       ring: "ring-red-400",
+    },
+    {
+      key: "modify-course" as const,
+      title: "Modify Course",
+      description: "Adjust course details",
+      icon: RefreshCcw,
+      cardBg: "bg-slate-50",
+      ring: "ring-slate-400",
+    },
+    {
+      key: "history" as const,
+      title: "View History",
+      description: "See admin activity and changes",
+      icon: Clock,
+      cardBg: "bg-slate-50",
+      ring: "ring-slate-400",
     },
   ];
 
@@ -115,6 +134,12 @@ export function AdminDashboard() {
 
         {/* Remove Section */}
         {activeView === "remove-section" && <AdminRemoveSection/>}
+
+        {/* View History */}
+        {activeView === "history" && <AdminHistory />}
+
+        {/* Modify Course */}
+        {activeView === "modify-course" && <AdminModifyCourse />}
       </div>
     </div>
   );

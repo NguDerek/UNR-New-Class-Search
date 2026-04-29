@@ -156,4 +156,4 @@ def full_program_scraper():
         json.dump(undergraduate_programs_map, f, indent=4)
     
 
-full_program_scraper()
+#full_program_scraper()

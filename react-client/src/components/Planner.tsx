@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { CourseCard } from "./CourseCard";
-import { Calendar, Info, ChevronUp, ChevronDown } from "lucide-react";
+import { Calendar, Info, ChevronUp, ChevronDown, CalendarPlus } from "lucide-react";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import type { EventContentArg } from "@fullcalendar/core";
 import { SwapModal } from "./SwapModal.tsx";
+import { CalendarModal } from "./CalendarModal.tsx"
+// import { createEvents } from "ics";
 
 interface Course {
   section_id: number;
@@ -33,11 +35,12 @@ interface Course {
     title: string;
     units: number;
   };
+  start_date: string;
+  end_date: string;
 }
 
 interface PlannerProps {
   onRemoveFromPlanner: (courseId: string) => void;
-  // onSwapPrompt: (courseId: string) => void;
   csrfToken: string;
 }
 
@@ -47,6 +50,7 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [courseToSwap, setCourseToSwap] = useState<Course | null>(null);
   const [isCalendarCollapsed, setIsCalendarCollapsed] = useState(false);
+  const [isCalenderModalOpen, setIsCalendarModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/planner', {
@@ -71,16 +75,6 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
     setPlannedCourses(prev => prev.filter(s => s.section_id.toString() !== courseId));
     onRemoveFromPlanner(courseId);
   };
-
-  //Opens swap modal and uses information of course you're trying to swap out
-  // const handleSwap = (newCourse: Course): void => {
-  //   if (!courseToSwap) return;
-  //   const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
-  //   const updated = [...plannedCourses];
-  //   updated[index] = newCourse;
-  //   setPlannedCourses(updated);
-  //   setCourseToSwap(null);
-  // };
 
   const handleSwap = async (newCourse: Course) =>{
     if (!courseToSwap) return;
@@ -375,6 +369,8 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
                     level={getCourseLevel(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     courseCareer={getCourseCareer(section.course.catalog_num.toString())} //MIGHT NEED FIX
                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                    start_date={section.start_date}
+                    end_date={section.end_date}
                     showRemoveButton={true}
                     onRemoveFromPlanner={handleRemove}
                     showSwapButton={true}
@@ -401,19 +397,33 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
                     <div className="flex items-center gap-2">
                       <h2 className="text-white">Weekly Schedule Calendar</h2>
                     </div>
-                      <button
-                        onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
-                        className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
-                      >
-                        {isCalendarCollapsed ? (
-                          <ChevronDown className="w-5 h-5" />
-                        ) : (
-                          <ChevronUp className="w-5 h-5" />
-                        )}
-                      </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setIsCalendarModalOpen(true)}
+                          className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                          >
+                          <CalendarPlus className="w-5 h-5"/>
+                        </button>
+                        <button
+                          onClick={() => setIsCalendarCollapsed(!isCalendarCollapsed)}
+                          className="p-2 hover:bg-[#004080] rounded-lg transition-colors"
+                        >
+                          {isCalendarCollapsed ? (
+                            <ChevronDown className="w-5 h-5" />
+                          ) : (
+                            <ChevronUp className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                   </div>
                 </div>
-
+                {isCalenderModalOpen && (
+                  <CalendarModal
+                    plannedCourses={plannedCourses}
+                    conflictIds={conflictIds}
+                    onClose={() => setIsCalendarModalOpen(false)}
+                  />
+                )}
                 {/* Show calendar content if not collapsed */}
                 {!isCalendarCollapsed && (<div className="p-4">
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
