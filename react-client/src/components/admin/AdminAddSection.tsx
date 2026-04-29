@@ -1,64 +1,55 @@
-import { useState, useEffect } from "react";
-import { Button } from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Label } from "./ui/Label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select";
+import { useState } from "react";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Label } from "../ui/Label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select";
 import { PlusCircle, Hash, Monitor, Calendar, Clock3, MapPin, 
-         Users, CheckCircle2, Layers, User, BookOpen } from "lucide-react";
+         Users, CheckCircle2, Layers, User } from "lucide-react";
+import { SESSION_OPTIONS, COMPONENT_OPTIONS, INSTRUCTION_MODE_OPTIONS, 
+         STATUS_OPTIONS, TERM_OPTIONS } from "../../utils/adminHelper";
 
-const SESSION_OPTIONS = [
-  "14 week online only",
-  "Dynamically Dated",
-  "First 7 week online only",
-  "First session",
-  "Four week - fourth",
-  "Full year",
-  "Medical year 1",
-  "Medical year 2",
-  "Medical year 3",
-  "Medical year 4",
-  "Mini session",
-  "Open entry/open exit",
-  "Physician assistant year 1",
-  "Physician assistant year 2",
-  "Physician assistant year 3",
-  "Regular academic session",
-  "Second 7 week online only",
-  "Second session",
-  "Semester 1",
-];
+const isValidSubject = (value: string) =>
+  /^[A-Z]{2,6}$/.test(value.trim().toUpperCase());
 
-const COMPONENT_OPTIONS = [
-  { value: "D2", label: "Discussion 2" },
-  { value: "DIS", label: "Discussion/Recitation" },
-  { value: "IND", label: "Independent Study" },
-  { value: "INT", label: "Internship/Practicum" },
-  { value: "LAB", label: "Lab/Studio" },
-  { value: "LEC", label: "Lecture" },
-  { value: "PEA", label: "Physical Exercise and Activity" },
-];
+const isValidCatalogNum = (value: string) =>
+  /^[0-9]{3,4}[A-Z]?$/.test(value.trim().toUpperCase());
 
-const INSTRUCTION_MODE_OPTIONS = [
-  { value: "FS", label: "Field Study" },
-  { value: "HY", label: "Hybrid" },
-  { value: "P", label: "In Person" },
-  { value: "IS", label: "Independent Study" },
-  { value: "IWP", label: "Independent Study w/Web Partic" },
-  { value: "WA", label: "Web Based (Asynchronous)" },
-  { value: "WL", label: "Web Live (Synchronous)" },
-];
+const isValidSectionNum = (value: string) =>
+  /^[0-9]{3,5}$/.test(value.trim());
 
-const STATUS_OPTIONS = [
-  { value: "A", label: "Active / Open" },
-  { value: "C", label: "Closed" },
-];
+const isValidDays = (value: string) =>
+  /^(M|T|W|R|F|S|U)+$/.test(value.trim().toUpperCase());
 
+const isValidCapacity = (value: string) => {
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 && num <= 999;
+};
+
+const isValidRoom = (value: string) =>
+  /^[A-Z0-9 -]{4,20}$/i.test(value.trim());
+
+const isValidInstructorName = (value: string) =>
+  /^[A-Za-z.'-]{2,40}$/.test(value.trim());
+
+const isStartBeforeEnd = (start: string, end: string) => {
+  return start < end;
+};
+
+type InstructorInput = {
+  first_name: string;
+  last_name: string;
+  instructor_id?: string;
+  status?: "found" | "not_found";
+  message?: string;
+};
+         
 export function AdminAddSection() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [instructors, setInstructors] = useState([""]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [terms, setTerms] = useState<any[]>([]);
+
+  const [instructors, setInstructors] = useState<InstructorInput[]>([
+    { first_name: "", last_name: "" },
+  ]);
 
   const [formData, setFormData] = useState({
     course_id: "",
@@ -74,6 +65,9 @@ export function AdminAddSection() {
     status: "",
     capacity: "",
     room: "",
+    course_subject: "",
+    course_catalog_num: "",
+    selected_course_label: "",
   });
 
   const showSectionDetails = !!formData.course_id && !!formData.term_id;
@@ -93,14 +87,67 @@ export function AdminAddSection() {
     }));
   };
 
-  const handleInstructorChange = (index: number, value: string) => {
+  const handleInstructorChange = (
+    index: number,
+    field: keyof InstructorInput,
+    value: string
+  ) => {
     const updated = [...instructors];
-    updated[index] = value;
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
     setInstructors(updated);
   };
 
+  const handleCheckInstructor = async (index: number) => {
+    const instructor = instructors[index];
+
+    if (!instructor.first_name.trim() || !instructor.last_name.trim()) {
+      setErrorMessage("Enter instructor first and last name.");
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+
+      const firstName = instructor.first_name.trim();
+      const lastName = instructor.last_name.trim();
+
+      const res = await fetch(
+        `/api/admin/instructors/lookup?first_name=${firstName}&last_name=${lastName}`,
+        { credentials: "include" }
+      );
+
+      const data = await res.json();
+
+      const updated = [...instructors];
+
+      if (res.ok) {
+        updated[index] = {
+          ...updated[index],
+          instructor_id: String(data.instructor.id),
+          status: "found",
+          message: `Found: ${data.instructor.first_name} ${data.instructor.last_name}`,
+        };
+      } else {
+        updated[index] = {
+          ...updated[index],
+          instructor_id: "",
+          status: "not_found",
+          message: "Not found — this instructor will be created when you submit.",
+        };
+      }
+
+      setInstructors(updated);
+    } catch {
+      setErrorMessage("Instructor lookup failed.");
+    }
+  };
+
   const addInstructorField = () => {
-    setInstructors([...instructors, ""]);
+    if (instructors.length >= 4) return;
+    setInstructors([...instructors, { first_name: "", last_name: "" }]);
   };
 
   const removeInstructorField = (index: number) => {
@@ -122,13 +169,60 @@ export function AdminAddSection() {
       status: "",
       capacity: "",
       room: "",
+      course_subject: "",
+      course_catalog_num: "",
+      selected_course_label: "",
     });
-    setInstructors([""]);
+    setInstructors([{ first_name: "", last_name: "" }]);
+  };
+
+  const handleFindCourse = async () => {
+    if (!formData.course_subject.trim() || !formData.course_catalog_num.trim()) {
+      setErrorMessage("Enter both subject and catalog number.");
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const subject = formData.course_subject.trim().toUpperCase();
+      const catalog = formData.course_catalog_num.trim().toUpperCase();
+
+      const res = await fetch(
+        `/api/admin/courses/lookup?subject=${subject}&catalog_num=${catalog}`,
+        { credentials: "include" }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Course not found");
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        course_id: String(data.course.id),
+        selected_course_label: `${data.course.subject} ${data.course.catalog_num} - ${data.course.title}`,
+      }));
+    } catch (err) {
+      setFormData((prev) => ({
+        ...prev,
+        course_id: "",
+        selected_course_label: "",
+      }));
+
+      setErrorMessage(err instanceof Error ? err.message : "Course lookup failed.");
+    }
   };
 
   const handleSubmitSection = async () => {
-    const validInstructors = instructors.filter((name) => name.trim() !== "");
-
+    const validInstructors = instructors.filter(
+      (instructor) =>
+        instructor.first_name.trim() !== "" &&
+        instructor.last_name.trim() !== ""
+    );
+    
     const missingFields: string[] = [];
 
     if (!formData.course_id) missingFields.push("course_id");
@@ -156,6 +250,60 @@ export function AdminAddSection() {
       return;
     }
 
+    if (!isValidSubject(formData.course_subject)) {
+      setErrorMessage("Subject must be 2–6 letters, like CPE, MATH, or ENG.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidCatalogNum(formData.course_catalog_num)) {
+      setErrorMessage("Catalog number must look like 101, 301, 1001, or 301L.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidSectionNum(formData.section_num)) {
+      setErrorMessage("Section number must be 3–5 digits.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidDays(formData.days)) {
+      setErrorMessage("Class days must use letters like MWF, TR, or F.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isStartBeforeEnd(formData.start_time, formData.end_time)) {
+      setErrorMessage("Start time must be before end time.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidCapacity(formData.capacity)) {
+      setErrorMessage("Capacity must be a whole number between 1 and 999.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!isValidRoom(formData.room)) {
+      setErrorMessage("Room code must be 4–20 characters using letters, numbers, spaces, or hyphens.");
+      setSuccessMessage("");
+      return;
+    }
+
+    const invalidInstructor = validInstructors.find(
+      (instructor) =>
+        !isValidInstructorName(instructor.first_name) ||
+        !isValidInstructorName(instructor.last_name)
+    );
+
+    if (invalidInstructor) {
+      setErrorMessage("Instructor names must be 2–40 letters and may include apostrophes, periods, or hyphens.");
+      setSuccessMessage("");
+      return;
+    }
+
     try {
       setErrorMessage("");
       setSuccessMessage("");
@@ -172,7 +320,14 @@ export function AdminAddSection() {
         section_num: Number(formData.section_num),
         capacity: Number(formData.capacity),
         combined: formData.combined === "true",
-        instructors: validInstructors,
+        days: formData.days.trim().toUpperCase(),
+        room: formData.room.trim().toUpperCase(),
+        course_subject: formData.course_subject.trim().toUpperCase(),
+        course_catalog_num: formData.course_catalog_num.trim().toUpperCase(),
+        instructors: validInstructors.map((instructor) => ({
+          first_name: instructor.first_name.trim(),
+          last_name: instructor.last_name.trim(),
+        })),
       };
 
       console.log("Submitting payload:", payload);
@@ -205,31 +360,6 @@ export function AdminAddSection() {
     }
   };
 
-  useEffect(() => {
-    const loadDropdownData = async () => {
-      try {
-        const [coursesRes, termsRes] = await Promise.all([
-          fetch("api/courses-test", {
-            credentials: "include",
-          }),
-          fetch("api/terms", {
-            credentials: "include",
-          }),
-        ]);
-
-        const coursesData = await coursesRes.json();
-        const termsData = await termsRes.json();
-
-        if (coursesRes.ok) setCourses(coursesData.courses || []);
-        if (termsRes.ok) setTerms(termsData.terms || []);
-      } catch (error) {
-        console.error("Failed to load dropdown data:", error);
-      }
-    };
-
-    loadDropdownData();
-  }, []);
-
   return (
     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
       <div className="bg-[#003366] p-4 text-white">
@@ -245,29 +375,32 @@ export function AdminAddSection() {
       <div className="p-6 space-y-6">
         {/* Step 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label
-              htmlFor="course_id"
-              className="text-slate-700 flex items-center gap-2 mb-2"
-            >
-              <BookOpen className="w-4 h-4 text-[#003366]" />
-              Course
-            </Label>
-            <Select
-              value={formData.course_id}
-              onValueChange={(value) => handleSelectChange("course_id", value)}
-            >
-              <SelectTrigger id="course_id" className="border-slate-300">
-                <SelectValue placeholder="Select existing course" />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((course) => (
-                  <SelectItem key={course.id} value={String(course.id)}>
-                    {course.subject} {course.catalog_num} - {course.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Subject</Label>
+              <Input
+                id="course_subject"
+                value={formData.course_subject}
+                onChange={handleChange}
+                placeholder="e.g. CPE"
+              />
+            </div>
+
+            <div>
+              <Label>Catalog Number</Label>
+              <Input
+                id="course_catalog_num"
+                value={formData.course_catalog_num}
+                onChange={handleChange}
+                placeholder="e.g. 201"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <Button onClick={handleFindCourse} className="w-full bg-[#003366] text-white">
+                Find Course
+              </Button>
+            </div>
           </div>
 
           <div>
@@ -285,16 +418,22 @@ export function AdminAddSection() {
               <SelectTrigger id="term_id" className="border-slate-300">
                 <SelectValue placeholder="Select term" />
               </SelectTrigger>
-              <SelectContent>
-                {terms.map((term) => (
+              <SelectContent className="max-h-37 overflow-y-auto">
+                {TERM_OPTIONS.map((term) => (
                   <SelectItem key={term.id} value={String(term.id)}>
-                    {term.session_code} {term.year}
+                    {term.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {formData.selected_course_label && (
+            <p className="text-sm text-green-700 font-medium">
+              Selected: {formData.selected_course_label}
+            </p>
+          )}
 
         {/* Step 2 */}
         {showSectionDetails && (
@@ -317,10 +456,10 @@ export function AdminAddSection() {
                     <SelectTrigger id="session" className="border-slate-300">
                       <SelectValue placeholder="Select session" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-37 overflow-y-auto">
                       {SESSION_OPTIONS.map((session) => (
-                        <SelectItem key={session} value={session}>
-                          {session}
+                        <SelectItem key={session.value} value={session.value}>
+                          {session.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -362,7 +501,7 @@ export function AdminAddSection() {
                     <SelectTrigger id="component" className="border-slate-300">
                       <SelectValue placeholder="Select component" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-37 overflow-y-auto">
                       {COMPONENT_OPTIONS.map((component) => (
                         <SelectItem key={component.value} value={component.value}>
                           {component.label}
@@ -389,7 +528,7 @@ export function AdminAddSection() {
                     <SelectTrigger id="instruction_mode" className="border-slate-300">
                       <SelectValue placeholder="Select instruction mode" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-37 overflow-y-auto">
                       {INSTRUCTION_MODE_OPTIONS.map((mode) => (
                         <SelectItem key={mode.value} value={mode.value}>
                           {mode.label}
@@ -414,7 +553,7 @@ export function AdminAddSection() {
                     <SelectTrigger id="status" className="border-slate-300">
                       <SelectValue placeholder="Select class status" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-37 overflow-y-auto">
                       {STATUS_OPTIONS.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
                           {status.label}
@@ -519,7 +658,7 @@ export function AdminAddSection() {
                     <SelectTrigger id="combined" className="border-slate-300">
                       <SelectValue placeholder="Select option" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-37 overflow-y-auto">
                       <SelectItem value="true">Yes</SelectItem>
                       <SelectItem value="false">No</SelectItem>
                     </SelectContent>
@@ -547,50 +686,75 @@ export function AdminAddSection() {
                 <div className="md:col-span-2">
                   <Label className="text-slate-700 flex items-center gap-2 mb-2">
                     <User className="w-4 h-4 text-[#003366]" />
-                    Assigned Instructor(s)
+                    Instructor(s)
                   </Label>
 
                   <div className="space-y-3">
                     {instructors.map((instructor, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col sm:flex-row gap-2"
-                      >
-                        <Input
-                          type="text"
-                          placeholder={`Instructor ${index + 1}`}
-                          value={instructor}
-                          onChange={(e) =>
-                            handleInstructorChange(index, e.target.value)
-                          }
-                          className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
-                        />
+                      <div key={index} className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                          <Input
+                            type="text"
+                            placeholder="First name"
+                            value={instructor.first_name}
+                            onChange={(e) =>
+                              handleInstructorChange(index, "first_name", e.target.value)
+                            }
+                          />
 
-                        {instructors.length > 1 && (
+                          <Input
+                            type="text"
+                            placeholder="Last name"
+                            value={instructor.last_name}
+                            onChange={(e) =>
+                              handleInstructorChange(index, "last_name", e.target.value)
+                            }
+                          />
+
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => removeInstructorField(index)}
-                            className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                            onClick={() => handleCheckInstructor(index)}
                           >
-                            Remove
+                            Check Instructor
                           </Button>
+
+                          {instructors.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => removeInstructorField(index)}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+
+                        {instructor.message && (
+                          <p
+                            className={
+                              instructor.status === "found"
+                                ? "text-sm text-green-700 font-medium"
+                                : "text-sm text-amber-700 font-medium"
+                            }
+                          >
+                            {instructor.message}
+                          </p>
                         )}
                       </div>
                     ))}
 
-                    <div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addInstructorField}
-                        className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                      >
-                        <PlusCircle className="w-4 h-4 mr-2" />
-                        Add Instructor
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addInstructorField}
+                      disabled={instructors.length >= 4}
+                    >
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Add Instructor
+                    </Button>
                   </div>
+                  
                 </div>
               </div>
             </div>
