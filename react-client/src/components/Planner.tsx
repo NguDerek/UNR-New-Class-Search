@@ -72,16 +72,6 @@ export function Planner({ onRemoveFromPlanner, csrfToken }: PlannerProps) {
     onRemoveFromPlanner(courseId);
   };
 
-  //Opens swap modal and uses information of course you're trying to swap out
-  // const handleSwap = (newCourse: Course): void => {
-  //   if (!courseToSwap) return;
-  //   const index = plannedCourses.findIndex((c) => c.course_id === courseToSwap.course_id);
-  //   const updated = [...plannedCourses];
-  //   updated[index] = newCourse;
-  //   setPlannedCourses(updated);
-  //   setCourseToSwap(null);
-  // };
-
   const handleSwap = async (newCourse: Course) =>{
     if (!courseToSwap) return;
     try {
