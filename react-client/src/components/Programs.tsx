@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Search, ChevronDown, ChevronUp, ExternalLink, BookOpen } from "lucide-react";
 import { Input } from "./ui/Input";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
-import { Info, File } from "lucide-react";
+import { Info, File, Trash2 } from "lucide-react";
 import { courseAPI } from "../services/api";
 import type { CollegeGroup, Program } from "../services/api";
 import type { Role } from "../lib/permissions";
@@ -26,6 +26,7 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
   const [uploadingPoid, setUploadingPoid] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string>("");
   const [uploadSuccess, setUploadSuccess] = useState<string>("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     courseAPI.fetchPrograms()
@@ -70,36 +71,59 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
   };
 
   const handleAdvisorUpload = async (poid: string, file: File) => {
-  try {
-    setUploadingPoid(poid);
-    setUploadError("");
-    setUploadSuccess("");
+    try {
+      setUploadingPoid(poid);
+      setUploadError("");
+      setUploadSuccess("");
 
-    const formData = new FormData();
-    formData.append("program_id", poid);
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("program_id", poid);
+      formData.append("file", file);
 
-    const res = await fetch(`/api/programs/attachments/upload`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        'X-CSRFToken': csrfToken,
-      },
-      body: formData,
-    });
+      const res = await fetch(`/api/programs/attachments/upload`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          'X-CSRFToken': csrfToken,
+        },
+        body: formData,
+      });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Upload failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
 
-    setUploadSuccess("File uploaded successfully!");
-    // Refresh programs so the new attachment appears
-    courseAPI.fetchPrograms().then(setColleges);
-  } catch (err: any) {
-    setUploadError(err.message || "Upload failed");
-  } finally {
-    setUploadingPoid(null);
-  }
-};
+      setUploadSuccess("File uploaded successfully!");
+      // Refresh programs so the new attachment appears
+      courseAPI.fetchPrograms().then(setColleges);
+    } catch (err: any) {
+      setUploadError(err.message || "Upload failed");
+    } finally {
+      setUploadingPoid(null);
+    }
+  };
+
+  const handleDelete = async (attId: number, filename: string) => {
+    if (!confirm(`Delete "${filename}"?`)) return;
+
+    try {
+      setDeletingId(attId);
+
+      const res = await fetch(`/api/programs/attachments/${attId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRFToken': csrfToken }
+      });
+
+      if (!res.ok) throw new Error('Delete failed');
+
+      // Refresh programs so the new attachment appears
+      courseAPI.fetchPrograms().then(setColleges);
+    } catch (err: any) {
+      alert('Delete failed: ' + err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
@@ -227,6 +251,21 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
                                     >
                                       📎 {att.originalName}
                                     </a>
+                                    {/* Advisor: Delete button */}
+                                    {role === "Advisor" && (
+                                      <button
+                                        onClick={() => handleDelete(att.id, att.originalName)}
+                                        disabled={deletingId === att.id}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+                                        title="Delete file"
+                                      >
+                                        {deletingId === att.id ? (
+                                          <span className="text-xs">Deleting...</span>
+                                        ) : (
+                                          <Trash2 className="w-4 h-4" />
+                                        )}
+                                      </button>
+                                    )}
                                   </li>
                                 ))}
                               </ul>
