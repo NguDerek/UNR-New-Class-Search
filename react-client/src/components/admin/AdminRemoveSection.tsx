@@ -1,21 +1,10 @@
 import { useEffect, useState } from "react";
-import { Button } from "./ui/Button";
-import { Label } from "./ui/Label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/Select";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Label } from "../ui/Label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select";
 import { Trash2, BookOpen, Calendar, Search, AlertTriangle } from "lucide-react";
-
-type Course = {
-  id: number;
-  subject: string;
-  catalog_num: string;
-  title: string;
-};
-
-type Term = {
-  id: number;
-  session_code: string;
-  year: number;
-};
+import { TERM_OPTIONS } from "../../utils/adminHelper";
 
 type SectionOption = {
   id: number;
@@ -31,55 +20,86 @@ type SectionOption = {
 };
 
 export function AdminRemoveSection() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
   const [sections, setSections] = useState<SectionOption[]>([]);
-
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [selectedTermId, setSelectedTermId] = useState("");
   const [selectedSectionId, setSelectedSectionId] = useState("");
 
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoadingSections, setIsLoadingSections] = useState(false);
 
-  useEffect(() => {
-    const loadDropdownData = async () => {
-      try {
-        const [coursesRes, termsRes] = await Promise.all([
-          fetch("/api/courses-test", {
-            credentials: "include",
-          }),
-          fetch("/api/terms", {
-            credentials: "include",
-          }),
-        ]);
+  const [formData, setFormData] = useState({
+    course_id: "",
+    course_subject: "",
+    course_catalog_num: "",
+    selected_course_label: "",
+    term_id: "",
+  });
 
-        const coursesData = await coursesRes.json();
-        const termsData = await termsRes.json();
+  const showSectionSelector = !!formData.course_id && !!formData.term_id;
 
-        if (coursesRes.ok) {
-          setCourses(coursesData.courses || []);
-        } else {
-          console.error("Failed to load courses:", coursesData.error);
-        }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
 
-        if (termsRes.ok) {
-          setTerms(termsData.terms || []);
-        } else {
-          console.error("Failed to load terms:", termsData.error);
-        }
-      } catch (error) {
-        console.error("Failed to load dropdown data:", error);
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleFindCourse = async () => {
+    if (!formData.course_subject.trim() || !formData.course_catalog_num.trim()) {
+      setErrorMessage("Enter both subject and catalog number.");
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      setSuccessMessage("");
+      setSections([]);
+      setSelectedSectionId("");
+
+      const subject = formData.course_subject.trim().toUpperCase();
+      const catalog = formData.course_catalog_num.trim().toUpperCase();
+
+      const res = await fetch(
+        `/api/admin/courses/lookup?subject=${subject}&catalog_num=${catalog}`,
+        { credentials: "include" }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Course not found");
       }
-    };
 
-    loadDropdownData();
-  }, []);
+      setFormData((prev) => ({
+        ...prev,
+        course_id: String(data.course.id),
+        selected_course_label: `${data.course.subject} ${data.course.catalog_num} - ${data.course.title}`,
+      }));
+    } catch (err) {
+      setFormData((prev) => ({
+        ...prev,
+        course_id: "",
+        selected_course_label: "",
+      }));
+
+      setSections([]);
+      setSelectedSectionId("");
+      setErrorMessage(err instanceof Error ? err.message : "Course lookup failed.");
+    }
+  };
 
   useEffect(() => {
     const loadSections = async () => {
-      if (!selectedCourseId || !selectedTermId) {
+      if (!formData.course_id || !formData.term_id) {
         setSections([]);
         setSelectedSectionId("");
         return;
@@ -92,10 +112,8 @@ export function AdminRemoveSection() {
         setSelectedSectionId("");
 
         const res = await fetch(
-          `/api/admin/courses/${selectedCourseId}/sections?term_id=${selectedTermId}`,
-          {
-            credentials: "include",
-          }
+          `/api/admin/courses/${formData.course_id}/sections?term_id=${formData.term_id}`,
+          { credentials: "include" }
         );
 
         const data = await res.json();
@@ -116,16 +134,16 @@ export function AdminRemoveSection() {
     };
 
     loadSections();
-  }, [selectedCourseId, selectedTermId]);
+  }, [formData.course_id, formData.term_id]);
 
   const handleDeleteSection = async () => {
-    if (!selectedCourseId) {
-      setErrorMessage("Please select a course.");
+    if (!formData.course_id) {
+      setErrorMessage("Find a course first.");
       setSuccessMessage("");
       return;
     }
 
-    if (!selectedTermId) {
+    if (!formData.term_id) {
       setErrorMessage("Please select a term.");
       setSuccessMessage("");
       return;
@@ -142,8 +160,8 @@ export function AdminRemoveSection() {
     );
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete section ${
-        sectionToDelete?.section_num ?? selectedSectionId
+      `Are you sure you want to delete ${
+        sectionToDelete ? `section ${sectionToDelete.section_num}` : "this section"
       }?`
     );
 
@@ -189,8 +207,13 @@ export function AdminRemoveSection() {
   };
 
   const resetForm = () => {
-    setSelectedCourseId("");
-    setSelectedTermId("");
+    setFormData({
+      course_id: "",
+      course_subject: "",
+      course_catalog_num: "",
+      selected_course_label: "",
+      term_id: "",
+    });
     setSelectedSectionId("");
     setSections([]);
     setSuccessMessage("");
@@ -199,19 +222,8 @@ export function AdminRemoveSection() {
   };
 
   const formatSectionLabel = (section: SectionOption) => {
-    const timePart =
-      section.start_time && section.end_time
-        ? `${section.start_time}-${section.end_time}`
-        : section.start_time || section.end_time || "Time TBA";
-
-    const daysPart = section.days || "Days TBA";
-    const roomPart = section.room || "Room TBA";
-    const componentPart = section.component || "Component TBA";
-
-    return `Section ${section.section_num} | ${componentPart} | ${daysPart} | ${timePart} | ${roomPart}`;
+    return `Section ${section.section_num}`;
   };
-
-  const showSectionSelector = !!selectedCourseId && !!selectedTermId;
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
@@ -221,35 +233,41 @@ export function AdminRemoveSection() {
           <h2 className="text-white">Remove Section</h2>
         </div>
         <p className="text-slate-200 text-sm mt-1">
-          Select a course and term, then remove a single section
+          Find a course and term, then remove a single section
         </p>
       </div>
 
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label
-              htmlFor="remove_section_course_id"
-              className="text-slate-700 flex items-center gap-2 mb-2"
-            >
+            <Label className="text-slate-700 flex items-center gap-2 mb-2">
               <BookOpen className="w-4 h-4 text-[#003366]" />
               Course
             </Label>
-            <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
-              <SelectTrigger
-                id="remove_section_course_id"
-                className="border-slate-300"
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                id="course_subject"
+                value={formData.course_subject}
+                onChange={handleChange}
+                placeholder="e.g. CPE"
+              />
+
+              <Input
+                id="course_catalog_num"
+                value={formData.course_catalog_num}
+                onChange={handleChange}
+                placeholder="e.g. 201"
+              />
+
+              <Button
+                type="button"
+                onClick={handleFindCourse}
+                className="bg-[#003366] text-white"
               >
-                <SelectValue placeholder="Select course" />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((course) => (
-                  <SelectItem key={course.id} value={String(course.id)}>
-                    {course.subject} {course.catalog_num} - {course.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                Find Course
+              </Button>
+            </div>
           </div>
 
           <div>
@@ -260,23 +278,34 @@ export function AdminRemoveSection() {
               <Calendar className="w-4 h-4 text-[#003366]" />
               Term
             </Label>
-            <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+
+            <Select
+              value={formData.term_id}
+              onValueChange={(value) => handleSelectChange("term_id", value)}
+            >
               <SelectTrigger
                 id="remove_section_term_id"
                 className="border-slate-300"
               >
                 <SelectValue placeholder="Select term" />
               </SelectTrigger>
-              <SelectContent>
-                {terms.map((term) => (
+
+              <SelectContent className="max-h-37 overflow-y-auto">
+                {TERM_OPTIONS.map((term) => (
                   <SelectItem key={term.id} value={String(term.id)}>
-                    {term.session_code} {term.year}
+                    {term.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {formData.selected_course_label && (
+          <p className="text-sm text-green-700 font-medium">
+            Selected: {formData.selected_course_label}
+          </p>
+        )}
 
         {showSectionSelector && (
           <div className="border-t border-slate-200 pt-6">
@@ -310,7 +339,8 @@ export function AdminRemoveSection() {
                   }
                 />
               </SelectTrigger>
-              <SelectContent>
+
+              <SelectContent className="max-h-37 overflow-y-auto">
                 {sections.map((section) => (
                   <SelectItem key={section.id} value={String(section.id)}>
                     {formatSectionLabel(section)}
