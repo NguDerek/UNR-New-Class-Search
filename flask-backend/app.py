@@ -402,6 +402,7 @@ def login():
         print("Email: " + current_user.email)
         print("First Name: " + current_user.first_name)
         print("Last Name: " +current_user.last_name)
+        print("Major Poid: " +current_user.major_poid)
         
         return jsonify({
             'message': 'Login successful',
@@ -410,7 +411,8 @@ def login():
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
-                'role': user.role
+                'role': user.role,
+                'major_poid': user.major_poid
             }
         }), 200
         
@@ -435,7 +437,8 @@ def auth_status():
                 'email': current_user.email,
                 'first_name': current_user.first_name,
                 'last_name': current_user.last_name,
-                'role': current_user.role
+                'role': current_user.role,
+                'major_poid': current_user.major_poid
             }
         }), 200
     return jsonify({'authenticated': False}), 200
@@ -1143,6 +1146,56 @@ def seed_programs():
 
     db.session.commit()
     print(f"Seeded {count} programs.")  
+
+@app.route('/programs', methods=['GET'])
+def get_programs():
+    programs = Program.query.order_by(Program.college, Program.major_title).all()
+    
+    # Converting the SQL entry back into a JSON format similar to original JSON file
+    colleges = {}
+    for p in programs:
+        colleges.setdefault(p.college, []).append(p.format())
+    
+    return jsonify([
+        {"college": college, "majors": majors}
+        for college, majors in sorted(colleges.items())
+    ])
+
+@app.cli.command("add-major-to-users")
+def add_major_to_users():
+    with db.engine.connect() as conn:
+        conn.execute(db.text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS major_poid VARCHAR(50) REFERENCES program(major_poid);"
+        ))
+        conn.commit()
+    print("Done.")
+
+@app.route('/user/major', methods=['PATCH'])
+@login_required
+def set_user_major():
+    try:
+        data = request.get_json()
+        print("Received data:", data)
+        poid = data.get('major_poid')
+        print("Poid:", poid)  
+
+        # Verify the poid actually exists in the programs table
+        program = Program.query.filter_by(major_poid=poid).first()
+        if not program:
+            return jsonify({'error': 'Program not found'}), 404
+
+        current_user.major_poid = poid
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Major updated',
+            'major_poid': poid,
+            'major_title': program.major_title
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
      
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

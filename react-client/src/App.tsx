@@ -19,6 +19,7 @@ interface User {
   first_name: string;
   last_name: string;
   role: string;
+  major_poid?: string | null;
 }
 
 interface Course {
@@ -289,11 +290,23 @@ export default function App() {
                 plannedCourseIds={plannedCourseIds}
                 handleAddToPlanner={handleAddToPlanner}
                 onLoginPrompt={() => navigate("/login")}
+                user={user}
               />
             }
           />
 
-          <Route path="/programs" element={<Programs role={role} />} />
+          <Route 
+            path="/programs" 
+            element={
+              <Programs 
+                role={role}
+                currentMajorPoid={user?.major_poid ?? null}
+                onMajorSelected={(poid) => {
+                setUser((prev) => prev ? { ...prev, major_poid: poid } : prev);
+                }} 
+              />
+            } 
+          />
           <Route path="/settings" element={<Settings />} />
 
           <Route

@@ -21,6 +21,7 @@ interface SidebarProps {
     first_name: string;
     last_name: string;
     role: string;
+    major_poid: string;
   } | null;
   onNavigateToLogin: () => void;
 }

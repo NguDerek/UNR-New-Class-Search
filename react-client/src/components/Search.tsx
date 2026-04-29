@@ -6,15 +6,25 @@ import { SearchFilters } from "../components/SearchFilters";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import { executeCourseSearch } from "../utils/searchUtils.ts";
 
+interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  major_poid?: string | null;
+}
+
 interface SearchProps {
     isAuthenticated: boolean;
     role: Role;
     plannedCourseIds: Set<string>;
     handleAddToPlanner: (courseId: string) => void;
     onLoginPrompt: () => void;
+    user: User | null;
 }
 
-export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlanner, onLoginPrompt}: SearchProps) {
+export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlanner, onLoginPrompt, user}: SearchProps) {
     const [term, setTerm] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchQueryType, setSearchQueryType] = useState("all");
@@ -77,6 +87,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     };
 
     const handleRecommendations = async () => {
+        console.log("major_poid being used:", user?.major_poid);
         setSearchMode('recommendations');
         setIsSearching(true);
         setSearchError(null);
@@ -86,7 +97,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
             const response = await executeCourseSearch({
                 searchQuery, searchQueryType, department, roomSearch, selectedDays,
                 term, courseCareer, credits, modeOfInstruction,
-                level, showOpenOnly}, false, '243351'
+                level, showOpenOnly}, false, user?.major_poid ?? '0'
             );
 
             if (response.status === 'success') {
@@ -182,7 +193,7 @@ return (
                         {!isAuthenticated && (
                             <p className="text-sm text-slate-500">
                                 <button
-                                    onClick={() => onLoginPrompt}
+                                    onClick = {onLoginPrompt}
                                     className="text-[#003366] underline hover:text-[#002244]"
                                 >
                                     Log in

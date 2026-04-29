@@ -103,6 +103,30 @@ export interface SectionDetailsResponse {
   message?: string;
 }
 
+export interface ProgramAttachment {
+  id: number;
+  programId: number;
+  originalName: string;
+  mimeType: string;
+  filepath: string;
+  uploadedAt: string;
+}
+
+export interface Program {
+  id: number;
+  college: string;
+  major_title: string;
+  major_poid: string;
+  major_link: string;
+  description: string;
+  attachments: ProgramAttachment[];
+}
+
+export interface CollegeGroup {
+  college: string;
+  majors: Program[];
+}
+
 class CourseAPI {
   /**
    * Search for courses/sections with filters
@@ -182,6 +206,39 @@ class CourseAPI {
     }
 
     return response.json();
+  }
+
+  async fetchPrograms(): Promise<CollegeGroup[]> {
+    const response = await fetch(`${API_BASE_URL}/programs`, {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Programs failed to load');
+    }
+    return response.json();
+  }
+
+  async setUserMajor(majorPoid: string): Promise<void> {
+    // Get CSRF token first (your app already has this route)
+    const csrfRes = await fetch(`${API_BASE_URL}/csrf-token`, {
+      credentials: 'include',
+    });
+    const { csrf_token } = await csrfRes.json();
+
+    const response = await fetch(`${API_BASE_URL}/user/major`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf_token,       // <-- this is what was missing
+      },
+      body: JSON.stringify({ major_poid: majorPoid }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new Error(data?.error || 'Failed to update major');
+    }
   }
 }
 
