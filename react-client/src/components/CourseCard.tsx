@@ -1,8 +1,7 @@
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft, File } from "lucide-react";
-import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft, CalendarFold } from "lucide-react";
+import { Clock, MapPin, Users, GraduationCap, Video, Plus, Check, Trash2, ArrowRightLeft, CalendarFold, File } from "lucide-react";
 import type { Role } from "../lib/permissions";
 import { useState, useEffect } from "react";
 
