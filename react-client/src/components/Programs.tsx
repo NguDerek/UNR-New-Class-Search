@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Search, ChevronDown, ChevronUp, ExternalLink, BookOpen } from "lucide-react";
 import { Input } from "./ui/Input";
 import { Card, CardHeader, CardTitle } from "./ui/Card";
-import { Info } from "lucide-react";
+import { Info, File } from "lucide-react";
 import { courseAPI } from "../services/api";
 import type { CollegeGroup, Program } from "../services/api";
 import type { Role } from "../lib/permissions";
@@ -22,6 +22,10 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedPoid, setSelectedPoid] = useState<string | null>(currentMajorPoid ?? null);
   const [saving, setSaving] = useState(false);
+  const [csrfToken, setCsrfToken] = useState("");
+  const [uploadingPoid, setUploadingPoid] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string>("");
+  const [uploadSuccess, setUploadSuccess] = useState<string>("");
 
   useEffect(() => {
     courseAPI.fetchPrograms()
@@ -33,6 +37,15 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
   useEffect(() => {
     setSelectedPoid(currentMajorPoid ?? null);
   }, [currentMajorPoid]);
+
+  useEffect(() => {
+      fetch('/api/csrf-token', {
+        credentials: 'include',
+      })
+        .then(response => response.json())
+        .then(data => setCsrfToken(data.csrf_token))
+        .catch(error => console.error('Failed to fetch CSRF token:', error));
+    }, []);
 
   const filtered = colleges
     .map((c) => ({
@@ -57,20 +70,36 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
   };
 
   const handleAdvisorUpload = async (poid: string, file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    const response = await fetch(`${API_BASE_URL}/programs/${poid}/attachments`, {
+  try {
+    setUploadingPoid(poid);
+    setUploadError("");
+    setUploadSuccess("");
+
+    const formData = new FormData();
+    formData.append("program_id", poid);
+    formData.append("file", file);
+
+    const res = await fetch(`/api/programs/attachments/upload`, {
       method: "POST",
       credentials: "include",
-      body: form,
+      headers: {
+        'X-CSRFToken': csrfToken,
+      },
+      body: formData,
     });
-    if (!response.ok) {
-      alert("Upload failed.");
-      return;
-    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+
+    setUploadSuccess("File uploaded successfully!");
     // Refresh programs so the new attachment appears
     courseAPI.fetchPrograms().then(setColleges);
-  };
+  } catch (err: any) {
+    setUploadError(err.message || "Upload failed");
+  } finally {
+    setUploadingPoid(null);
+  }
+};
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 lg:py-12">
@@ -207,8 +236,9 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
                           {/* Advisor upload — per major */}
                           {role === "Advisor" && (
                             <div className="pt-2">
-                              <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#003366] text-white text-xs rounded-lg cursor-pointer hover:bg-[#004080]">
-                                Upload Resource
+                              <label className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#003366] text-white rounded-lg hover:bg-[#002244]">
+                                <File className="w-4 h-4" />
+                                {uploadingPoid === major.major_poid ? "Uploading..." : "Upload Resource"}
                                 <input
                                   type="file"
                                   className="hidden"
@@ -218,6 +248,13 @@ export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsPr
                                   }}
                                 />
                               </label>
+
+                              {uploadError && (
+                                <p className="text-xs text-red-600 mt-1 text-center">{uploadError}</p>
+                              )}
+                              {uploadSuccess && (
+                                <p className="text-xs text-green-600 mt-1 text-center">{uploadSuccess}</p>
+                              )}
                             </div>
                           )}
                         </div>

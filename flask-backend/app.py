@@ -1200,15 +1200,18 @@ def set_user_major():
 @login_required
 def upload_program_attachment():
     try:
-        program_id = request.form.get("program_id")
+        major_poid = request.form.get("program_id")
         file = request.files.get("file")
 
-        if not program_id or not file:
-            return jsonify({"error": "Missing program_id or file"}), 400
+        if not major_poid or not file:
+            return jsonify({"error": "Missing major_poid or file"}), 400
 
-        program = db.session.get(Program, int(program_id))
+        program = db.session.execute(
+            db.select(Program).filter_by(major_poid=major_poid)
+        ).scalar_one_or_none()
+        
         if not program:
-            return jsonify({"error": "Course not found"}), 404
+            return jsonify({"error": "Program not found"}), 404
 
         upload_dir = os.path.join(app.instance_path, "uploads", "program_attachments")
         os.makedirs(upload_dir, exist_ok=True)
@@ -1219,7 +1222,7 @@ def upload_program_attachment():
         file.save(file_path)
 
         attachment = ProgramAttachments(
-            section_id=program.id,
+            program_id=program.id,
             filename=stored_name,
             original_name=file.filename,
             mime_type=file.mimetype,
