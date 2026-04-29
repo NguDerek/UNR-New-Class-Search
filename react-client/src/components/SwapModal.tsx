@@ -83,8 +83,10 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
             const response = await executeCourseSearch({
                 searchQuery, searchQueryType, department, roomSearch, selectedDays,
                 term, courseCareer, credits, modeOfInstruction,
-                level, showOpenOnly,
-            });
+                level, showOpenOnly}, true, '0'
+            );
+
+            // ← response is used inside try, not outside it
             if (response.status === "success") {
             setResults(response.sections);
             } 

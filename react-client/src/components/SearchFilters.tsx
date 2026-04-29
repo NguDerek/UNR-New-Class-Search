@@ -13,10 +13,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/Tooltip";
-import { Search, Calendar, BookOpen, MapPin, GraduationCap, Monitor, Filter, RotateCcw, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Calendar, BookOpen, MapPin, GraduationCap, Monitor, Filter, RotateCcw, HelpCircle, ChevronDown, ChevronUp, ArrowUpNarrowWide, CalendarDays, Coins, SearchCheck } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
 import { courseAPI } from "../services/api";
+import type { Role } from "../lib/permissions";
 
 interface SearchFiltersProps {
   term: string;
@@ -41,8 +42,10 @@ interface SearchFiltersProps {
   setCredits: (credits: string) => void;
   selectedDays: string[];
   setSelectedDays: (days: string[]) => void;
+  role: Role;
   onSearch: () => void;
   onReset: () => void;
+  onSearchRecommendations: () => void;
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -60,8 +63,6 @@ export function SearchFilters({
   setRoomSearch,
   courseCareer,
   setCourseCareer,
-  showOpenOnly,
-  setShowOpenOnly,
   modeOfInstruction,
   setModeOfInstruction,
   level,
@@ -70,11 +71,14 @@ export function SearchFilters({
   setCredits,
   selectedDays,
   setSelectedDays,
+  role,
   onSearch,
   onReset,
+  onSearchRecommendations,
 }: SearchFiltersProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [useRecommendations, setUseRecommendations] = useState(false);
   // Inside the component:
   const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
   let uniqueColleges = [...new Set(departments.map(dept => dept.college))].sort();
@@ -150,8 +154,15 @@ export function SearchFilters({
               </div>
               <div className="flex gap-2">
                 {/* Search Type Dropdown */}
-                <Select value={searchQueryType} onValueChange={setSearchQueryType}>
-                  <SelectTrigger id="searchQueryType" className="w-[180px] border-slate-300">
+                <Select
+                  value={searchQueryType}
+                  onValueChange={setSearchQueryType}
+                  disabled={useRecommendations}
+                >
+                  <SelectTrigger
+                    id="searchQueryType"
+                    className="w-[180px] border-slate-300 disabled:bg-slate-100 disabled:text-slate-400"
+                  >
                     <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
@@ -169,10 +180,15 @@ export function SearchFilters({
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     id="search"
-                    placeholder={placeholders[searchQueryType]}
-                    value={searchQuery}
+                    placeholder={
+                      useRecommendations
+                        ? "Recommendations mode enabled"
+                        : placeholders[searchQueryType]
+                    }
+                    value={useRecommendations ? "" : searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
+                    disabled={useRecommendations}
+                    className="pl-10 border-slate-300 focus:border-[#003366] focus:ring-[#003366] disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -245,33 +261,72 @@ export function SearchFilters({
                 </Select>
               </div>
 
-            {/* Room/Building */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Label htmlFor="roomSearch" className="text-slate-700 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#003366]" />
-                  Room/Building
-                </Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="text-slate-400 hover:text-[#003366] transition-colors">
-                      <HelpCircle className="w-4 h-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>Search by building code (e.g., AB) or room number (e.g., AB 135)</p>
-                  </TooltipContent>
-                </Tooltip>
+              {/* Level */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor="level" className="text-slate-700 flex items-center gap-2">
+                    <ArrowUpNarrowWide className="w-4 h-4 text-[#003366]" />
+                    Level
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-slate-400 hover:text-[#003366] transition-colors">
+                        <HelpCircle className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Filter courses by academic level (ie. 100 level, 200 level, etc.)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Select value={level} onValueChange={setLevel}>
+                  <SelectTrigger id="level" className="border-slate-300">
+                    <SelectValue placeholder="All Levels" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Levels</SelectItem>
+                    <SelectItem value="100">100-level</SelectItem>
+                    <SelectItem value="200">200-level</SelectItem>
+                    <SelectItem value="300">300-level</SelectItem>
+                    <SelectItem value="400">400-level</SelectItem>
+                    <SelectItem value="600+">600+ level</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Input
-                id="roomSearch"
-                placeholder="e.g., AB, AB 135, SEM 234..."
-                value={roomSearch}
-                onChange={(e) => setRoomSearch(e.target.value)}
-                className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
-              />
-            </div>
 
+              {/* Credits */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor="credits" className="text-slate-700 flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-[#003366]" />
+                    Credits
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-slate-400 hover:text-[#003366] transition-colors">
+                        <HelpCircle className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Filter courses by credit count (labs are often 1 to 2 credits, while lectures are 3 to 4)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Select value={credits} onValueChange={setCredits}>
+                  <SelectTrigger id="credits" className="border-slate-300">
+                    <SelectValue placeholder="Any Credits" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Credits</SelectItem>
+                    <SelectItem value="1">1 Credit</SelectItem>
+                    <SelectItem value="2">2 Credits</SelectItem>
+                    <SelectItem value="3">3 Credits</SelectItem>
+                    <SelectItem value="4">4 Credits</SelectItem>
+                    <SelectItem value="5+">5+ Credits</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+                
               {/* Course Career */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -334,32 +389,6 @@ export function SearchFilters({
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Show Open Only Toggle */}
-              <div className="flex items-end">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 w-full">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Label htmlFor="showOpenOnly" className="text-slate-700 cursor-pointer text-sm">Show Open Classes Only</Label>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button className="text-slate-400 hover:text-[#003366] transition-colors">
-                            <HelpCircle className="w-4 h-4" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>Only show courses that still have available seats for enrollment</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Switch
-                      id="showOpenOnly"
-                      checked={showOpenOnly}
-                      onCheckedChange={setShowOpenOnly}
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Advanced Filters Toggle */}
@@ -384,45 +413,51 @@ export function SearchFilters({
             {/* Advanced Filters - Collapsible */}
             {showAdvanced && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                {/* Level */}
+                {/* Room/Building */}
                 <div>
-                  <Label htmlFor="level" className="text-slate-700 mb-2 block">Level</Label>
-                  <Select value={level} onValueChange={setLevel}>
-                    <SelectTrigger id="level" className="border-slate-300">
-                      <SelectValue placeholder="All Levels" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Levels</SelectItem>
-                      <SelectItem value="100">100-level</SelectItem>
-                      <SelectItem value="200">200-level</SelectItem>
-                      <SelectItem value="300">300-level</SelectItem>
-                      <SelectItem value="400">400-level</SelectItem>
-                      <SelectItem value="500+">500+ level</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Credits */}
-                <div>
-                  <Label htmlFor="credits" className="text-slate-700 mb-2 block">Credits</Label>
-                  <Select value={credits} onValueChange={setCredits}>
-                    <SelectTrigger id="credits" className="border-slate-300">
-                      <SelectValue placeholder="Any Credits" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any Credits</SelectItem>
-                      <SelectItem value="1">1 Credit</SelectItem>
-                      <SelectItem value="2">2 Credits</SelectItem>
-                      <SelectItem value="3">3 Credits</SelectItem>
-                      <SelectItem value="4">4 Credits</SelectItem>
-                      <SelectItem value="5+">5+ Credits</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label htmlFor="roomSearch" className="text-slate-700 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#003366]" />
+                      Room/Building
+                    </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-slate-400 hover:text-[#003366] transition-colors">
+                          <HelpCircle className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Search by building code (e.g., AB) or room number (e.g., AB 135)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Input
+                    id="roomSearch"
+                    placeholder="e.g., AB, AB 135, SEM 234..."
+                    value={roomSearch}
+                    onChange={(e) => setRoomSearch(e.target.value)}
+                    className="border-slate-300 focus:border-[#003366] focus:ring-[#003366]"
+                  />
                 </div>
 
                 {/* Days of Week */}
                 <div className="md:col-span-2 lg:col-span-1">
-                  <Label className="text-slate-700 mb-2 block">Days of Week</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label htmlFor="days" className="text-slate-700 flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4 text-[#003366]" />
+                      Days
+                    </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-slate-400 hover:text-[#003366] transition-colors">
+                          <HelpCircle className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Filter courses by a day they occur on (Mon and Tue will return all courses that occur on at least Monday OR Tuesday)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {DAYS.map((day) => (
                       <button
@@ -438,17 +473,67 @@ export function SearchFilters({
                     ))}
                   </div>
                 </div>
+                
+                {/* Button for generating Course Recommendations */}
+                {role === 'Student' && (
+                  <div className="md:col-span-2 lg:col-span-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="text-slate-700 flex items-center gap-2">
+                        <SearchCheck className="w-4 h-4 text-[#003366]" />
+                        Recommendations
+                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="text-slate-400 hover:text-[#003366] transition-colors">
+                            <HelpCircle className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>
+                            Generate recommended courses based on your selected major and courses already in your planner
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="flex items-center justify-between border border-slate-300 rounded-lg p-3 bg-slate-50">
+                      <span className="text-sm text-slate-700">
+                        Use Recommendations
+                      </span>
+
+                      <Switch
+                        checked={useRecommendations}
+                        onCheckedChange={setUseRecommendations}
+                        className="data-[state=checked]:bg-[#003366] data-[state=unchecked]:bg-slate-300"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Action Buttons */}
             <div className="border-t border-slate-200 pt-6 flex gap-3">
               <Button
-                onClick={onSearch}
+                onClick={() => {
+                  if (useRecommendations) {
+                    onSearchRecommendations();
+                  } else {
+                    onSearch();
+                  }
+                }}
                 className="flex-1 bg-[#003366] hover:bg-[#002244] text-white h-12"
               >
-                <Search className="w-4 h-4 mr-2" />
-                Search Courses
+                {useRecommendations ? (
+                  <>
+                    <SearchCheck className="w-4 h-4 mr-2" />
+                    Get Recommendations
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Search Courses
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"

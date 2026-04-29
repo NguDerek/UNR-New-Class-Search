@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now(UTC), nullable=False)
     role = db.Column(db.String(20), default = 'Student')
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    major_poid = db.Column(db.String(50), db.ForeignKey('program.major_poid'), nullable=True)
     
     planned_sections = db.relationship(
         'Section',

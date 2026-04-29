@@ -6,15 +6,25 @@ import { SearchFilters } from "../components/SearchFilters";
 import { formatTime, getCourseLevel, getCourseCareer, formatInstructionMode } from "../utils/courseHelpers.ts"
 import { executeCourseSearch } from "../utils/searchUtils.ts";
 
+interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  major_poid?: string | null;
+}
+
 interface SearchProps {
     isAuthenticated: boolean;
     role: Role;
     plannedCourseIds: Set<string>;
     handleAddToPlanner: (courseId: string) => void;
     onLoginPrompt: () => void;
+    user: User | null;
 }
 
-export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlanner, onLoginPrompt}: SearchProps) {
+export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlanner, onLoginPrompt, user}: SearchProps) {
     const [term, setTerm] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchQueryType, setSearchQueryType] = useState("all");
@@ -32,6 +42,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     const [searchError, setSearchError] = useState<string | null>(null);
 
     const [hasSearched, setHasSearched] = useState(false);
+    const [searchMode, setSearchMode] = useState<'search' | 'recommendations' | null>(null);
     const [appliedFilters, setAppliedFilters] = useState({
         term: "Spring 2025",
         searchQuery: "",
@@ -47,6 +58,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     });
 
     const handleSearch = async () => {
+        setSearchMode('search');
         setIsSearching(true);
         setSearchError(null);
         setHasSearched(true);
@@ -55,8 +67,8 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
             const response = await executeCourseSearch({
                 searchQuery, searchQueryType, department, roomSearch, selectedDays,
                 term, courseCareer, credits, modeOfInstruction,
-                level, showOpenOnly,
-            });
+                level, showOpenOnly}, true, '0'
+            );
 
             if (response.status === 'success') {
                 setSearchResults(response.sections);
@@ -73,6 +85,36 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
             setIsSearching(false);
         }
     };
+
+    const handleRecommendations = async () => {
+        console.log("major_poid being used:", user?.major_poid);
+        setSearchMode('recommendations');
+        setIsSearching(true);
+        setSearchError(null);
+        setHasSearched(true);
+
+        try {
+            const response = await executeCourseSearch({
+                searchQuery, searchQueryType, department, roomSearch, selectedDays,
+                term, courseCareer, credits, modeOfInstruction,
+                level, showOpenOnly}, false, user?.major_poid ?? '0'
+            );
+
+            if (response.status === 'success') {
+            setSearchResults(response.sections);
+            } else {
+            setSearchError('Recommendation request failed');
+            setSearchResults([]);
+            }
+
+        } catch (error) {
+            console.error('Recommendation error:', error);
+            setSearchError('Failed to fetch recommendations.');
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+        };
 
     const handleReset = () => {
         setTerm("all");
@@ -135,8 +177,10 @@ return (
                 setCredits={setCredits}
                 selectedDays={selectedDays}
                 setSelectedDays={setSelectedDays}
+                role={role}
                 onSearch={handleSearch}
                 onReset={handleReset}
+                onSearchRecommendations={handleRecommendations}
             />
 
             {/* Course Results */}
@@ -149,7 +193,7 @@ return (
                         {!isAuthenticated && (
                             <p className="text-sm text-slate-500">
                                 <button
-                                    onClick={() => onLoginPrompt}
+                                    onClick = {onLoginPrompt}
                                     className="text-[#003366] underline hover:text-[#002244]"
                                 >
                                     Log in
@@ -205,9 +249,15 @@ return (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
-                            <p className="text-slate-600 mb-2">No courses found</p>
+                            <p className="text-slate-600 mb-2">
+                                {searchMode === 'recommendations'
+                                    ? 'No recommendations available'
+                                    : 'No courses found'}
+                            </p>
                             <p className="text-sm text-slate-400">
-                                Try adjusting your filters or search query
+                                {searchMode === 'recommendations'
+                                    ? 'Make sure a course is added to your planner'
+                                    : 'Try adjusting your filters or search query'}
                             </p>
                         </div>
                     )}

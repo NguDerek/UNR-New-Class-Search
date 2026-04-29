@@ -11,6 +11,7 @@ interface User {
   first_name: string;
   last_name: string;
   role: string;
+  major_poid?: string | null;
 }
 
 interface SignUpProps {

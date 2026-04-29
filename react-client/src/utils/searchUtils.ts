@@ -31,7 +31,7 @@ export interface SearchFilterValues {
   showOpenOnly: boolean;
 }
 
-export async function executeCourseSearch(filters: SearchFilterValues){
+export async function executeCourseSearch(filters: SearchFilterValues, isSearch: boolean, majorNumber: string){
     const searchParams: SearchParams = {};
 
     // === SEARCH BAR ===
@@ -143,11 +143,16 @@ export async function executeCourseSearch(filters: SearchFilterValues){
           searchParams.level = '3';;
         } else if (filters.level === '400') {
           searchParams.level = '4';
-        } else if (filters.level === '500+') {
+        } else if (filters.level === '600+') {
           searchParams.level = '5';
         }
       }
 
       //Make API call
-      return await courseAPI.searchCourses(searchParams);
+      if (isSearch == true) {
+        return await courseAPI.searchCourses(searchParams);
+      }
+      else if (isSearch == false) {
+        return await courseAPI.getRecommendations(majorNumber, searchParams);
+      }
 }

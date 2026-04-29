@@ -1,4 +1,4 @@
-import { Home, Search, Calendar, GraduationCap, Settings, User, LogOut, LayoutDashboard, BookUser} from "lucide-react";
+import { Home, Search, Calendar, GraduationCap, /*Settings,*/ User, LogOut, LayoutDashboard, BookUser} from "lucide-react";
 import { cn } from "../lib/utils";
 import UNR_Logo from "../assets/UNR_Logo.svg"
 import type { Role } from "../lib/permissions";
@@ -21,6 +21,7 @@ interface SidebarProps {
     first_name: string;
     last_name: string;
     role: string;
+    major_poid: string;
   } | null;
   onNavigateToLogin: () => void;
 }
@@ -33,7 +34,7 @@ export function Sidebar({ onLogout, onToggle, isOpen, user, onNavigateToLogin }:
     { name: "Search", icon: Search, to: "/search" },
     { name: "Planner", icon: Calendar, to: "/planner", roles: ["Student"] },
     { name: "Programs", icon: GraduationCap, to: "/programs" },
-    { name: "Settings", icon: Settings, to: "/settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
+    //{ name: "Settings", icon: Settings, to: "/settings", roles: ["Student", "Instructor", "Advisor", "Admin"] },
     { name: "Dashboard", icon: LayoutDashboard, to: "/admin", roles: ["Admin"]},
     { name: "About", icon: BookUser, to: "/about"},
   ];
