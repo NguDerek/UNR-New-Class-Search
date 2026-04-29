@@ -233,7 +233,7 @@ export function SearchFilters({
                   <SelectTrigger id="department" className="border-slate-300">
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-52 overflow-y-auto">
                     <SelectItem value="all">All Departments</SelectItem>
                     {departments.map(dept => (
                       <SelectItem key={dept.id} value={dept.college}>
