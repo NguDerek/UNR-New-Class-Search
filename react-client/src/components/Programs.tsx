@@ -15,13 +15,13 @@ interface ProgramsProps {
 }
 
 export function Programs({ role, currentMajorPoid, onMajorSelected }: ProgramsProps) {
-  const [colleges, setColleges]         = useState<CollegeGroup[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState<string | null>(null);
-  const [search, setSearch]             = useState("");
-  const [expanded, setExpanded]         = useState<string | null>(null);
+  const [colleges, setColleges] = useState<CollegeGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedPoid, setSelectedPoid] = useState<string | null>(currentMajorPoid ?? null);
-  const [saving, setSaving]             = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     courseAPI.fetchPrograms()

@@ -402,7 +402,6 @@ def login():
         print("Email: " + current_user.email)
         print("First Name: " + current_user.first_name)
         print("Last Name: " +current_user.last_name)
-        print("Major Poid: " +current_user.major_poid)
         
         return jsonify({
             'message': 'Login successful',
@@ -1196,6 +1195,77 @@ def set_user_major():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+    
+@app.route("/programs/attachments/upload", methods=["POST"])
+@login_required
+def upload_program_attachment():
+    try:
+        program_id = request.form.get("program_id")
+        file = request.files.get("file")
+
+        if not program_id or not file:
+            return jsonify({"error": "Missing program_id or file"}), 400
+
+        program = db.session.get(Program, int(program_id))
+        if not program:
+            return jsonify({"error": "Course not found"}), 404
+
+        upload_dir = os.path.join(app.instance_path, "uploads", "program_attachments")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        safe_name = secure_filename(file.filename)
+        stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+        file_path = os.path.join(upload_dir, stored_name)
+        file.save(file_path)
+
+        attachment = ProgramAttachments(
+            section_id=program.id,
+            filename=stored_name,
+            original_name=file.filename,
+            mime_type=file.mimetype,
+            file_path=file_path,
+        )
+        db.session.add(attachment)
+        db.session.commit()
+
+        return jsonify({
+            "message": "File uploaded",
+            "attachment": {
+                "id": attachment.id,
+                "program_id": program.id,
+                "original_name": attachment.original_name,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/programs/attachments/<int:att_id>/download")
+def download_program_attachment(att_id):
+    att = ProgramAttachments.query.get_or_404(att_id)
+    
+    return send_from_directory(
+        os.path.dirname(att.file_path),
+        os.path.basename(att.file_path),
+        as_attachment=True,
+        download_name=att.original_name,
+        mimetype=att.mime_type
+    )
+
+@app.route("/programs/attachments/<int:att_id>", methods=["DELETE"])
+@login_required
+def delete_program_attachment(att_id):
+    att = ProgramAttachments.query.get_or_404(att_id)
+    
+    try:
+        os.remove(att.file_path)
+        db.session.delete(att)
+        db.session.commit()
+        return jsonify({"message": "File deleted"}), 200
+    except OSError:
+        db.session.rollback()
+        return jsonify({"error": "File delete failed"}), 500
      
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
