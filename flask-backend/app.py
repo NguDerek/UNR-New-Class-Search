@@ -6,6 +6,8 @@ import uuid
 from database import db
 from flask_cors import CORS
 from models.user import User
+from models.admin_logs import AdminLogs
+from services.admin_service import log_admin_action
 from models.user import user_planned_section
 from models.section_attachments import SectionAttachment
 from dotenv import load_dotenv
@@ -742,7 +744,7 @@ def create_section():
     try:
         data = request.get_json()
 
-        section, error = create_section_service(data)
+        section, error = create_section_service(data, current_user)
 
         if error:
             return jsonify({'error': error[0]}), error[1]
@@ -787,7 +789,7 @@ def create_course():
     try:
         data = request.get_json()
 
-        course, error = create_course_service(data)
+        course, error = create_course_service(data, current_user)
 
         if error:
             return jsonify({'error': error[0]}), error[1]
@@ -822,7 +824,7 @@ def delete_section(section_id):
         return admin_error
 
     try:
-        error = delete_section_service(section_id)
+        error = delete_section_service(section_id, current_user)
 
         if error:
             return jsonify({'error': error[0]}), error[1]
@@ -845,7 +847,7 @@ def delete_course(course_id):
         return admin_error
 
     try:
-        error = delete_course_service(course_id)
+        error = delete_course_service(course_id, current_user)
 
         if error:
             return jsonify({'error': error[0]}), error[1]
@@ -914,7 +916,7 @@ def delete_course_sections_by_term(course_id):
         if not term_id:
             return jsonify({'error': 'term_id is required'}), 400
 
-        error = delete_course_sections_by_term_service(course_id, term_id)
+        error = delete_course_sections_by_term_service(course_id, term_id, current_user)
 
         if error:
             return jsonify({'error': error[0]}), error[1]
@@ -954,6 +956,7 @@ def lookup_admin_course():
         'status': 'success',
         'course': {
             'id': course.id,
+            'department_id': course.department_id,
             'subject': course.subject,
             'catalog_num': course.catalog_num,
             'title': course.title,
@@ -1017,6 +1020,12 @@ def update_course(course_id):
             int(course.catalog_num) if course.catalog_num.isdigit() else None
         )
 
+        log_admin_action(
+            current_user,
+            "UPDATE_COURSE",
+            f"Updated course {course.subject} {course.catalog_num} - {course.title}"
+        )
+
         db.session.commit()
 
         return jsonify({
@@ -1027,6 +1036,31 @@ def update_course(course_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+    
+from models.admin_logs import AdminLogs
+
+@app.route('/admin/history', methods=['GET'])
+@login_required
+def get_admin_history():
+    admin_error = require_admin()
+    if admin_error:
+        return admin_error
+
+    try:
+        logs = db.session.execute(
+            db.select(AdminLogs)
+            .order_by(AdminLogs.created_at.desc())
+            .limit(50)
+        ).scalars().all()
+
+        return jsonify({
+            "status": "success",
+            "logs": [log.format() for log in logs]
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
      
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
