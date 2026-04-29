@@ -2,18 +2,21 @@ import os
 import psycopg2
 import traceback
 import random
+import uuid
 from database import db
 from flask_cors import CORS
 from models.user import User
 from models.user import user_planned_section
+from models.section_attachments import SectionAttachment
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 from flask_mail import Mail, Message
 from flask_wtf.csrf import generate_csrf
 from itsdangerous import URLSafeTimedSerializer
-from flask import Flask, redirect, request, jsonify
+from flask import Flask, redirect, request, jsonify, send_from_directory
 from dbconnect.connection import DatabaseConnection
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 load_dotenv()  # load variables from .env
@@ -108,6 +111,7 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
     #return User.query.get(int(user_id)) #deprecated
     
+#Emails
 pending_verifications = {}
     
 @app.route('/signup', methods=['POST'])
@@ -142,10 +146,34 @@ def signup():
             'first_name': first_name,
             'last_name': last_name,
             'password': generate_password_hash(password),
+            'role': role
         }
         
-        msg = Message('NCS Verification Code', recipients=[email])
-        msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        if role == 'Student':
+            #User
+            recipients = [email]
+            msg = Message('NCS Verification Code', recipients=recipients)
+            msg.body = f"Hi {first_name},\n\nYour verification code is: {code}\n\nThis code expires in 5 minutes."
+        else:
+            #Emails from .env
+            #Format=admin@unr.edu,staff@unr.edu
+            staff_emails_raw = os.environ.get('STAFF_EMAILS', '')
+            staff_emails = [e.strip() for e in staff_emails_raw.split(',') if e.strip()]
+
+            if not staff_emails:
+                return jsonify({'error': 'No emails available in .env.'}), 500
+
+            recipients = staff_emails
+            msg = Message('NCS Staff Verification Code', recipients=recipients)
+            msg.body = (
+                f"A new {role} account is pending verification.\n\n"
+                f"Name: {first_name} {last_name}\n"
+                f"Email: {email}\n"
+                f"Role: {role}\n\n"
+                f"Verification code: {code}\n\n"
+                f"This code expires in 5 minutes.\n"
+                f"Please share this code with the registrant."
+            )
         mail.send(msg)
 
         return jsonify({'message': 'Verification code sent'}), 200
@@ -184,6 +212,7 @@ def verify_email():
             last_name=pending['last_name'],
             email=email,
             password=pending['password'],
+            role=pending.get('role', 'Student'),
             is_verified=True
         )
         db.session.add(new_user)
@@ -222,6 +251,117 @@ def resend_verification():
 
     except Exception as e:
         print(f"Resend error: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+# Passwords
+pending_resets = {}
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+
+        # Check user exists
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if not user:
+            return jsonify({'message': 'If that email exists, a code was sent'}), 200
+
+        code = str(random.randint(100000, 999999))
+        token = timedSerializer.dumps({'email': email, 'code': code}, salt='password-reset')
+
+        pending_resets[email] = {
+            'token': token,
+            'code': code,
+        }
+
+        msg = Message('NCS Password Reset Code', recipients=[email])
+        msg.body = (
+            f"Hi {user.first_name},\n\n"
+            f"Your password reset code is: {code}\n\n"
+            f"This code expires in 5 minutes.\n\n"
+            f"If you didn't request this, ignore this email."
+        )
+        mail.send(msg)
+
+        return jsonify({'message': 'Reset code sent'}), 200
+
+    except Exception as e:
+        print(f"Forgot password error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/verify-reset-code', methods=['POST'])
+def verify_reset_code():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+
+        pending = pending_resets.get(email)
+        if not pending:
+            return jsonify({'error': 'No reset request found. Please try again.'}), 400
+
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='password-reset',
+                max_age=300
+            )
+        except Exception:
+            del pending_resets[email]
+            return jsonify({'error': 'Code expired. Please request a new one.'}), 400
+
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+
+        return jsonify({'message': 'Code verified'}), 200
+
+    except Exception as e:
+        print(f"Verify reset code error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        code = data.get('code')
+        new_password = data.get('new_password')
+
+        pending = pending_resets.get(email)
+        if not pending:
+            return jsonify({'error': 'No reset request found. Please try again.'}), 400
+
+        try:
+            payload = timedSerializer.loads(
+                pending['token'],
+                salt='password-reset',
+                max_age=300
+            )
+        except Exception:
+            del pending_resets[email]
+            return jsonify({'error': 'Code expired. Please request a new one.'}), 400
+
+        if payload['code'] != code:
+            return jsonify({'error': 'Invalid code'}), 400
+
+        # Password Update
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+
+        del pending_resets[email]
+
+        return jsonify({'message': 'Password reset successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Reset password error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
@@ -290,6 +430,78 @@ def auth_status():
             }
         }), 200
     return jsonify({'authenticated': False}), 200
+
+@app.route("/attachments/upload", methods=["POST"])
+@login_required
+def upload_attachment():
+    try:
+        section_id = request.form.get("section_id")
+        file = request.files.get("file")
+
+        if not section_id or not file:
+            return jsonify({"error": "Missing section_id or file"}), 400
+
+        section = db.session.get(Section, int(section_id))
+        if not section:
+            return jsonify({"error": "Course not found"}), 404
+
+        upload_dir = os.path.join(app.instance_path, "uploads", "section_attachments")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        safe_name = secure_filename(file.filename)
+        stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+        file_path = os.path.join(upload_dir, stored_name)
+        file.save(file_path)
+
+        attachment = SectionAttachment(
+            section_id=section.id,
+            filename=stored_name,
+            original_name=file.filename,
+            mime_type=file.mimetype,
+            file_path=file_path,
+        )
+        db.session.add(attachment)
+        db.session.commit()
+
+        return jsonify({
+            "message": "File uploaded",
+            "attachment": {
+                "id": attachment.id,
+                "section_id": section.id,
+                "original_name": attachment.original_name,
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/attachments/<int:att_id>/download")
+def download_attachment(att_id):
+    att = SectionAttachment.query.get_or_404(att_id)
+    
+    return send_from_directory(
+        os.path.dirname(att.file_path),
+        os.path.basename(att.file_path),
+        as_attachment=True,
+        download_name=att.original_name,
+        mimetype=att.mime_type
+    )
+
+@app.route("/attachments/<int:att_id>", methods=["DELETE"])
+@login_required
+def delete_attachment(att_id):
+    att = SectionAttachment.query.get_or_404(att_id)
+    
+    try:
+        os.remove(att.file_path)
+        db.session.delete(att)
+        db.session.commit()
+        return jsonify({"message": "File deleted"}), 200
+    except OSError:
+        db.session.rollback()
+        return jsonify({"error": "File delete failed"}), 500
+    
 
 from models.department import Department
 @app.route("/departments")

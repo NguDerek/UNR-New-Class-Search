@@ -38,6 +38,7 @@ class Section(db.Model):
         secondary=section_instructor,
         backref='sections'
     )
+    section_attachments = db.relationship('SectionAttachment', backref='sections', lazy=True)
 
     #Format method to convert properties into json format
     def format(self, include_course=False, include_term=False, include_instructors=False):

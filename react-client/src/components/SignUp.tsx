@@ -29,6 +29,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
   const [submitted, setSubmitted] = useState(false);
   const [verifyCode, setVerifyCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [submittedRole, setSubmittedRole] = useState("");
 
   useEffect(() => {
     fetch('/api/csrf-token', {
@@ -45,7 +46,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
     setError("");
 
     // Validation
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !role) {
       setError("Please fill in all fields");
       return;
     }
@@ -89,6 +90,7 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
         return response.json();
       })
       .then(() => {
+        setSubmittedRole(role);
         setSubmitted(true);
       })
       .catch((error: Error) => {
@@ -161,61 +163,90 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center space-y-4">
-          <div className="text-5xl">✉</div>
-          <h2 className="text-[#003366]">Check your email</h2>
-          <p className="text-slate-600">
-            We sent a verification code to <strong>{email}</strong>
-          </p>
-
-          <form onSubmit={handleVerify} className="space-y-4 text-left">
-            <div className="space-y-2">
-              <Label htmlFor="verifyCode" className="text-slate-700">
-                Verification Code
-              </Label>
-              <Input
-                id="verifyCode"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="123456"
-                value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value)}
-                className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]"
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#003366] via-[#004080] to-[#003366] px-4 py-8">
+        <div className="w-full max-w-md">
+          {/* Logo and Title */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-[#003366] shadow-lg mb-6 border-4 border-white">
+              {/* UNR Logo */}
+              <img
+                src={UNR_Logo}
+                alt="UNR Logo"
+                className="w-full h-full object-contain"
               />
             </div>
+            <h1 className="text-white mb-2">University of Nevada, Reno</h1>
+            <p className="text-blue-200">Course Search & Planning</p>
+          </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                <p className="text-sm">{error}</p>
+          {/* Verification Form */}
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center space-y-4">
+            <div className="text-5xl">✉</div>
+            <h2 className="text-[#003366]">Check your email</h2>
+            <p className="text-slate-600">
+              {submittedRole === "Student" ? (
+                <>We sent a verification code to <strong>{email}</strong></>
+              ) : (
+                <>
+                  A verification code was sent to an admin.
+                  Ask your administrator for the code to complete registration.
+                </>
+              )}
+            </p>
+
+            <form onSubmit={handleVerify} className="space-y-4 text-left">
+              <div className="space-y-2">
+                <Label htmlFor="verifyCode" className="text-slate-700">
+                  Verification Code
+                </Label>
+                <Input
+                  id="verifyCode"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value)}
+                  className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]"
+                />
               </div>
-            )}
 
-            <Button
-              type="submit"
-              className="w-full h-11 bg-[#003366] hover:bg-[#004080] text-white rounded-lg transition-colors"
-              disabled={isVerifying}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11 bg-[#003366] hover:bg-[#004080] text-white rounded-lg transition-colors"
+                disabled={isVerifying}
+              >
+                {isVerifying ? "Verifying..." : "Verify Email"}
+              </Button>
+            </form>
+
+            <button
+              onClick={handleResend}
+              className="text-sm text-[#003366] underline"
+              type="button"
             >
-              {isVerifying ? "Verifying..." : "Verify Email"}
-            </Button>
-          </form>
+              Resend code
+            </button>
 
-          <button
-            onClick={handleResend}
-            className="text-sm text-[#003366] underline"
-            type="button"
-          >
-            Resend code
-          </button>
+            <button
+              onClick={onNavigateToLogin}
+              className="w-full h-11 border-2 border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white rounded-lg transition-colors text-sm font-medium"
+              type="button"
+            >
+              Back to Login
+            </button>
+          </div>
 
-          <button
-            onClick={onNavigateToLogin}
-            className="w-full h-11 border-2 border-[#003366] text-[#003366] hover:bg-[#003366] hover:text-white rounded-lg transition-colors text-sm font-medium"
-            type="button"
-          >
-            Back to Login
-          </button>
+          {/* Footer */}
+          <p className="text-center text-blue-200 text-sm mt-6">
+            © 2025 University of Nevada, Reno
+          </p>
         </div>
       </div>
     );
@@ -312,6 +343,25 @@ export function SignUp({onNavigateToLogin }: SignUpProps) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-slate-700">
+                Role
+              </Label>
+
+              <Select onValueChange={(value) => setRole(value)}>
+                <SelectTrigger className="h-11 bg-slate-50 border-slate-200 focus:border-[#003366] focus:ring-[#003366]">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Student">Student</SelectItem>
+                  <SelectItem value="Instructor">Instructor</SelectItem>
+                  <SelectItem value="Advisor">Advisor</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {error && (

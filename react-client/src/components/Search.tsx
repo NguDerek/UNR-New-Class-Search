@@ -187,6 +187,7 @@ return (
                                     level={getCourseLevel(section.catalog_num)}
                                     courseCareer={getCourseCareer(section.catalog_num)}
                                     modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                                    attachments={section.attachments}
                                     start_date={section.start_date}
                                     end_date={section.end_date}
                                     role={role}

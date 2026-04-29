@@ -37,6 +37,12 @@ export interface Section {
   catalog_num: string;
   //department: string;
   enrollment_cap: number;
+  attachments?: Array<{
+    id: number;
+    original_name: string;
+    mime_type: string;
+    download_url: string;
+  }>;
   start_date: string;
   end_date: string;
 }
