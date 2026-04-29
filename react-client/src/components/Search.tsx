@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CourseCard } from "../components/CourseCard";
 import type { Section as APISection, SearchParams } from '../services/api'
 import type { Role } from "../lib/permissions";
@@ -41,8 +41,6 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
 
-    const [refreshKey, setRefreshKey] = useState(0);
-
     const [hasSearched, setHasSearched] = useState(false);
     const [searchMode, setSearchMode] = useState<'search' | 'recommendations' | null>(null);
     const [appliedFilters, setAppliedFilters] = useState({
@@ -58,21 +56,6 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
         credits: "all",
         selectedDays: [] as string[],
     });
-
-    const refreshSearchResults = useCallback(async () => {
-        setIsSearching(true);
-        try {
-            if (searchMode === 'search') {
-                await handleSearch();
-            } else if (searchMode === 'recommendations') {
-                await handleRecommendations();
-            }
-        } finally {
-            setIsSearching(false);
-        }
-    }, [searchMode, term, searchQuery, searchQuery, searchQueryType, department, roomSearch, selectedDays,
-        term, courseCareer, credits, modeOfInstruction, level, showOpenOnly,
-        searchMode, user?.major_poid]);
 
     const handleSearch = async () => {
         setSearchMode('search');
@@ -256,7 +239,6 @@ return (
                                     onAddToPlanner={handleAddToPlanner}
                                     showPlannerButton={isAuthenticated}       // hide for guests
                                     onLoginPrompt={() => onLoginPrompt}
-                                    onRefresh={refreshSearchResults}
                                 />
                             ))}
                         </div>
