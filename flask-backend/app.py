@@ -24,6 +24,10 @@ from services.admin_service import (empty_to_none, lookup_course_service, lookup
                                     create_course_service, delete_section_service, delete_course_service, get_course_sections_service, 
                                     delete_course_sections_by_term_service, get_admin_departments_service)
 
+from models.program import Program
+from models.program_attachments import ProgramAttachments
+import json
+
 load_dotenv()  # load variables from .env
 
 app = Flask(__name__)
@@ -1110,6 +1114,35 @@ def get_admin_history():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@app.cli.command("init-programs")
+def init_programs():
+    db.create_all()
+    print("Tables created.")
+
+@app.cli.command("seed-programs")
+def seed_programs():
+    with open("services/data.json", "r") as f:
+        data = json.load(f)
+
+    count = 0
+    for college in data["colleges"]:
+        for major in college["majors"]:
+            exists = Program.query.filter_by(major_poid=major["major_poid"]).first()
+            if exists:
+                continue
+            program = Program(
+                college     = college["name"],
+                major_title = major["major_title"],
+                major_poid  = major["major_poid"],
+                major_link  = major.get("major_link"),
+                description = major.get("major_description"),
+            )
+            db.session.add(program)
+            count += 1
+
+    db.session.commit()
+    print(f"Seeded {count} programs.")  
      
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
