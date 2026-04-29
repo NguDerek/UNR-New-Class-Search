@@ -41,6 +41,7 @@ interface CourseCardProps {
     mime_type: string;
     download_url: string;
   }>;
+  onRefresh?: () => void;
 }
 
 
@@ -74,7 +75,7 @@ export function CourseCard({
   onSwapWithCourse,
   isConflict = false,
   attachments,
-  
+  onRefresh
 }: CourseCardProps) {
   const availabilityPercent = (enrolled / capacity) * 100;
   const availabilityStatus =
@@ -139,6 +140,7 @@ export function CourseCard({
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
       setUploadSuccess("File uploaded successfully");
+      onRefresh?.()
     } catch (err: any) {
       setUploadError(err.message || "Upload failed");
     } finally {
@@ -159,7 +161,7 @@ export function CourseCard({
       });
 
       if (!res.ok) throw new Error('Delete failed');
-
+      onRefresh?.()
     } catch (err: any) {
       alert('Delete failed: ' + err.message);
     } finally {
