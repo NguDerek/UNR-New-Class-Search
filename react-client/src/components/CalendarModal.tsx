@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, CalendarPlus, Check, Download, AlertCircle } from "lucide-react";
+import { X, CalendarPlus, Check, Download, AlertCircle, Info } from "lucide-react";
 import { formatTime } from "../utils/courseHelpers.ts"
 import { createEvents, type EventAttributes } from "ics";
 
@@ -157,20 +157,31 @@ export function CalendarModal({ plannedCourses, conflictIds, onClose}: CalendarM
     );
   const [exportError, setExportError] = useState<string | null>(null);
   const [exported, setExported] = useState(false);
+  const [isConflictSelected, setIsConflictSelected] = useState(false);
 
   const toggleCourse = (id: number) => {
+    if (isConflictSelected && conflictIds.has(id) && !selected.has(id))
+        return;
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
     });
+
+    if (conflictIds.has(id)) {
+        setIsConflictSelected((prev) => !prev);
+    }
   };
 
   const toggleAll = () => {
-    if (selected.size === exportableCourses.length) {
-      setSelected(new Set());
+    const nonConflicting = exportableCourses
+        .filter((s) => !conflictIds.has(s.section_id))
+        .map((s) => s.section_id);
+
+    if (selected.size === nonConflicting.length) {
+        setSelected(new Set());
     } else {
-      setSelected(new Set(exportableCourses.map((s) => s.section_id)));
+        setSelected(new Set(nonConflicting));
     }
   };
 
@@ -215,35 +226,6 @@ export function CalendarModal({ plannedCourses, conflictIds, onClose}: CalendarM
   const allSelected = selected.size === exportableCourses.length;
   const noneExportable = exportableCourses.length === 0;
 
-  {/* Color themeing for when classes conflict */}
-  const theme = isConflict
-  ? {
-      line: "border-red-600 bg-red-50",
-      title: "border-red-300",
-      courseCareer: "bg-red-100 text-red-700 border-red-200",
-      component: "border-red-300",
-      credits: "text-red-700 bg-red-100",
-      section: "border-red-300",
-      schedule: "text-red-500",
-      location: "text-red-500",
-      modeOfInstruction: "text-red-500",
-      dates: "text-red-500",
-      removeBtn: "bg-red-200 hover:bg-red-300"
-    }
-  : {
-      card: "border-slate-200 bg-white",
-      code: "from-indigo-600 to-blue-600",
-      department: "border-slate-300",
-      courseCareer: "bg-indigo-100 text-indigo-700 border-indigo-200",
-      component: "border-slate-300",
-      credits: "text-slate-500 bg-slate-100",
-      section: "border-slate-300",
-      schedule: "text-indigo-500",
-      location: "text-indigo-500",
-      modeOfInstruction: "text-indigo-500",
-      dates: "text-indigo-500",
-      removeBtn: "bg-red-100 hover:bg-red-200"
-    }
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -267,91 +249,127 @@ export function CalendarModal({ plannedCourses, conflictIds, onClose}: CalendarM
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-5 py-4 flex flex-col gap-4">
-          <p className="text-sm text-slate-600">
-            Select the courses you'd like to export. A <strong>.ics</strong> file will be
-            downloaded and can be imported into Google Calendar, Apple Calendar, Outlook, and more.
-          </p>
+        {/* Make list of classes scrollable */}
+        <div className="overflow-y-auto flex-1 p-4 space-y-4">
+            {/* Body */}
+            <div className="px-5 py-4 flex flex-col gap-4">
+            <p className="text-sm text-slate-600">
+                Select the courses you'd like to export. A <strong>.ics</strong> file will be
+                downloaded and can be imported into Google Calendar, Apple Calendar, Outlook, and more.
+            </p>
+                {/* Conflict message */}
+                {isConflict && (
+                    <div className=" bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+                        <Info className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="text-red-900 font-medium mb-1">
+                            Scheduling Conflicts Detected<br></br>
+                            </p>
+                            <p className="text-red-900 text-sm">
+                                Please only <b>pick at most one</b> of your conflicting courses to export to your calendar.
+                            </p>
+                        </div>
+                    </div>
+                )}
+            {noneExportable ? (
+                <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>No courses with scheduled meeting times found in your planner.</span>
+                </div>
+            ) : (
+                <>
+                {/* Select All */}
+                <button
+                    onClick={toggleAll}
+                    className="text-sm text-[#003366] font-medium hover:underline text-left"
+                >
+                    {allSelected ? "Deselect all" : "Select all"}
+                </button>
 
-          {noneExportable ? (
-            <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>No courses with scheduled meeting times found in your planner.</span>
-            </div>
-          ) : (
-            <>
-              {/* Select All */}
-              <button
-                onClick={toggleAll}
-                className="text-sm text-[#003366] font-medium hover:underline text-left"
-              >
-                {allSelected ? "Deselect all" : "Select all"}
-              </button>
+                {/* Course list */}
+                <ul className="divide-y divide-slate-100 border border-slate-400 rounded-lg overflow-hidden">
+                    {exportableCourses.map((section) => {
+                        const isConflictCourse = conflictIds.has(section.section_id);
+                        const isChecked = selected.has(section.section_id);
+                        const courseCode = `${section.course.subject} ${section.course.catalog_num}`;
+                        const instructor =
+                            section.instructors.length > 0
+                            ? section.instructors.map((i) => i.full_name).join(", ")
+                            : "TBA";
+        
+                        {/* Themeing for the rows of conflicting courses*/}
+                        const theme = isConflictCourse
+                        ? {
+                            area: "bg-red-50 hover:bg-red-100",
+                            title: "border-slate-600",
+                            info: "text-red-500",
+                            checked: "bg-red-600 border-red-600",
+                            unchecked: "border-red-200 bg-red-50",
+                            courseCode: "text-red-800"
+                            }
+                        : {
+                            area: "bg-white hover:bg-slate-200",
+                            title: "border-slate-600",
+                            info: "text-slate-500",
+                            checked: "bg-[#003366] border-[#003366]",
+                            unchecked: "border-slate-300 bg-white",
+                            courseCode: "text-slate-800"
+                            }
 
-              {/* Course list */}
-              <ul className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
-                {exportableCourses.map((section) => {
-                  const isChecked = selected.has(section.section_id);
-                  const courseCode = `${section.course.subject} ${section.course.catalog_num}`;
-                  const instructor =
-                    section.instructors.length > 0
-                      ? section.instructors.map((i) => i.full_name).join(", ")
-                      : "TBA";
-
-                  return (
-                    <li key={section.section_id}>
-                      <button
-                        onClick={() => toggleCourse(section.section_id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-200 transition-colors text-left"
-                      >
-                        {/* Checkbox */}
+                    return (
+                        <li key={section.section_id}>
                         <div
-                          className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
-                            isChecked
-                              ? "bg-[#003366] border-[#003366]"
-                              : "border-slate-300 bg-white"
-                          }`}
+                            onClick={() => toggleCourse(section.section_id)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${theme.area}`}
                         >
-                          {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                            {/* Checkbox */}
+                            <div
+                            className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
+                                isChecked
+                                ? `${theme.checked}`
+                                : `${theme.unchecked}`
+                            }`}
+                            >
+                            {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                            </div>
+
+                            {/* Course info */}
+                            <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold ${theme.courseCode} truncate`}>
+                                {courseCode}
+                                <span className={`font-normal ${theme.title} ml-1`}>
+                                — {section.course.title}
+                                </span>
+                            </p>
+                            <p className={`text-xs ${theme.info} truncate mt-0.5`}>
+                                {section.days} · {`${formatTime(section.start_time)} – ${formatTime(section.end_time)}`} · {instructor}
+                            </p>
+                            </div>
                         </div>
+                        </li>
+                    );
+                    })}
+                </ul>
 
-                        {/* Course info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
-                            {courseCode}
-                            <span className="font-normal text-slate-600 ml-1">
-                              — {section.course.title}
-                            </span>
-                          </p>
-                          <p className="text-xs text-slate-500 truncate mt-0.5">
-                            {section.days} · {`${formatTime(section.start_time)} – ${formatTime(section.end_time)}`} · {instructor}
-                          </p>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                {/* Courses without schedule */}
+                {plannedCourses.length > exportableCourses.length && (
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {plannedCourses.length - exportableCourses.length} course(s) without scheduled
+                    times are not available for export.
+                    </p>
+                )}
+                </>
+            )}
 
-              {/* Courses without schedule */}
-              {plannedCourses.length > exportableCourses.length && (
-                <p className="text-xs text-slate-400 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {plannedCourses.length - exportableCourses.length} course(s) without scheduled
-                  times are not available for export.
-                </p>
-              )}
-            </>
-          )}
-
-          {/* Error message */}
-          {exportError && (
-            <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{exportError}</span>
+            {/* Error message */}
+            {exportError && (
+                <div className="flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{exportError}</span>
+                </div>
+            )}
             </div>
-          )}
         </div>
 
         {/* Footer */}
