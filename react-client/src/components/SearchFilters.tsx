@@ -77,6 +77,7 @@ export function SearchFilters({
   const [isCollapsed, setIsCollapsed] = useState(false);
   // Inside the component:
   const [departments, setDepartments] = useState<Array<{id: number, department_code: string, college: string}>>([]);
+  let uniqueColleges = [...new Set(departments.map(dept => dept.college))].sort();
 
   const placeholders: Record<string, string> = {
     all: "Course code, subject, number, title, or instructor",
@@ -216,7 +217,7 @@ export function SearchFilters({
                 <div className="flex items-center gap-2 mb-2">
                   <Label htmlFor="department" className="text-slate-700 flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-[#003366]" />
-                    Department
+                    College
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -225,21 +226,21 @@ export function SearchFilters({
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>Filter courses by academic department/specific college</p>
+                      <p>Filter courses by specific college</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <Select value={department} onValueChange={setDepartment}>
                   <SelectTrigger id="department" className="border-slate-300">
-                    <SelectValue placeholder="All Departments" />
+                    <SelectValue placeholder="All Colleges" />
                   </SelectTrigger>
                   <SelectContent className="max-h-52 overflow-y-auto">
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map(dept => (
-                      <SelectItem key={dept.id} value={dept.college}>
-                        {dept.college}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">All Colleges</SelectItem>
+                      {uniqueColleges.map(college => (
+                        <SelectItem key={college} value={college}>
+                          {college}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
