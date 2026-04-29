@@ -31,6 +31,8 @@ interface Course {
     title: string;
     units: number;
   };
+  start_date: string;
+  end_date: string;
 }
 
 interface SwapModalProps{
@@ -83,8 +85,6 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                 term, courseCareer, credits, modeOfInstruction,
                 level, showOpenOnly,
             });
-
-            // ← response is used inside try, not outside it
             if (response.status === "success") {
             setResults(response.sections);
             } 
@@ -130,7 +130,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="absolute inset-0 bg-black/50" 
+        onClick={onClose} />
 
         {/* Modal */}
         <div className="relative z-10 bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col mx-4">
@@ -219,6 +220,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                             level={getCourseLevel(section.catalog_num)}
                             courseCareer={getCourseCareer(section.catalog_num)}
                             modeOfInstruction={formatInstructionMode(section.instruction_mode)}
+                            start_date={section.start_date}
+                            end_date={section.end_date}
                             isInPlanner={isAlreadyPlanned || isCurrentCourse}
                             // In SwapModal, in your onSwapWithCourse handler:
                             onSwapWithCourse={() => {
@@ -236,6 +239,8 @@ export function SwapModal({courseToSwap, plannedCourseIds, onSwap, onClose}: Swa
                                 capacity: section.enrollment_cap,
                                 status: section.status,
                                 combined: section.combined,
+                                start_date: section.start_date,
+                                end_date: section.end_date,
                                 instructors: section.instructors ?? (
                                     section.instructor && section.instructor !== "TBA"
                                         ? [{ id: 0, first_name: "", last_name: "", full_name: section.instructor }]

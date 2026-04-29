@@ -43,6 +43,8 @@ export interface Section {
     mime_type: string;
     download_url: string;
   }>;
+  start_date: string;
+  end_date: string;
 }
 
 export interface SectionDetails {

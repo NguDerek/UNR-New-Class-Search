@@ -257,7 +257,9 @@ class SearchService:
                 #"department": s.get_course().get_department().college
                 "enrollment_cap": s.enrollment_capacity,
                 "attachments": attachments,
-                "section_id": s.id
+                "section_id": s.id,
+                "start_date": s.term.start_date,
+                "end_date": s.term.end_date
             })
 
         return results
