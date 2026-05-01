@@ -12,7 +12,7 @@ interface User {
   first_name: string;
   last_name: string;
   role: string;
-  major_poid?: string | null;
+  poid?: string | null;
 }
 
 interface SearchProps {
@@ -87,7 +87,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
     };
 
     const handleRecommendations = async () => {
-        console.log("major_poid being used:", user?.major_poid);
+        console.log("poid being used:", user?.poid);
         setSearchMode('recommendations');
         setIsSearching(true);
         setSearchError(null);
@@ -97,7 +97,7 @@ export function Search({isAuthenticated, role, plannedCourseIds, handleAddToPlan
             const response = await executeCourseSearch({
                 searchQuery, searchQueryType, department, roomSearch, selectedDays,
                 term, courseCareer, credits, modeOfInstruction,
-                level, showOpenOnly}, false, user?.major_poid ?? '0'
+                level, showOpenOnly}, false, user?.poid ?? '0'
             );
 
             if (response.status === 'success') {

@@ -151,7 +151,7 @@ def full_program_scraper():
                     description = undergrad_soup.find('div', class_='program_description').text
                     unr_programs_map['colleges'][i]['programs'].append({
                         'title': title,
-                        'level': 'undergradute',
+                        'level': 'undergraduate',
                         'poid': poid,
                         'link': link,
                         'description': description
@@ -281,4 +281,4 @@ def full_program_scraper():
         json.dump(unr_programs_map, f, indent=4)
     
 
-full_program_scraper()
+#full_program_scraper()
