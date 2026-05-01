@@ -411,7 +411,7 @@ def login():
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'role': user.role,
-                'major_poid': user.major_poid
+                'poid': user.poid
             }
         }), 200
         
@@ -437,7 +437,7 @@ def auth_status():
                 'first_name': current_user.first_name,
                 'last_name': current_user.last_name,
                 'role': current_user.role,
-                'major_poid': current_user.major_poid
+                'poid': current_user.poid
             }
         }), 200
     return jsonify({'authenticated': False}), 200
@@ -1129,42 +1129,74 @@ def seed_programs():
 
     count = 0
     for college in data["colleges"]:
-        for major in college["majors"]:
-            exists = Program.query.filter_by(major_poid=major["major_poid"]).first()
+        for program in college["programs"]:   
+            exists = Program.query.filter_by(poid=program["poid"]).first()
             if exists:
+                # Update level if it's missing (for existing rows)
+                if not exists.level:
+                    exists.level = program.get("level")
                 continue
-            program = Program(
-                college     = college["name"],
-                major_title = major["major_title"],
-                major_poid  = major["major_poid"],
-                major_link  = major.get("major_link"),
-                description = major.get("major_description"),
+
+            p = Program(
+                college = college["name"],
+                title = program["title"],      
+                poid = program["poid"],      
+                link = program.get("link"),  
+                description = program.get("description"),
+                level = program.get("level"),
             )
-            db.session.add(program)
+            db.session.add(p)
             count += 1
 
     db.session.commit()
-    print(f"Seeded {count} programs.")  
+    print(f"Seeded {count} programs.") 
 
+@app.cli.command("add-level-to-programs")
+def add_level_to_programs():
+    with db.engine.connect() as conn:
+        conn.execute(db.text(
+            "ALTER TABLE program ADD COLUMN IF NOT EXISTS level VARCHAR(50);"
+        ))
+        conn.commit()
+    print("Done.")
+
+from sqlalchemy.orm import subqueryload
 @app.route('/programs', methods=['GET'])
 def get_programs():
-    programs = Program.query.order_by(Program.college, Program.major_title).all()
-    
-    # Converting the SQL entry back into a JSON format similar to original JSON file
+    programs = db.session.execute(
+        db.select(Program).options(subqueryload(Program.attachments))
+        .order_by(Program.college, Program.title)
+    ).scalars().all()
+
     colleges = {}
+    minors = []
+
     for p in programs:
-        colleges.setdefault(p.college, []).append(p.format())
-    
-    return jsonify([
-        {"college": college, "majors": majors}
-        for college, majors in sorted(colleges.items())
-    ])
+        d = p.format()
+        if p.college == "Minor" or p.level == "minor":
+            minors.append(d)
+        else:
+            if p.college not in colleges:
+                colleges[p.college] = {"undergraduate": [], "graduate": []}
+            level_key = "graduate" if p.level == "graduate" else "undergraduate"
+            colleges[p.college][level_key].append(d)
+
+    result = [
+        {
+            "college": college,
+            "undergraduate": programs["undergraduate"],
+            "graduate": programs["graduate"],
+        }
+        for college, programs in sorted(colleges.items())
+    ]
+
+    return jsonify({"colleges": result, "minors": minors})
 
 @app.cli.command("add-major-to-users")
 def add_major_to_users():
     with db.engine.connect() as conn:
         conn.execute(db.text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS major_poid VARCHAR(50) REFERENCES program(major_poid);"
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS poid VARCHAR(50) REFERENCES program(poid);"
         ))
         conn.commit()
     print("Done.")
@@ -1174,22 +1206,23 @@ def add_major_to_users():
 def set_user_major():
     try:
         data = request.get_json()
-        print("Received data:", data)
-        poid = data.get('major_poid')
-        print("Poid:", poid)  
+        poid = data.get('poid')
 
-        # Verify the poid actually exists in the programs table
-        program = Program.query.filter_by(major_poid=poid).first()
+        program = Program.query.filter_by(poid=poid).first()
         if not program:
             return jsonify({'error': 'Program not found'}), 404
 
-        current_user.major_poid = poid
+        # Only allow undergraduate programs as a major
+        if program.level != 'undergraduate':
+            return jsonify({'error': 'Only undergraduate programs can be selected as a major'}), 400
+
+        current_user.poid = poid
         db.session.commit()
 
         return jsonify({
             'message': 'Major updated',
-            'major_poid': poid,
-            'major_title': program.major_title
+            'poid': poid,
+            'title': program.title,
         }), 200
 
     except Exception as e:
@@ -1200,14 +1233,14 @@ def set_user_major():
 @login_required
 def upload_program_attachment():
     try:
-        major_poid = request.form.get("program_id")
+        poid = request.form.get("program_id")
         file = request.files.get("file")
 
-        if not major_poid or not file:
-            return jsonify({"error": "Missing major_poid or file"}), 400
+        if not poid or not file:
+            return jsonify({"error": "Missing poid or file"}), 400
 
         program = db.session.execute(
-            db.select(Program).filter_by(major_poid=major_poid)
+            db.select(Program).filter_by(poid=poid)
         ).scalar_one_or_none()
         
         if not program:
@@ -1269,6 +1302,6 @@ def delete_program_attachment(att_id):
     except OSError:
         db.session.rollback()
         return jsonify({"error": "File delete failed"}), 500
-     
+
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

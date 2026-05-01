@@ -115,16 +115,23 @@ export interface ProgramAttachment {
 export interface Program {
   id: number;
   college: string;
-  major_title: string;
-  major_poid: string;
-  major_link: string;
+  title: string;
+  poid: string;
+  link: string;
   description: string;
+  level: string;
   attachments: ProgramAttachment[];
 }
 
 export interface CollegeGroup {
   college: string;
-  majors: Program[];
+  undergraduate: Program[];
+  graduate: Program[]
+}
+
+export interface ProgramsResponse {
+  colleges: CollegeGroup[];
+  minors: Program[];
 }
 
 class CourseAPI {
@@ -208,7 +215,7 @@ class CourseAPI {
     return response.json();
   }
 
-  async fetchPrograms(): Promise<CollegeGroup[]> {
+  async fetchPrograms(): Promise<ProgramsResponse> {
     const response = await fetch(`${API_BASE_URL}/programs`, {
       credentials: 'include',
     });
@@ -218,7 +225,7 @@ class CourseAPI {
     return response.json();
   }
 
-  async setUserMajor(majorPoid: string): Promise<void> {
+  async setUserMajor(poid: string): Promise<void> {
     // Get CSRF token first (your app already has this route)
     const csrfRes = await fetch(`${API_BASE_URL}/csrf-token`, {
       credentials: 'include',
@@ -232,7 +239,7 @@ class CourseAPI {
         'Content-Type': 'application/json',
         'X-CSRFToken': csrf_token,       // <-- this is what was missing
       },
-      body: JSON.stringify({ major_poid: majorPoid }),
+      body: JSON.stringify({ poid: poid }),
     });
 
     if (!response.ok) {

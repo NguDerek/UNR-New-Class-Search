@@ -6,22 +6,24 @@ class Program(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     college = db.Column(db.String(255), nullable=False)
-    major_title = db.Column(db.String(255), nullable=False)
-    major_poid = db.Column(db.String(50), unique=True, nullable=False)
-    major_link = db.Column(db.String(500))
+    title = db.Column(db.String(255), nullable=False)
+    poid = db.Column(db.String(50), unique=True, nullable=False)
+    link = db.Column(db.String(500))
     description = db.Column(db.Text)
+    level = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.now(UTC))
 
     attachments = db.relationship('ProgramAttachments', backref='program',
-                                  cascade='all, delete-orphan', lazy=True)
+                                  cascade='all, delete-orphan', lazy='subquery')
 
     def format(self):
         return {
             "id": self.id,
             "college": self.college,
-            "major_title": self.major_title,
-            "major_poid": self.major_poid,
-            "major_link": self.major_link,
+            "title": self.title,
+            "poid": self.poid,
+            "link": self.link,
             "description": self.description,
+            "level": self.level,
             "attachments": [a.to_dict() for a in self.attachments],
         }

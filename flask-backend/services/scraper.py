@@ -46,9 +46,12 @@ def full_program_scraper():
     response = requests.get(url)
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    undergraduate_programs_map = {
+    unr_programs_map = {
         'colleges': []
     }
+
+    # Starting with undergraduate course scraping
+
     undergraduate_list_header = soup.find('h2')
     # For some reason, there is a blank tag between the header and list, so I have to grab the next next sibling
     # to retreive the list of undergraduate department programs (Agriculture, Engineering, Science, etc.)
@@ -59,9 +62,9 @@ def full_program_scraper():
         name = department.text
         name = name.replace('\xa0', '')
         name = name.strip() #cleaning the name so there are no excess spaces/special characters
-        undergraduate_programs_map['colleges'].append({
+        unr_programs_map['colleges'].append({
             'name': name,
-            'majors': []
+            'programs': []
         })
         department_link = 'https://catalog.unr.edu/' + department.find('a')['href']
         department_response = requests.get(department_link)
@@ -70,24 +73,25 @@ def full_program_scraper():
 
         # Special case for interdisciplinary programs (the only programs page structured differently)
         if name == 'Interdisciplinary Programs':
-            for program_major_list in department_soup.find_all('ul', class_='program-list'):
-                major_title = ''
-                for program_major in program_major_list.find_all('a'):
-                    major_link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
-                    major_title = program_major.text.strip()
-                    poid = re.findall('poid=[0-9]+', major_link)[0]
+            for program_list in department_soup.find_all('ul', class_='program-list'):
+                title = ''
+                for program_major in program_list.find_all('a'):
+                    link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
+                    title = program_major.text.strip()
+                    poid = re.findall('poid=[0-9]+', link)[0]
                     poid = poid.replace('poid=', '')
-                    major_response = requests.get(major_link)
-                    major_soup = BeautifulSoup(major_response.text, 'html.parser')
-                    major_link = major_link.replace('&print', '')
-                    description = major_soup.find('div', class_='program_description').text
-                    undergraduate_programs_map['colleges'][i]['majors'].append({
-                        'major_title': major_title,
-                        'major_poid': poid,
-                        'major_link': major_link,
-                        'major_description': description
+                    response = requests.get(link)
+                    undergrad_soup = BeautifulSoup(response.text, 'html.parser')
+                    link = link.replace('&print', '')
+                    description = undergrad_soup.find('div', class_='program_description').text
+                    unr_programs_map['colleges'][i]['programs'].append({
+                        'title': title,
+                        'level': 'undergraduate',
+                        'poid': poid,
+                        'link': link,
+                        'description': description
                     })
-                if major_title == 'Computational Linguistics, B.S.':
+                if title == 'Computational Linguistics, B.S.':
                     break
             continue
         
@@ -101,21 +105,22 @@ def full_program_scraper():
         
         # Loop for individual programs/majors within a department/college at UNR
         for program_major in main_table.find_all('a'):
-            major_link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
-            major_title = program_major.text.strip()
-            if len(major_title) == 1:
+            link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
+            title = program_major.text.strip()
+            if len(title) == 1:
                 break
-            poid = re.findall('poid=[0-9]+', major_link)[0]
+            poid = re.findall('poid=[0-9]+', link)[0]
             poid = poid.replace('poid=', '')
-            major_response = requests.get(major_link)
-            major_soup = BeautifulSoup(major_response.text, 'html.parser')
-            major_link = major_link.replace('&print', '')
-            description = major_soup.find('div', class_='program_description').text
-            undergraduate_programs_map['colleges'][i]['majors'].append({
-                'major_title': major_title,
-                'major_poid': poid,
-                'major_link': major_link,
-                'major_description': description
+            response = requests.get(link)
+            undergrad_soup = BeautifulSoup(response.text, 'html.parser')
+            link = link.replace('&print', '')
+            description = undergrad_soup.find('div', class_='program_description').text
+            unr_programs_map['colleges'][i]['programs'].append({
+                'title': title,
+                'level': 'undergraduate',
+                'poid': poid,
+                'link': link,
+                'description': description
             })
 
         # This extra section is for if a department needs multiple web pages to display all major degree programs.
@@ -134,26 +139,146 @@ def full_program_scraper():
                         break
                         
                 for program_major in navigation_table.find_all('a'):
-                    major_link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
-                    major_title = program_major.text.strip()
-                    if len(major_title) == 1:
+                    link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
+                    title = program_major.text.strip()
+                    if len(title) == 1:
                         break
-                    poid = re.findall('poid=[0-9]+', major_link)[0]
+                    poid = re.findall('poid=[0-9]+', link)[0]
                     poid = poid.replace('poid=', '')
-                    major_response = requests.get(major_link)
-                    major_soup = BeautifulSoup(major_response.text, 'html.parser')
-                    major_link = major_link.replace('&print', '')
-                    description = major_soup.find('div', class_='program_description').text
-                    undergraduate_programs_map['colleges'][i]['majors'].append({
-                        'major_title': major_title,
-                        'major_poid': poid,
-                        'major_link': major_link,
-                        'major_description': description
+                    response = requests.get(link)
+                    undergrad_soup = BeautifulSoup(response.text, 'html.parser')
+                    link = link.replace('&print', '')
+                    description = undergrad_soup.find('div', class_='program_description').text
+                    unr_programs_map['colleges'][i]['programs'].append({
+                        'title': title,
+                        'level': 'undergraduate',
+                        'poid': poid,
+                        'link': link,
+                        'description': description
                     })       
                     
-    undergraduate_programs_map['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Now is graduate course scraping
+    graduate_list = undergraduate_list.next_sibling.next_sibling.next_sibling.next_sibling
+    for i, department in enumerate(graduate_list.find_all('li')):
+        name = department.text
+        name = name.replace('\xa0', '')
+        name = name.strip() #cleaning the name so there are no excess spaces/special characters
+        department_link = 'https://catalog.unr.edu/' + department.find('a')['href']
+        department_response = requests.get(department_link)
+        # Web scraping individual departments at UNR
+        department_soup = BeautifulSoup(department_response.text, 'html.parser')
+
+        # Interdisciplinary graduate programs are already found in other specific college catalogs, skipping
+        if name == 'Interdisciplinary Programs':
+            continue
+        
+        main_table = ''
+
+        # Loop for locating correct section of the web page (table with degree programs)
+        for table_element in department_soup.find_all('td', class_='th_lt acalog-highlight-ignore nowrap'):
+            if 'Programs - Locations/Keyword/Phrase Matches' == table_element.text:
+                main_table = table_element.parent.parent #grabbing the parent twice to get main table
+                break
+        
+        # Loop for individual programs/majors within a department/college at UNR
+        for program_major in main_table.find_all('a'):
+            link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
+            title = program_major.text.strip()
+            if len(title) == 1:
+                break
+            poid = re.findall('poid=[0-9]+', link)[0]
+            poid = poid.replace('poid=', '')
+            response = requests.get(link)
+            grad_soup = BeautifulSoup(response.text, 'html.parser')
+            link = link.replace('&print', '')
+            description = grad_soup.find('div', class_='program_description').text
+            unr_programs_map['colleges'][i]['programs'].append({
+                'title': title,
+                'level': 'graduate',
+                'poid': poid,
+                'link': link,
+                'description': description
+            })
+
+        # This extra section is for if a department needs multiple web pages to display all major degree programs.
+        # The code here is the same as the code block above to locate and find individual programs/majors again.
+        navigation_bar = main_table.find('nav')
+        if navigation_bar:
+            for navigation_page in navigation_bar.find_all('a'):
+                navigation_page_url = 'https://catalog.unr.edu/' + navigation_page['href']
+                navigation_response = requests.get(navigation_page_url)
+                navigation_soup = BeautifulSoup(navigation_response.text, 'html.parser')
+                navigation_table = ''
+
+                for table_element in navigation_soup.find_all('td', class_='th_lt acalog-highlight-ignore nowrap'):
+                    if 'Programs - Locations/Keyword/Phrase Matches' == table_element.text:
+                        navigation_table = table_element.parent.parent #grabbing the parent twice to get main table
+                        break
+                        
+                for program_major in navigation_table.find_all('a'):
+                    link = 'https://catalog.unr.edu/' + program_major['href'] + '&print' #&print makes web page easier to scrape
+                    title = program_major.text.strip()
+                    if len(title) == 1:
+                        break
+                    poid = re.findall('poid=[0-9]+', link)[0]
+                    poid = poid.replace('poid=', '')
+                    response = requests.get(link)
+                    grad_soup = BeautifulSoup(response.text, 'html.parser')
+                    link = link.replace('&print', '')
+                    description = grad_soup.find('div', class_='program_description').text
+                    unr_programs_map['colleges'][i]['programs'].append({
+                        'title': title,
+                        'level': 'graduate',
+                        'poid': poid,
+                        'link': link,
+                        'description': description
+                    })
+
+    # Finally, minors scraping (no specific information on colleges, so all in one section right now)
+    minors_list = ''
+    for list_element in soup.find_all('a'):
+        if list_element.text == 'Minor':
+            minors_list = list_element['href']
+            break
+    unr_programs_map['colleges'].append({
+        'name': 'Minors',
+        'programs': []
+    })
+    for i in range(1, 11):
+        minors_link = 'https://catalog.unr.edu' + minors_list + f'&ppage={i}'
+        minors_response = requests.get(minors_link)
+        minors_soup = BeautifulSoup(minors_response.text, 'html.parser')
+        main_table = ''
+
+        # Loop for locating correct section of the web page (table with degree programs)
+        for table_element in minors_soup.find_all('td', class_='th_lt acalog-highlight-ignore nowrap'):
+            if 'Programs - Locations/Keyword/Phrase Matches' == table_element.text:
+                main_table = table_element.parent.parent #grabbing the parent twice to get main table
+                break
+        
+        # Loop for individual programs/majors within a department/college at UNR
+        for program_minor in main_table.find_all('a'):
+            link = 'https://catalog.unr.edu/' + program_minor['href'] + '&print' #&print makes web page easier to scrape
+            title = program_minor.text.strip()
+            if len(title) == 1:
+                break
+            poid = re.findall('poid=[0-9]+', link)[0]
+            poid = poid.replace('poid=', '')
+            response = requests.get(link)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            link = link.replace('&print', '')
+            description = soup.find('div', class_='program_description').text
+            unr_programs_map['colleges'][-1]['programs'].append({
+                'title': title,
+                'level': 'minor',
+                'poid': poid,
+                'link': link,
+                'description': description
+            })
+
+    unr_programs_map['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open('data.json', 'w') as f:
-        json.dump(undergraduate_programs_map, f, indent=4)
+        json.dump(unr_programs_map, f, indent=4)
     
 
 #full_program_scraper()

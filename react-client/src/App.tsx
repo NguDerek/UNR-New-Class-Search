@@ -19,7 +19,7 @@ interface User {
   first_name: string;
   last_name: string;
   role: string;
-  major_poid?: string | null;
+  poid?: string | null;
 }
 
 interface Course {
@@ -300,9 +300,9 @@ export default function App() {
             element={
               <Programs 
                 role={role}
-                currentMajorPoid={user?.major_poid ?? null}
+                currentMajorPoid={user?.poid ?? null}
                 onMajorSelected={(poid) => {
-                setUser((prev) => prev ? { ...prev, major_poid: poid } : prev);
+                setUser((prev) => prev ? { ...prev, poid: poid } : prev);
                 }} 
               />
             } 
